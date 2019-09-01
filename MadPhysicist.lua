@@ -21,11 +21,12 @@ end
 MAP_COLLIDE=set({16})
 
 -- class
-function damage(value, elem):
+function damage(value, elem)
 	dmg={
 		value=value,
 		elem=elem or 0
 	}
+end
 
 function entity(x,y,w,h)
 	ety = {
