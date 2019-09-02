@@ -99,6 +99,8 @@ function player:control()
 	if btn(4) then player:startAttack() end
 end
 function player:update()
+	camera.x = self.x-15*8+4
+	camera.y = self.y-8*8+4
 	player:control()
 	if(self.ti1>0) then
 		self.ti1 = self.ti1 - 1
@@ -110,18 +112,18 @@ function player:draw()
 	local offX=0
 	if(player.fwd==2) then offX=self.w-16	end
 	if(self.state==0) then
-		spr(256+t//20%2 * 2,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
+		sprc(256+t//20%2 * 2,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
 	elseif(self.state==1) then
-		--spr(270-self.ti1//10 * 2,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
+		--sprc(270-self.ti1//10 * 2,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
 
-		if self.ti1>=17 then spr(266,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
-		elseif self.ti1>=15 then spr(268,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
-		else spr(270,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
+		if self.ti1>=17 then sprc(266,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
+		elseif self.ti1>=15 then sprc(268,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
+		else sprc(270,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
 		end
 
-		if self.ti1>=20 then spr(320,self.x+offX+10,self.y-6,1,1,player.fwd-1,0,2,2)
-		elseif self.ti1>=15 then spr(322,self.x+offX+10,self.y-2,1,1,player.fwd-1,0,2,2)
-		else spr(324,self.x+offX+10,self.y+5,1,1,player.fwd-1,0,2,2)
+		if self.ti1>=20 then sprc(320,self.x+offX+10,self.y-6,1,1,player.fwd-1,0,2,2)
+		elseif self.ti1>=15 then sprc(322,self.x+offX+10,self.y-2,1,1,player.fwd-1,0,2,2)
+		else sprc(324,self.x+offX+10,self.y+5,1,1,player.fwd-1,0,2,2)
 		end
 		--local ar = self:atkRect()
 		--rect(ar[1],ar[2],ar[3],ar[4],2)
@@ -199,12 +201,16 @@ function slime(x,y)
 	end
 	
 	function s:draw()
-		spr(480+t//20%2 * 1,self.x,self.y,14,1,0,0,1,1)
+		sprc(480+t//20%2 * 1,self.x,self.y,14,1,0,0,1,1)
 	end
 	return s
 end
 
 -- tool
+function sprc(id,x,y,alpha_color,scale,flip,rotate,cell_width,cell_height)
+	spr(id,x-camera.x,y-camera.y,alpha_color,scale,flip,rotate,cell_width,cell_height)
+end
+
 function MDistance(a, b)
 	return math.abs(b.x-a.x)+math.abs(b.y-a.y)
 end
@@ -275,7 +281,8 @@ end
 iMapManager = {offx=0,offy=0}
 -- function iMapManager:update() end
 function iMapManager:draw()
-	map(0+self.offx,0+self.offy,30,17,0,0,0,1,redraw)
+	map(0+self.offx,0+self.offy,30,17,-camera.x,-camera.y,0,1,redraw)
+	
 	-- todo map redraw
 end
 
