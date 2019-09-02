@@ -114,14 +114,14 @@ function player:draw()
 	elseif(self.state==1) then
 		--spr(270-self.ti1//10 * 2,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
 
-		if self.ti1>=20 then spr(266,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
+		if self.ti1>=17 then spr(266,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
 		elseif self.ti1>=15 then spr(268,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
 		else spr(270,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
 		end
 
-		if self.ti1>=20 then spr(320,self.x+offX+12-8,self.y-9,1,1,player.fwd-1,0,2,2) 
-		elseif self.ti1>=15 then spr(322,self.x+offX+12-5,self.y-7,1,1,player.fwd-1,0,2,2) 
-		else spr(326+(15-self.ti1)//5*2,self.x+offX+11-2,self.y-1,1,1,player.fwd-1,0,2,2) 
+		if self.ti1>=20 then spr(320,self.x+offX+10,self.y-6,1,1,player.fwd-1,0,2,2)
+		elseif self.ti1>=15 then spr(322,self.x+offX+10,self.y-2,1,1,player.fwd-1,0,2,2)
+		else spr(324,self.x+offX+10,self.y+5,1,1,player.fwd-1,0,2,2)
 		end
 		--local ar = self:atkRect()
 		--rect(ar[1],ar[2],ar[3],ar[4],2)
@@ -308,6 +308,7 @@ envManager={}
 --table.insert(mobManager,slime(140,50))
 
 t=0
+camera={x=0,y=0}
 
 mainManager = {mobManager,envManager}
 drawManager = {{iMapManager},envManager,{player},mobManager}
