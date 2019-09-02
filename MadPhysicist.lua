@@ -82,7 +82,9 @@ function player:meleeCalc()
 		if(tar~=self) then
 			-- todo: tar.onHit(damage(self.attack))
 			-- todo: element attack
-			for i=1,5 do tar:move(1,0) end
+			local knockback=1
+			if(self.fwd==2) then knockback=-1 end
+			for i=1,10 do tar:move(knockback,0) end
 			tar:onHit(damage(self.attack,0))
 		end
 	end
@@ -110,20 +112,21 @@ function player:update()
 end
 function player:draw()
 	local offX=0
-	if(player.fwd==2) then offX=self.w-16	end
+	local offX_s=9
+	if(player.fwd==2) then offX=self.w-16 offX_s=-15	end
 	if(self.state==0) then
 		sprc(256+t//20%2 * 2,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
 	elseif(self.state==1) then
 		--sprc(270-self.ti1//10 * 2,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
 
-		if self.ti1>=17 then sprc(266,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
-		elseif self.ti1>=15 then sprc(268,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
+		if self.ti1>=16 then sprc(266,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
+		elseif self.ti1>=14 then sprc(268,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
 		else sprc(270,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
 		end
 
-		if self.ti1>=20 then sprc(320,self.x+offX+10,self.y-6,1,1,player.fwd-1,0,2,2)
-		elseif self.ti1>=15 then sprc(322,self.x+offX+10,self.y-2,1,1,player.fwd-1,0,2,2)
-		else sprc(324,self.x+offX+10,self.y+5,1,1,player.fwd-1,0,2,2)
+		if self.ti1>=16 then sprc(320,self.x+offX_s,self.y-5,1,1,player.fwd-1,0,2,2)
+		elseif self.ti1>=14 then sprc(322,self.x+offX_s,self.y-2,1,1,player.fwd-1,0,2,2)
+		else sprc(324,self.x+offX_s,self.y+4,1,1,player.fwd-1,0,2,2)
 		end
 		--local ar = self:atkRect()
 		--rect(ar[1],ar[2],ar[3],ar[4],2)
