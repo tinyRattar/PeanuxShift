@@ -232,13 +232,13 @@ end
 
 function iEntityCollision(src,tar)
 	local l1=tar.x
-	local r1=tar.x+tar.w
+	local r1=tar.x+tar.w-1
 	local u1=tar.y
-	local d1=tar.y+tar.h
+	local d1=tar.y+tar.h-1
 	local l2=src.x
-	local r2=src.x+src.w
+	local r2=src.x+src.w-1
 	local u2=src.y
-	local d2=src.y+src.h
+	local d2=src.y+src.h-1
 	if(l2>r1 or l1>r2 or u1>d2 or u2>d1)then
 		return false
 	else
