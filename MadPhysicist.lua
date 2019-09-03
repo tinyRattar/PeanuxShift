@@ -3,6 +3,9 @@
 -- desc:   I don't know. Maybe a Zelda-like game.
 -- script: lua
 
+-- predefine
+CAMERA_OFF={15*8-4,8*8-4}
+
 -- predefine set
 function set(ls)
 	local s={}
@@ -101,8 +104,8 @@ function player:control()
 	if btn(4) then player:startAttack() end
 end
 function player:update()
-	camera.x = self.x-15*8+4
-	camera.y = self.y-8*8+4
+	camera.x = self.x-CAMERA_OFF[1]
+	camera.y = self.y-CAMERA_OFF[2]
 	player:control()
 	if(self.ti1>0) then
 		self.ti1 = self.ti1 - 1
@@ -284,7 +287,7 @@ end
 iMapManager = {offx=0,offy=0}
 -- function iMapManager:update() end
 function iMapManager:draw()
-	map(0+self.offx,0+self.offy,30,17,-camera.x,-camera.y,0,1,redraw)
+	map(0+self.offx+camera.x//8,0+self.offy+camera.y//8,31,18,8*(camera.x//8)-camera.x,8*(camera.y//8)-camera.y,0,1,redraw)
 	
 	-- todo map redraw
 end
@@ -319,6 +322,7 @@ envManager={}
 
 t=0
 camera={x=0,y=0}
+
 
 mainManager = {mobManager,envManager}
 drawManager = {{iMapManager},envManager,{player},mobManager}
@@ -395,6 +399,7 @@ end
 -- 126:0000000000000000ddddddddbbbbbbbbaaaaaaaa00000000aaaaaaaa00000000
 -- 127:ddd00000d0000000d00000000000000000000000000000000000000000000000
 -- 128:eeeeeeeeeeffffeeef4444fef0444666f404464ff4444666ef4444f6eefff666
+-- 129:0001000000010000000100000001000000010000000100000001000000010000
 -- 138:a0a0a0a00a0a0a0aa0a0a0a00a0a0a0aa0a0a0a00a0a0a0aa0a0a0a00a0a0a0a
 -- 139:bbbbbbbbbabababaababababaaaaaaaa00000000000000000000000000000000
 -- 140:00000000000000000000000000000000a0a0a0a00a0a0a0aa0a0a0a00a0a0a0a
@@ -716,3 +721,4 @@ end
 -- <PALETTE>
 -- 000:100c1ce234c6595971deca69c23830ce89408dc24414304885b6d271aaca5d65717d8d95994c409daaaac6d2cadeeed6
 -- </PALETTE>
+
