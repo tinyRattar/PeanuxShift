@@ -22,7 +22,7 @@ function set(ls)
 	return s
 end
 MAP_COLLIDE=set({16,141,143,156,159,172,173,174,189,190,191,205,207,221,222,223,238})
-MAP_REMAP_BLANK=set({128})
+MAP_REMAP_BLANK=set({128,144,209})
 
 -- base class
 function damage(iValue, iElem)
@@ -90,12 +90,13 @@ end
 
 -- region PLAYER
 -- _player
-player = entity(32,60,10,16)
+player=entity(32,60,10,16)
 player.fwd = 1
-player.hp = 100
+player.hp = 50
 player.attack = 5
 player.state = 0
 player.ti1 = 0
+player.key1=0
 --player.atkRect = {{player.x+player.w,player.y,10,16},{player.x-10,player.y,10,16}}
 function player:atkRect()
 	p=self
@@ -135,6 +136,15 @@ function player:onHit(dmg)
 	self.hp=self.hp-dmg.value
 	trace("player hp:"..self.hp)
 	--todo: on hit
+end
+function player:hpUp(value)
+	self.hp=self.hp+value
+	if(self.hp>100)then self.hp=100 end
+	trace("player hp:"..self.hp)
+	--todo: hp check
+end
+function player:getKey()
+	self.key1=self.key1+1
 end
 function player:control()
 	-- controller
@@ -195,23 +205,33 @@ function theGravition:use()
 		trace("the Gravition ON!")
 	end
 end
-function theGravition:pull(isReverse)
+function theGravition:iPull(m,isReverse)
+	local scale=m.pullMul
+	if(isReverse)then scale=m.pushMul end
+	if(scale<=0)then return end
 	local ir=1
 	if(isReverse)then ir=-1 end
+	local dv=CenterDisVec(player,m)
+	dv={dv[1]*ir,dv[2]*ir}
+	local dvm=math.abs(dv[1])
+	local dvmt=math.abs(dv[2])
+	if(dvm<dvmt)then dvm=dvmt end
+	if(dvm<1)then return end
+	local mdis=dv[1]*dv[1]+dv[2]*dv[2]
+	if(mdis<self.rangePow2)then
+		m:move(theGravition.force*dv[1]/dvm*scale,theGravition.force*dv[2]/dvm*scale)
+	end
+end
+function theGravition:pull(isReverse)
 	for i=1,#mobManager do
 		local m=mobManager[i]
 		if(m~=player)then
-			local dv=CenterDisVec(player,m)
-			dv={dv[1]*ir,dv[2]*ir}
-			local dvm=math.abs(dv[1])
-			local dvmt=math.abs(dv[2])
-			if(dvm<dvmt)then dvm=dvmt end
-			if(dvm<1)then return end
-			local mdis=dv[1]*dv[1]+dv[2]*dv[2]
-			if(mdis<self.rangePow2)then
-				m:move(theGravition.force*dv[1]/dvm*m.pullMul,theGravition.force*dv[2]/dvm*m.pullMul)
-			end
+			self:iPull(m,isReverse)
 		end
+	end
+	for i=1,#envManager do
+		local e=envManager[i]
+		self:iPull(e,isReverse)
 	end
 end
 function theGravition:push()
@@ -360,8 +380,54 @@ end
 function item(x,y,w,h)
 	local it = entity(x,y,w,h)
 	it.noEntityCollide=true
-	
+
+	function it:remove()
+		for i=1,#envManager do
+			if(envManager[i]==self)then table.remove(envManager,i) end
+		end
+	end
+
+	return it
 end
+
+function apple(x,y)
+	local app=item(x,y,8,8)
+
+	function app:onTaken()
+		player:hpUp(5)
+		-- todo:play something
+		self:remove()
+	end
+
+	function app:update()
+		if(iEntityTrigger(player,self))then self:onTaken() end
+	end
+	function app:draw()
+		sprc(144,self.x,self.y,14,1,0,0,1,1)
+	end
+
+	return app
+end
+
+function keyItem(x,y)
+	local k=item(x,y,8,8)
+
+	function k:onTaken()
+		player:getKey()
+		-- todo:play something
+		self:remove()
+	end
+
+	function k:update()
+		if(iEntityTrigger(player,self))then self:onTaken() end
+	end
+	function k:draw()
+		sprc(209,self.x,self.y,14,1,0,0,1,1)
+	end
+
+	return k
+end
+		
 
 -- region TOOL
 function sprc(id,x,y,alpha_color,scale,flip,rotate,cell_width,cell_height)
@@ -404,19 +470,23 @@ function iEntityCollision(src,tar)
 	if(src.noEntityCollide or tar.noEntityCollide)then
 		return false
 	else
-		local l1=tar.x
-		local r1=tar.x+tar.w-1
-		local u1=tar.y
-		local d1=tar.y+tar.h-1
-		local l2=src.x
-		local r2=src.x+src.w-1
-		local u2=src.y
-		local d2=src.y+src.h-1
-		if(l2>r1 or l1>r2 or u1>d2 or u2>d1)then
-			return false
-		else
-			return true
-		end
+		return iEntityTrigger(src,tar)
+	end
+end
+
+function iEntityTrigger(src,tar)
+	local l1=tar.x
+	local r1=tar.x+tar.w-1
+	local u1=tar.y
+	local d1=tar.y+tar.h-1
+	local l2=src.x
+	local r2=src.x+src.w-1
+	local u2=src.y
+	local d2=src.y+src.h-1
+	if(l2>r1 or l1>r2 or u1>d2 or u2>d1)then
+		return false
+	else
+		return true
 	end
 end
 
@@ -480,6 +550,10 @@ function loadLevel(levelId)
 			local mtId=mget(i+iMapManager.offx,j+iMapManager.offy)
 			if(mtId==128)then 
 				table.insert(mobManager,slime(i*8,j*8))
+			elseif(mtId==144)then
+				table.insert(envManager,apple(i*8,j*8))
+			elseif(mtId==209)then
+				table.insert(envManager,keyItem(i*8,j*8))
 			end
 		end
 	end
@@ -589,6 +663,7 @@ end
 -- 141:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0aaaaaaa0aaaaaaa00aaaaaa0000aaaa
 -- 142:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0aaaaaaa0aaaaaa00aaaa0000
 -- 143:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+-- 144:eeefffeeeef766feef4744fef4444f4ff444444ff444444fef4444feeeffffee
 -- 154:dbbbbbbadbbbbbbadbbbbbbadbbbbbbadbbbbbbadbbbbbbadbbbbbbadbbbbbba
 -- 155:dddddddddddddddddddddddddddddddddddddddddddddddddbdbdbdbbdbdbdbd
 -- 156:ababababbabababaababababbabababaababababbabababaababababbabababa
@@ -761,13 +836,13 @@ end
 -- 004:f0fdf0f0f0fdc9fdbff0f0e4f0f0f0f0f0f0f0f0f0fdc9eceaf7e4f0f6ecf8f0e4bfe4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4f0e4
 -- 005:f0fddddbdcfdcafddddbdbdbdbdbdbdbdbdbdbdbdcfdc9eceae4e4f0e4ecf8f0e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4f0e4
 -- 006:f0cdfffefefeedfefefefefefefefefefefefefefefec9eceae4e4cfe4ecf8f0f0e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4f0f0e4
--- 007:f0cdff0212ffffffff1dffffff08ffffffffffffffffcaeceadddbdbdcebf8f0f0f0e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4f0e4
+-- 007:f0cdff0212ffffffff1d09ffff08ffffffffff09ffffcaeceadddbdbdcebf8f0f0f0e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4f0e4
 -- 008:f0cdff0313ffffffffffffffffffffffeeeeffffffffedfefefefefefefef8f0f0f0e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4f0e4
 -- 009:f0cdffffffffc9eeeeeeeeeeeeeeeeeeb8b8fffffffffffffffffffffffff8f8f8f8f8f8f8f8f8f8e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4f0e4
 -- 010:f0cdffff0dffa9b8b8b8b8b8b8b8b8b8f0f0ffffffffffffffff0cfffffffdfdfdfdfdfdfdfdeafdf0f0e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4f0e4
 -- 011:f0cdffffffffa9f0f0dbdbdbdbdbdbdbdbdbffffffffc9fffffffffffffffdfdfdfdfdfdfdfdeafdf0f0e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4f0e4
 -- 012:f0adeeeeeeeea9f0f0ffffffffffffffffffff08ffffc9cdffff0cfffffffdfdf7f0f0f0f0f0f0f0f0f0e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4f0e4
--- 013:e4e9f9f9f9f9f9f0f0ffffffffffffffffffffffffffa9cdfffffffffffffdfdf0f0f0f0f0f0f0cff0f0e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4f0f0e4
+-- 013:e4e9f9f9f9f9f9f0f0ffffff09ffffffffffffffffffa9cdfffffffffffffdfdf0f0f0f0f0f0f0cff0f0e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4f0f0e4
 -- 014:e4e4bff0f0f0f0f0f0ffffffffeeeeeeeeeeeeeeeeeea9eeeeeeeeeeeeeefdfdf0f0f0f0f0f0f0f0f0f0e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4f0e4e4
 -- 015:4e5ee42e3ef0f0f0f0ffffffffb8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8fdfddddbdbdbdbdbdbdbf0f0e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4f0e4e4
 -- 016:4f5fe42f3ff0f0f0f0fffffffff0f0f0f0f0f0f0f0f0cff0f0f0f0f0f0f0fefefefefefefefefefef0f0e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4f0f0e4
