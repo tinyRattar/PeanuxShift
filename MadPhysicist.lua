@@ -33,13 +33,13 @@ function damage(iValue, iElem)
 	return dmg
 end
 
-function entity(x,y,w,h,c)
+function entity(x,y,w,h,nc)
 	ety = {
 		x=x,
 		y=y,
 		w=w,
 		h=h,
-		collide = c or true
+		nocollide = c or true
 	}
 	function ety:move(dx,dy)
 		self.x=self.x+dx
@@ -284,7 +284,9 @@ function boxOverlapCast(box)
 end
 
 function iEntityCollision(src,tar)
-	if(src.collide and tar.collide)then
+	if(src.noCollide or tar.noCollide)then
+		return false
+	else
 		local l1=tar.x
 		local r1=tar.x+tar.w-1
 		local u1=tar.y
@@ -298,8 +300,6 @@ function iEntityCollision(src,tar)
 		else
 			return true
 		end
-	else
-		return false
 	end
 end
 
