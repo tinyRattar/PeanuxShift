@@ -92,6 +92,11 @@ function player:meleeCalc()
 		end
 	end
 end
+function player:onHit(dmg)
+	self.hp=self.hp-dmg.value
+	trace("player hp:"..self.hp)
+	--todo: on hit
+end
 function player:control()
 	-- controller
 	if(self.state~=-1) then
@@ -144,11 +149,16 @@ function mob(x,y,w,h,hp,alertR)
 	m.state=0
 	m.sleep=true
 	m.alertRange=alertR or 0
+	m.dmgStunTresh=0
+	m.stunTime=30
+	m.tiStun=0
+	m.isEvil=false
 	-- todo: mob spawn with sleep and awake when player approachs.
 	function m:onHit(dmg)
-		self.sleep=true
+		self.sleep=false
 		self.hp=self.hp-dmg.value
-		trace(self.hp)
+		trace("mob hp"..self.hp)
+		if(dmg.value>self.dmgStunTresh)then self.tiStun=self.stunTime end
 		if(self.hp<=0)then self:death() end
 		-- todo: element attack
 	end
@@ -171,9 +181,18 @@ end
 function slime(x,y)
 	-- todo: init slime with mob()
 	local s = mob(x,y,8,8,15,5*8)
-	s.ms = 0.5
-	function s:startAction()
-		self.state=0
+	s.ms=0.5
+	s.tiA=0
+	s.fwd={-1,0}
+	s.meleeRange=(16+8)//2+2
+	s.attack=1
+	function s:startAttack()
+		self.state=1
+		self.tiA=0
+	end
+	function s:meleeCalc()
+		local atkBox={x=self.x+8*self.fwd[1],y=self.y+8*self.fwd[2],w=8,h=8}
+		if(iEntityCollision(player,atkBox))then player:onHit(damage(self.attack)) end
 	end
 
 	function s:update()
@@ -181,33 +200,63 @@ function slime(x,y)
 			self:tryAwake()
 			return
 		end
-
-		local dx=0
-		local dy=0
-		local tx=player.x+player.w//2-self.w//2
-		local ty=player.y+player.h//2-self.h//2
-		if(self.x<tx)then 
-			dx=1
-		elseif(self.x>tx)then
-			dx=-1
+		if(self.tiStun>0)then
+			self.state=0
+			self.tiStun=self.tiStun-1
+			return
 		end
-		if(self.y<ty)then 
-			dy=1
-		elseif(self.y>ty)then
-			dy=-1
+		if(self.state==0)then
+			local dx=0
+			local dy=0
+			local sx=self.x+self.w//2
+			local sy=self.y+self.h//2
+			local tx=player.x+player.w//2
+			local ty=player.y+player.h//2
+			if(sx<tx)then 
+				dx=1
+			elseif(sx>tx)then
+				dx=-1
+			end
+			if(sy<ty)then 
+				dy=1
+			elseif(sy>ty)then
+				dy=-1
+			end
+			-- if(dx~=0 and dy~=0)then
+			-- 	dx=dx*0.5
+			-- 	dy=dy*0.5
+			-- end
+			self:move(dx*self.ms,dy*self.ms*0.5)
+			-- todo: Alert Range
+			-- todo: s:update()
+			-- todo: attack
+			if(MDistance({x=tx,y=ty},{x=sx,y=sy})<=self.meleeRange)then
+				if(math.abs(sx-tx)<(self.w//2))then dx=0 end
+				if(math.abs(sy-ty)<(self.h//2))then dy=0 end
+				self.fwd={dx,dy}
+				self:startAttack()
+			end
+		elseif(self.state==1)then
+			if(self.tiA==15)then self:meleeCalc() end
+			self.tiA=self.tiA+1
+			if(self.tiA==60)then self.state=0 end
 		end
-		-- if(dx~=0 and dy~=0)then
-		-- 	dx=dx*0.5
-		-- 	dy=dy*0.5
-		-- end
-		self:move(dx*self.ms,dy*self.ms*0.5)
-		-- todo: Alert Range
-		-- todo: s:update()
-		-- todo: attack
 	end
 	
 	function s:draw()
-		sprc(480+t//20%2 * 1,self.x,self.y,14,1,0,0,1,1)
+		if(self.tiStun>0)then
+			sprc(480,self.x,self.y,14,1,0,0,1,1)
+		elseif(self.state==0)then
+			sprc(480+t//20%2 * 1,self.x,self.y,14,1,0,0,1,1)
+		elseif(self.state==1) then
+			if(self.tiA<15)then 
+				sprc(482,self.x-self.fwd[1]*(self.tiA//5),self.y-self.fwd[2]*(self.tiA//3),14,1,0,0,1,1)
+			elseif(self.tiA<35)then
+				sprc(482,self.x+self.fwd[1]*(2*self.tiA//3-13),self.y+self.fwd[2]*(2*self.tiA//3-15),14,1,0,0,1,1)
+			else
+				sprc(480,self.x,self.y,14,1,0,0,1,1)
+			end
+		end
 	end
 	return s
 end
@@ -399,7 +448,6 @@ end
 -- 126:0000000000000000ddddddddbbbbbbbbaaaaaaaa00000000aaaaaaaa00000000
 -- 127:ddd00000d0000000d00000000000000000000000000000000000000000000000
 -- 128:eeeeeeeeeeffffeeef4444fef0444666f404464ff4444666ef4444f6eefff666
--- 129:0001000000010000000100000001000000010000000100000001000000010000
 -- 138:a0a0a0a00a0a0a0aa0a0a0a00a0a0a0aa0a0a0a00a0a0a0aa0a0a0a00a0a0a0a
 -- 139:bbbbbbbbbabababaababababaaaaaaaa00000000000000000000000000000000
 -- 140:00000000000000000000000000000000a0a0a0a00a0a0a0aa0a0a0a00a0a0a0a
@@ -559,6 +607,7 @@ end
 -- 223:000feeee000feeee00feeeee0feeeeee0feeeeee0feeeeee0feeeeee0feeeeee
 -- 224:eeeeeeeeeeffffeeef4444fef044440ff404404ff444444fef4444feeeffffee
 -- 225:eeeeeeeeeeffffeeef4444fef044440ff404404ff444444ff444444feffffffe
+-- 226:eeeeeeeeeeeeeeeeeeffffeeef4444fef044440ff404404ff444444feffffffe
 -- 236:eeeeeef0eeeeeef0eeeeeef0eeeeeef0eeeeeef0eeeeeef0eeeeeef0eeeeeef0
 -- 237:0400000000400000000404000000444000000444000000440000000400000000
 -- 238:0000004000000400004040004444000044400000440000004000000000000000
