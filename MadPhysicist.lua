@@ -152,7 +152,8 @@ function mob(x,y,w,h,hp,alertR)
 	m.dmgStunTresh=0
 	m.stunTime=30
 	m.tiStun=0
-	m.isEvil=false
+	m.isEvil=true
+	m.isProjectile=false
 	-- todo: mob spawn with sleep and awake when player approachs.
 	function m:onHit(dmg)
 		self.sleep=false
@@ -283,18 +284,22 @@ function boxOverlapCast(box)
 end
 
 function iEntityCollision(src,tar)
-	local l1=tar.x
-	local r1=tar.x+tar.w-1
-	local u1=tar.y
-	local d1=tar.y+tar.h-1
-	local l2=src.x
-	local r2=src.x+src.w-1
-	local u2=src.y
-	local d2=src.y+src.h-1
-	if(l2>r1 or l1>r2 or u1>d2 or u2>d1)then
-		return false
+	if(src.collide and tar.collide)then
+		local l1=tar.x
+		local r1=tar.x+tar.w-1
+		local u1=tar.y
+		local d1=tar.y+tar.h-1
+		local l2=src.x
+		local r2=src.x+src.w-1
+		local u2=src.y
+		local d2=src.y+src.h-1
+		if(l2>r1 or l1>r2 or u1>d2 or u2>d1)then
+			return false
+		else
+			return true
+		end
 	else
-		return true
+		return false
 	end
 end
 
