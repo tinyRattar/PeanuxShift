@@ -1,44 +1,251 @@
 -- Unfinished
 -- predefine
+CAMERA_OFF
 function set end
 MAP_COLLIDE=set() -- set for map tile can collide
+MAP_REMAP_BLANK=set()
 
--- class
-entity = {}
-function entity:init(x,y)
-  ety = {
-    x = x
-    y = y
-    hp = 100
-  }
-  setmetatable(ety,entity)
-  return ety
-end
-function entity:move(dx,dy)
-  -- check collision
-  -- move
+-- base class
+function damage(iValue, iElem)
+  value,
+  elem
 end
 
-player = {x=5,y=1}
-function player:update()
-  player:move()
-  player:attack()
-  player:collision()
+function entity(x,y,w,h,nec,nmc)
+  x,y,w,h,
+  noEntityCollide,
+  noMapCollide,
+  pullMul,
+  pushMul
+
+  move(dx,dy) --try to move
 end
-function player:move()
+
+function artifact(cd)
+  mode,
+  inWorking,
+  cdTime,
+  tiCD,
+  durTime,
+  onEquip
+
+  shift()
+  switchOn()
+  switchOff()
 end
+
+function buff(lastT)
+  lastT
+  ti
+  
+  onFinish()
+end
+-- region buff
+buffSpeedChange=buff(lastT)
+{
+  speedMul
+
+  update()
+  draw()
+}
+buffFire=buff(lastT)
+{
+  stack
+  attack
+  perTic
+  blastAttack
+
+  blast()
+  update()
+  draw()
+}
+buffIce=buff(lastT)
+{
+  stack
+  speedMul
+
+  freeze()
+  update()
+  draw()
+}
+
+-- endregion
+
+-- region PLAYER
+player=entity(x,y,w,h)
+{
+  buffList,
+  fwd,
+  hp,
+  attack,
+  state,
+  onbutter,
+  butterFwd,
+  key
+
+  meleeCalc()
+  waveCast()
+  onHit(dmg)
+  control()
+  update()
+  draw()
+}
+
+wave=entity(x,y,w,h){
+  attack,
+  elem,
+  lifeTime
+
+  hitCalc()
+  update()
+  draw()
+}
+
+-- endregion
+
+-- region ARTIFACT
+theGravation=artifact(cd)
+{
+  range
+  force
+  forceLast
+
+  use()
+  pull()
+  push()
+  update()
+  draw()
+}
+
+theTimeMachine=artifact(cd)
+{
+  range
+  speedUpMul
+  speedDownMul
+  duration
+
+  use()
+  speedUp()
+  speedDown()
+  update()
+  draw()
+}
+
+theKelvinWand=artifact(cd)
+{
+  update()
+  draw()
+}
+-- endregion
+
+-- region MOB
+mob=entity(x,y,w,h)
+{
+  hp,
+  state,
+  sleep,
+  alertRange,
+  dmgStunTresh,
+  stunTime,
+  tiStun,
+  canHit,
+  buffList
+  
+  onHit()
+  death()
+  tryAwake()
+}
+
+slime=mob(x,y,h,w)
+{
+  ms, --move speed
+  tiA, --timer for attack
+  fwd,
+  meleeRange,
+  attack
+
+  startAttack()
+  meleeCalc()
+  update()
+  draw()
+}
+
+bombMan=mob(x,y,h,w,ms)
+{
+  ms,
+  blastRange,
+  attack
+
+  startBlast()
+  blastCalc()
+  update()
+  draw()
+}
+
+redTentacle=mob(x,y,h,w,ms){
+  tiSlow
+
+  override onHit()
+  update()
+  draw()
+}
+
+blueTentacle=mob(x,y,h,w,ms){
+  tiShrink
+  tiRecover
+
+  override onHit()
+  update()
+  draw()
+}
+
+
+-- endregion
+
+-- region ITEM
+item=entity(x,y,w,h)
+{
+  remove() --remove from envManager
+}
+
+apple=item(x,y,w,h)
+{
+  onTaken()
+  update()
+}
+
+key=item(x,y,w,h)
+{
+  onTaken()
+  update()
+}
 
 -- tools
-function collision()
+sprc(args) spr+camera
+cirbc(args) cirb+camera
+MDistance(a,b)
+EuDistancePow2(a,b)
+CenterDisVec(a,b)
+CenterPoint(a)
+boxOverlapCast(box)
+iEntityCollision(src,tar)
+mapCollisionFree(ety)
+entityCollisionFree(ety)
+specTileCalc(ety,lastmv) -- call in ety.update()
 
-end
+-- specTile
+butterTile(ety,lastmv)
+killingTile(ety) --ety.onHit() if ety.canhit
+openDoorTile(ety)
+butterOnLit(ety) --for fire wave
+FireTile(ety)
 
-function loadLevel(levelId)
-  initMob()
-  initNpc()
-  initPlayer()
-  curLevel = levelId
-end
+tileFireWatcher={} --registry to envManager
+{
+  tiFire
+  update()
+  draw()
+}
 
 -- main
 curLevel = 1

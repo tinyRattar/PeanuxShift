@@ -24,7 +24,7 @@ end
 MAP_COLLIDE=set({16,141,143,156,159,172,173,174,189,190,191,205,207,221,222,223,238})
 MAP_REMAP_BLANK=set({128})
 
--- class
+-- base class
 function damage(iValue, iElem)
 	dmg={
 		value=iValue,
@@ -33,13 +33,16 @@ function damage(iValue, iElem)
 	return dmg
 end
 
-function entity(x,y,w,h,nc)
+function entity(x,y,w,h)
 	ety = {
 		x=x,
 		y=y,
 		w=w,
 		h=h,
-		nocollide = c or true
+		noEntityCollide = false,
+		noMapCollide = false,
+		pullMul=1,
+		pushMul=1
 	}
 	function ety:move(dx,dy)
 		self.x=self.x+dx
@@ -54,6 +57,38 @@ function entity(x,y,w,h,nc)
 
 	return ety
 end
+
+function artifact(cd)
+	atf={
+		mode=0,
+		inWorking=false,
+		cdTime=cd or 0,
+		tiCD=0,
+		durTime=0
+	}
+	
+	function atf:shift()
+		self.mode=1-self.mode
+	end
+	function atf:switchOn()
+		if(self.tiCD>0)then
+			return false
+		else
+			self.tiCD=self.cdTime
+			self.durTime=0
+			self.inWorking=true
+			return true
+		end
+	end
+	function atf:switchOff()
+		self.inWorking=false
+	end
+
+	return atf
+	-- NOTICE: remember calc timer in update()
+end
+
+-- region PLAYER
 -- _player
 player = entity(32,60,10,16)
 player.fwd = 1
@@ -83,12 +118,16 @@ function player:meleeCalc()
 	for i=1,#hitList do
 		local tar=hitList[i]
 		if(tar~=self) then
-			-- todo: tar.onHit(damage(self.attack))
 			-- todo: element attack
 			local knockback=1
+			-- todo: knockback check
 			if(self.fwd==2) then knockback=-1 end
-			for i=1,10 do tar:move(knockback,0) end
-			tar:onHit(damage(self.attack,0))
+			if(tar.canHit)then
+				tar:onHit(damage(self.attack,0))
+				if(tar.tiStun>0)then
+					for i=1,10 do tar:move(knockback,0) end
+				end
+			end
 		end
 	end
 end
@@ -107,6 +146,9 @@ function player:control()
 	end
 
 	if btn(4) then player:startAttack() end
+	if btn(5) then atfManager:useAtf(1) end
+	if btnp(6) then atfManager:shiftAtf(1) end
+	--if btnp(6) then atfManager:shiftAtf(1) end
 end
 function player:update()
 	camera.x = self.x-CAMERA_OFF[1]
@@ -141,7 +183,63 @@ function player:draw()
 		--trace(261-self.ti1//16%2 * 2)
 	end
 end
+-- endregion
 
+-- region ARTIFACT
+theGravition=artifact(60)
+theGravition.range=10*8
+theGravition.rangePow2=theGravition.range*theGravition.range
+theGravition.force=5
+function theGravition:use()
+	if(self:switchOn())then
+		trace("the Gravition ON!")
+	end
+end
+function theGravition:pull(isReverse)
+	local ir=1
+	if(isReverse)then ir=-1 end
+	for i=1,#mobManager do
+		local m=mobManager[i]
+		if(m~=player)then
+			local dv=CenterDisVec(player,m)
+			dv={dv[1]*ir,dv[2]*ir}
+			local dvm=math.abs(dv[1])
+			local dvmt=math.abs(dv[2])
+			if(dvm<dvmt)then dvm=dvmt end
+			if(dvm<1)then return end
+			local mdis=dv[1]*dv[1]+dv[2]*dv[2]
+			if(mdis<self.rangePow2)then
+				m:move(theGravition.force*dv[1]/dvm*m.pullMul,theGravition.force*dv[2]/dvm*m.pullMul)
+			end
+		end
+	end
+end
+function theGravition:push()
+	self:pull(true)
+end
+function theGravition:update()
+	if(self.inWorking)then
+		local td=self.durTime
+		if(td<15 and td%3==0)then 
+			if(self.mode==0) then self:pull() else self:push() end
+		end
+		self.durTime=td+1
+		if(self.durTime>=30)then self:switchOff() end
+	end
+	if(self.tiCD>0)then self.tiCD=self.tiCD-1 end
+end
+function theGravition:draw()
+	if(self.inWorking)then
+		local rscale=self.durTime/15
+		if(self.mode==0)then rscale=1-rscale end
+		if(rscale>1)then rscale=0 end
+		local cp=CenterPoint(player)
+		circbc(cp[1],cp[2],self.range*rscale,1)
+	end
+end
+-- endregion
+
+-- region MOB
 -- _mob
 function mob(x,y,w,h,hp,alertR)
 	local m = entity(x,y,w,h)
@@ -152,9 +250,7 @@ function mob(x,y,w,h,hp,alertR)
 	m.dmgStunTresh=0
 	m.stunTime=30
 	m.tiStun=0
-	m.isEvil=true
-	m.isProjectile=false
-	-- todo: mob spawn with sleep and awake when player approachs.
+	m.canHit=true
 	function m:onHit(dmg)
 		self.sleep=false
 		self.hp=self.hp-dmg.value
@@ -180,7 +276,6 @@ function mob(x,y,w,h,hp,alertR)
 end
 
 function slime(x,y)
-	-- todo: init slime with mob()
 	local s = mob(x,y,8,8,15,5*8)
 	s.ms=0.5
 	s.tiA=0
@@ -213,14 +308,14 @@ function slime(x,y)
 			local sy=self.y+self.h//2
 			local tx=player.x+player.w//2
 			local ty=player.y+player.h//2
-			if(sx<tx)then 
+			if(sx<=tx-1)then 
 				dx=1
-			elseif(sx>tx)then
+			elseif(sx>=tx+1)then
 				dx=-1
 			end
-			if(sy<ty)then 
+			if(sy<=ty-1)then 
 				dy=1
-			elseif(sy>ty)then
+			elseif(sy>=ty+1)then
 				dy=-1
 			end
 			-- if(dx~=0 and dy~=0)then
@@ -228,9 +323,6 @@ function slime(x,y)
 			-- 	dy=dy*0.5
 			-- end
 			self:move(dx*self.ms,dy*self.ms*0.5)
-			-- todo: Alert Range
-			-- todo: s:update()
-			-- todo: attack
 			if(MDistance({x=tx,y=ty},{x=sx,y=sy})<=self.meleeRange)then
 				if(math.abs(sx-tx)<(self.w//2))then dx=0 end
 				if(math.abs(sy-ty)<(self.h//2))then dy=0 end
@@ -262,13 +354,38 @@ function slime(x,y)
 	return s
 end
 
--- tool
+-- endregion
+
+-- region ITEM
+function item(x,y,w,h)
+	local it = entity(x,y,w,h)
+	it.noEntityCollide=true
+	
+end
+
+-- region TOOL
 function sprc(id,x,y,alpha_color,scale,flip,rotate,cell_width,cell_height)
 	spr(id,x-camera.x,y-camera.y,alpha_color,scale,flip,rotate,cell_width,cell_height)
 end
 
+function circbc(x,y,radius,color)
+	circb(x-camera.x,y-camera.y,radius,color)
+end
+
 function MDistance(a, b)
 	return math.abs(b.x-a.x)+math.abs(b.y-a.y)
+end
+
+function EuDistancePow2(a, b)
+	return (a.x-b.x)*(a.x-b.x)+(a.y-b.y)*(a.y-b.y)
+end
+
+function CenterDisVec(a, b)
+	return {a.x+a.w//2-(b.x+b.w//2),a.y+a.h//2-(b.y+b.h//2)}
+end
+
+function CenterPoint(a)
+	return {a.x+a.w//2,a.y+a.h//2}
 end
 
 function boxOverlapCast(box)
@@ -284,7 +401,7 @@ function boxOverlapCast(box)
 end
 
 function iEntityCollision(src,tar)
-	if(src.noCollide or tar.noCollide)then
+	if(src.noEntityCollide or tar.noEntityCollide)then
 		return false
 	else
 		local l1=tar.x
@@ -304,6 +421,8 @@ function iEntityCollision(src,tar)
 end
 
 function mapCollisionFree(ety)
+	--trace(ety.noMapCollide)
+	if(ety.noMapCollide)then return true end
 	local l=ety.x//8
 	local r=(ety.x+ety.w-1)//8
 	local u=ety.y//8
@@ -318,6 +437,7 @@ function mapCollisionFree(ety)
 end
 
 function entityCollisionFree(ety)
+	if(ety.noEntityCollide)then return true end
 	for i=1,#mobManager do
 		local m=mobManager[i]
 		if(m~=ety)then
@@ -327,9 +447,9 @@ function entityCollisionFree(ety)
 	-- check ety and all entities collision
 	return true
 end
+-- endregion
 
-
--- Manager
+-- region MANAGER
 function redraw(tile,x,y)
 	local outTile,flip,rotate=tile,0,0
 	if(MAP_REMAP_BLANK:contains(tile))then
@@ -338,16 +458,15 @@ function redraw(tile,x,y)
 	return outTile,flip,rotate
 end
 
-iMapManager = {offx=0,offy=0}
+iMapManager = {offx=0,offy=0,theGravition}
 -- function iMapManager:update() end
 function iMapManager:draw()
 	map(0+self.offx+camera.x//8,0+self.offy+camera.y//8,31,18,8*(camera.x//8)-camera.x,8*(camera.y//8)-camera.y,0,1,redraw)
-	
-	-- todo map redraw
 end
 
 function loadLevel(levelId)
 	local lOff = {{0,0},{0,17}}
+	local MapSize = {{60,34},{30,17}}
 	local playerPos = {{32,60},{64,0}}
 	iMapManager.offx = lOff[levelId][1]
 	iMapManager.offy = lOff[levelId][2]
@@ -356,8 +475,8 @@ function loadLevel(levelId)
 	player.x=playerPos[levelId][1]
 	player.y=playerPos[levelId][2]
 	table.insert(mobManager,player)
-	for i=1,30 do
-		for j=1,17 do
+	for i=1,MapSize[levelId][1] do
+		for j=1,MapSize[levelId][2] do
 			local mtId=mget(i+iMapManager.offx,j+iMapManager.offy)
 			if(mtId==128)then 
 				table.insert(mobManager,slime(i*8,j*8))
@@ -366,10 +485,21 @@ function loadLevel(levelId)
 	end
 end
 
---playerManager={player}
+atfManager={theGravition, theGravition}
+function atfManager:shiftAtf(index)
+	self[index]:shift()
+end
+function atfManager:useAtf(index)
+	self[index]:use()
+end
 mobManager={}
---npcManager={}
 envManager={}
+-- endregion
+
+--playerManager={player}
+
+--npcManager={}
+--atfManager={theGravition, theGravition}
 
 --table.insert(mobManager,player)
 --table.insert(mobManager,slime(140,50))
@@ -377,9 +507,8 @@ envManager={}
 t=0
 camera={x=0,y=0}
 
-
-mainManager = {mobManager,envManager}
-drawManager = {{iMapManager},envManager,{player},mobManager}
+mainManager = {mobManager,atfManager,envManager}
+drawManager = {{iMapManager},envManager,{player},mobManager,atfManager}
 
 loadLevel(1)
 
@@ -391,6 +520,7 @@ function TIC()
 			if(obj)then obj:update() end
 		end
 	end
+
   -- draw
   cls(0)
   for i=1,#drawManager do
