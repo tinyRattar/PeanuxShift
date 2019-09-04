@@ -198,8 +198,6 @@ blueTentacle=mob(x,y,h,w,ms){
   update()
   draw()
 }
-
-
 -- endregion
 
 -- region ITEM
