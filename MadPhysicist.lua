@@ -550,6 +550,46 @@ function iMapManager:draw()
 	map(0+self.offx+camera.x//8,0+self.offy+camera.y//8,31,18,8*(camera.x//8)-camera.x,8*(camera.y//8)-camera.y,0,1,redraw)
 end
 
+uiStatusBar={hp=player.hp*3}
+function uiStatusBar:draw()
+  rect(7,7,80,7,15)
+	rect(9,9,player.hp,3,4)
+	rect(9+player.hp,9,75-player.hp,3,0)
+
+	tmp_=10
+	rect(7,7+tmp_,50,7,15)
+	rect(9,9+tmp_,player.hp//2,3,4)
+	rect(9+player.hp//2,9+tmp_,45-player.hp//2,3,0)
+
+	tmp_=20
+	rect(7,7+tmp_,50,7,15)
+	rect(9,9+tmp_,player.hp//2,3,6)
+	rect(9+player.hp//2,9+tmp_,45-player.hp//2,3,0)
+
+	tmp_=30
+	rect(7,7+tmp_,180,7,15)
+	if self.hp>player.hp*3 then 
+		rect(9, 9+tmp_, self.hp, 3, 4)
+		self.hp = self.hp-1/60*10  
+	else
+		self.hp=player.hp*3  
+	end
+	rect(9,9+tmp_,player.hp*3,3,6)
+
+	tmp_=40
+	rect(7,7+tmp_,180,7,15)
+	if self.hp>player.hp*3 then 
+		rect(9, 9+tmp_, self.hp, 3, 4)
+		self.hp = self.hp-1/60*10  
+	else
+		self.hp=player.hp*3
+    rect(9,9+tmp_,player.hp*3,3,6)
+	end
+	
+end
+
+uiManager={uiStatusBar}
+
 function loadLevel(levelId)
 	local lOff = {{0,0},{0,17}}
 	local MapSize = {{60,34},{30,17}}
@@ -598,7 +638,7 @@ t=0
 camera={x=0,y=0}
 
 mainManager = {mobManager,atfManager,envManager}
-drawManager = {{iMapManager},envManager,{player},mobManager,atfManager}
+drawManager = {{iMapManager},envManager,{player},mobManager,atfManager,uiManager}
 
 loadLevel(1)
 
