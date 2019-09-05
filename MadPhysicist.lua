@@ -23,7 +23,7 @@ function set(ls)
 end
 MAP_COLLIDE=set({15,16,141,143,154,156,159,172,173,174,189,190,191,205,207,221,222,223,238,232})
 MAP_REMAP_BLANK=set({208,224,240})
-MAP_TOUCH=set({})
+MAP_TOUCH=set({215})
 
 -- base class
 function damage(iValue, iElem)
@@ -45,33 +45,57 @@ function entity(x,y,w,h)
 		pullMul=1,
 		pushMul=1
 	}
-	function ety:move(dx,dy)
+	function ety:move(dx,dy,forced)
 		--local savePos=true
 		local collidedTile
 		local collidedEty
 
 		self.x=self.x+dx
-		local collidedTile,tx,ty=mapCollision(self)
+		local collidedTiles=mapCollision(self)
 		
-		if(collidedTile)then
-			--trace(collidedTile..tx..ty)
-			self:touch(collidedTile,tx,ty)
+		if(#collidedTiles>0)then
+			if(true) then
+				for i=1,#collidedTiles do
+					local tile = collidedTiles[i]
+					self:touch(tile[1],tile[2],tile[3],forced)
+				end
+			end
 			self.x=self.x-dx
 		else
 			if(not entityCollisionFree(self))then self.x=self.x-dx end
 		end
 
 		self.y=self.y+dy
-		collidedTile,tx,ty=mapCollision(self)
-		if(collidedTile)then 
-			self.touch(collidedTile,tx,ty)
+		collidedTiles=mapCollision(self)
+		if(#collidedTiles>0)then
+			if(true) then
+				for i=1,#collidedTiles do
+					local tile = collidedTiles[i]
+					self:touch(tile[1],tile[1],tile[2],forced)
+				end
+			end
 			self.y=self.y-dy
 		else
 			if(not entityCollisionFree(self))then self.y=self.y-dy end
 		end
 		--todo: calc touch
 	end
+	function ety:movec(dx,dy,forced) -- continuous move
+		local ix,iy=1,1
+		local ldx=dx
+		local ldy=dy
+		if(dx<0)then ix=-1 ldx=-dx end
+		if(dy<0)then iy=-1 ldy=-dy end
+		while(ldx>0 or ldy>0) do
+			if(ldx>=1)then ldx=ldx-1 else ix=ix*ldx ldx=0 end
+			if(ldy>=1)then ldy=ldy-1 else iy=iy*ldy ldy=0 end
+			self:move(ix,iy,forced)
+		end
+	end
 	function ety:touch()
+	end
+	function ety:drawStun()
+		sprc(192+t//30%2,self.x+self.w//2-4,self.y-4,0,1,0,0,1,1)
 	end
 
 	return ety
@@ -145,7 +169,7 @@ function player:meleeCalc()
 			if(tar.canHit)then
 				tar:onHit(damage(self.attack,0))
 				if(tar.tiStun>0)then
-					for i=1,10 do tar:move(knockback,0) end
+					for i=1,10 do tar:move(knockback,0,true) end
 				end
 			end
 		end
@@ -247,7 +271,7 @@ function theGravition:iPull(m,isReverse)
 	if(dvm<1)then return end
 	local mdis=dv[1]*dv[1]+dv[2]*dv[2]
 	if(mdis<self.rangePow2)then
-		m:move(theGravition.force*dv[1]/dvm*scale,theGravition.force*dv[2]/dvm*scale)
+		m:movec(theGravition.force*dv[1]/dvm*scale,theGravition.force*dv[2]/dvm*scale,true)
 	end
 end
 function theGravition:pull(isReverse)
@@ -290,13 +314,14 @@ end
 -- region MOB
 -- _mob
 function mob(x,y,w,h,hp,alertR)
-	local m = entity(x,y,w,h)
+	local m=entity(x,y,w,h)
 	m.hp=hp
 	m.state=0
 	m.sleep=true
 	m.alertRange=alertR or 0
 	m.dmgStunTresh=0
 	m.stunTime=30
+	m.stunTime_shockTile=120
 	m.tiStun=0
 	m.canHit=true
 	function m:onHit(dmg)
@@ -319,6 +344,13 @@ function mob(x,y,w,h,hp,alertR)
 		local d=MDistance(self,player)
 		if(d<self.alertRange)then self.sleep=false end
 	end
+	function m:touch(tileId,tx,ty,forced)
+		if(forced)then
+			if(tileId==215)then
+				self.tiStun=self.stunTime_shockTile
+			end
+		end
+	end
 
 	return m
 end
@@ -340,13 +372,13 @@ function slime(x,y)
 	end
 
 	function s:update()
-		if(self.sleep)then
-			self:tryAwake()
-			return
-		end
 		if(self.tiStun>0)then
 			self.state=0
 			self.tiStun=self.tiStun-1
+			return
+		end
+		if(self.sleep)then
+			self:tryAwake()
 			return
 		end
 		if(self.state==0)then
@@ -387,6 +419,7 @@ function slime(x,y)
 	function s:draw()
 		if(self.tiStun>0)then
 			sprc(480,self.x,self.y,14,1,0,0,1,1)
+			self:drawStun()
 		elseif(self.state==0)then
 			sprc(480+t//20%2 * 1,self.x,self.y,14,1,0,0,1,1)
 		elseif(self.state==1) then
@@ -520,20 +553,22 @@ end
 
 function mapCollision(ety)
 	--trace(ety.noMapCollide)
-	if(ety.noMapCollide)then return true end
-	local l=ety.x//8
-	local r=(ety.x+ety.w-1)//8
-	local u=ety.y//8
-	local d=(ety.y+ety.h-1)//8
-	for i=l,r do
-		for j=u,d do
-			local tileId = mget(iMapManager.offx+i,iMapManager.offy+j)
-			if(MAP_COLLIDE:contains(tileId))then
-				return tileId,i,j
+	local collidedTileList={}
+	if(not ety.noMapCollide)then
+		local l=ety.x//8
+		local r=(ety.x+ety.w-1)//8
+		local u=ety.y//8
+		local d=(ety.y+ety.h-1)//8
+		for i=l,r do
+			for j=u,d do
+				local tileId = mget(iMapManager.offx+i,iMapManager.offy+j)
+				if(MAP_COLLIDE:contains(tileId) or MAP_TOUCH:contains(tileId))then
+					table.insert(collidedTileList,{tileId,i,j})  
+				end
 			end
 		end
 	end
-	return nil
+	return collidedTileList
 end
 
 function entityCollisionFree(ety)
@@ -738,6 +773,8 @@ end
 -- 189:000000000000000000000000ffffffffeeeeeeeedddddddddddddddddddddddd
 -- 190:deeeeeeddeeeeeeddddddeeddddddeedddddeeddddddeedddddeeddddddeeddd
 -- 191:dddeedddddeeeddddddeeddddddeeddddddeeddddddeeddddddeedddddeeeedd
+-- 192:0000000000000000003300000f33ff000f000330033ff3300330000000000000
+-- 193:00000000000000000000330033ff330033000f000ff33f000003300000000000
 -- 200:ddddddddfffffffdeeeeeeedeeeeceedeeecceedeccc5cedeecccccdcccecccc
 -- 201:00000000000000000000000000ffffff0feeeeeeefedddddefedddddefeddddd
 -- 202:ddddddddfffffffdeeeeeeedeeeeeeedeeeeeeedeeeeeeedeeeeeeeddddddddd
@@ -747,6 +784,7 @@ end
 -- 206:bdddddddbdddddddbdddddddbdddddddbdddddddbdddddddbdddddddbddddddd
 -- 207:ddeeeedddeeddeeddeeddeeddeeddeeddeeddeeddeeddeeddeeddeedddeeeedd
 -- 208:effffffef555555ff5ffff5ff555555feff5fffeeef555feeef5ffeeeeef55fe
+-- 215:353535355cccccc33c5353c55c3535c33c5353c55c3535c33cccccc553535353
 -- 216:ddddddddfffffffdeeeeeeedeeeeeeedeeeeeeedeceeecedeeec5eedccceeced
 -- 217:ddddddddeeeeeeeeffffffffeeeeeeeedddddddddddddddddddddddddddddddd
 -- 218:efddddddeffffffdeffeeeedeeffffffdeeeeeeeddddddddbbbbbbbbabbbbbbb
@@ -840,16 +878,16 @@ end
 -- 003:f0fdf0f0f0fdc9fdf0f0f0e4f0f0f0f0f0f0f0f0f0fdfdeceac7c7c7c7ebf8f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0
 -- 004:f0fdf0f0f0fdc9fdbff0f0e4f0f0f0f0f0f0f0f0f0fdc9eceaf7e4f0f6ecf8f0f0bff0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0
 -- 005:f0fddddbdcfdcafddddbdbdbdbdbdbdbdbdbdbdbdcfdc9eceae4e4f0e4ecf8f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0
--- 006:f0cdfffefefeedfefefefefefefefefefefefefefefec9eceae4e4cfe4ecf8f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0
+-- 006:f0cdfffefefeedfefe7dfefefefefefefefefefefefec9eceae4e4cfe4ecf8f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0
 -- 007:f0cdffffffffffffffffff0fffffffffffffffff0fffcaeceadddbdbdcebf8f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0
 -- 008:f0cdffffffffffffffffffffffffffffeeeeffffffffedfefefefefefefef8f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0
 -- 009:f0cdffffffffc9eeeeeeeeeeeeeeeeeeb8b8ffffffff8eff0effffff0efff8f8f8f8f8f8f8f8f8f8f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0
 -- 010:f0cdffffffffa9b8b8b8b8b8b8b8b8b8f0f0ffffffff8effffff0dfffffffdfdfdfdfdfdfdfdeafdf0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0
 -- 011:f0cdffffffffa9f0f0dbdbdbdbdbdbdbdbdbffffffffc9fffffffffffffffdfdfdfdfdfdfdfdeafdf0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0
--- 012:f0adeeeeeeeea9f0f0ffffffffffffffff0dffffffffc9cd0effffff0efffdfdf7f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0
--- 013:e4e9f9f9f9f9f9f0f0ffffffffffffffffffffffffffa9cdfffffffffffffdfdf0f0f0f0f0f0f0cff0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0
--- 014:e4e4bff0f0f0f0f0f0ffffffffeeeeeeeeeeeeeeeeeea9eeeeeeeeeeeeeefdfdf0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0
--- 015:4e5ee42e3ef0f0f0f0ffffffffb8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8fdfddddbdbdbdbdbdbdbf0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0
+-- 012:f0adeeeeeeeea9f0f07dffffffffffffff0dffffffffc9cd0effffff0efffdfdf7f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0
+-- 013:e4e9f9f9f9f9f9f0f07dff0fffffffffffffffffffffa9cdfffffffffffffdfdf0f0f0f0f0f0f0cff0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0
+-- 014:e4e4bff0f0f0f0f0f07dffffffeeeeeeeeeeeeeeeeeea9eeeeeeeeeeeeeefdfdf0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0
+-- 015:4e5ee42e3ef0f0f0f07dffffffb8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8fdfddddbdbdbdbdbdbdbf0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0
 -- 016:4f5fe42f3ff0f0f0f0fffffffff0f0f0f0f0f0f0f0f0cff0f0f0f0f0f0f0fefefefefefefefefefef0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0
 -- 017:6e7ef0f0f0f0f0f0f0ffffffffffffffffffffffffffffffffff1c2cfffffffffffffffffffffffff0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0
 -- 018:f0f0f0f0f0f0f0f0f0ffffffffffffffffffffffffffffffffffff2dfffffffffffffffffffffffff0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0
