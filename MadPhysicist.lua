@@ -266,7 +266,7 @@ function player:touch(tile)
 		end
 	elseif(tileId==215)then
 		self.tiStun=60
-		shockActive(tx*8,ty*8)
+		shockActive((tx-iMapManager.offx)*8,(ty-iMapManager.offy)*8)
 	end
 end
 function player:enter(tile)
@@ -384,7 +384,7 @@ function mob(x,y,w,h,hp,alertR)
 		if(forced)then
 			if(tileId==215)then
 				self.tiStun=self.stunTime_shockTile
-				shockActive(tx*8,ty*8)
+				shockActive((tx-iMapManager.offx)*8,(ty-iMapManager.offy)*8)
 			end
 		end
 	end
@@ -559,7 +559,7 @@ function shine(x,y)
 		if(self.ti>=60)then self:remove()end
 	end
 	function sh:draw()
-		sprc(176+(self.ti//20)%2,self.x,self.y,0,1,0,0,1,1)
+		sprc(176+(self.ti//20),self.x,self.y,0,1,0,0,1,1)
 	end
 
 	table.insert(envManager,sh)
@@ -572,10 +572,10 @@ function shockActive(x,y)
 
 	function sa:update()
 		self.ti=self.ti+1
-		if(self.ti>=60)then self:remove()end
+		if(self.ti>=30)then self:remove()end
 	end
 	function sa:draw()
-		local off=self.ti//20
+		local off=self.ti//10
 		local color={15,5,3}
 		rectbc(x-off,y-off,8+off*2,8+off*2,color[off+1])
 	end
@@ -675,9 +675,9 @@ function mapCollision(ety)
 			for j=u,d do
 				local tileId = mget(iMapManager.offx+i,iMapManager.offy+j)
 				if(MAP_COLLIDE:contains(tileId) or MAP_TOUCH:contains(tileId))then
-					table.insert(collidedTileList,{tileId,i,j})
+					table.insert(collidedTileList,{tileId,iMapManager.offx+i,iMapManager.offy+j})
 				elseif(MAP_DANGER:contains(tileId))then
-					table.insert(enteredDangerList,{tileId,i,j})
+					table.insert(enteredDangerList,{tileId,iMapManager.offx+i,iMapManager.offy+j})
 				end
 			end
 		end
@@ -757,9 +757,9 @@ end
 uiManager={uiStatusBar}
 
 function loadLevel(levelId)
-	local lOff = {{0,0},{0,17}}
+	local lOff = {{1,0},{0,17}}
 	local MapSize = {{60,34},{30,17}}
-	local playerPos = {{32,60},{64,0}}
+	local playerPos = {{24,60},{64,0}}
 	iMapManager.offx = lOff[levelId][1]
 	iMapManager.offy = lOff[levelId][2]
 	-- todo initMap
