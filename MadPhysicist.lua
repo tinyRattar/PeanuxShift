@@ -117,13 +117,14 @@ function entity(x,y,w,h)
 	return ety
 end
 
-function artifact(cd)
+function artifact(cd,dur)
 	atf={
 		mode=0,
 		inWorking=false,
 		cdTime=cd or 0,
 		tiCD=0,
-		durTime=0
+		durTime=dur or 0,
+		tiDur=0
 	}
 	
 	function atf:shift()
@@ -136,7 +137,7 @@ function artifact(cd)
 			return false
 		else
 			self.tiCD=self.cdTime
-			self.durTime=0
+			self.tiDur=0
 			self.inWorking=true
 			return true
 		end
@@ -312,10 +313,11 @@ end
 
 -- region ARTIFACT
 -- region the Gravation
-theGravition=artifact(60)
+theGravition=artifact(60,15)
 theGravition.range=10*8
 theGravition.rangePow2=theGravition.range*theGravition.range
 theGravition.force=5
+theGravition.sprite=352
 function theGravition:use()
 	if(self:switchOn())then
 		trace("the Gravition ON!")
@@ -354,18 +356,18 @@ function theGravition:push()
 end
 function theGravition:update()
 	if(self.inWorking)then
-		local td=self.durTime
-		if(td<15 and td%3==0)then 
+		local td=self.tiDur
+		if(td<self.durTime and td%3==0)then 
 			if(self.mode==0) then self:pull() else self:push() end
 		end
-		self.durTime=td+1
-		if(self.durTime>=30)then self:switchOff() end
+		self.tiDur=td+1
+		if(self.tiDur>=30)then self:switchOff() end
 	end
 	if(self.tiCD>0)then self.tiCD=self.tiCD-1 end
 end
 function theGravition:draw()
 	if(self.inWorking)then
-		local rscale=self.durTime/15
+		local rscale=self.tiDur/15
 		if(self.mode==0)then rscale=1-rscale end
 		if(rscale>1)then rscale=0 end
 		local cp=CenterPoint(player)
@@ -374,17 +376,17 @@ function theGravition:draw()
 end
 -- endregion
 
-theTimeMachine=artifact(150)
+theTimeMachine=artifact(180,150)
 function theTimeMachine:init()
 	self.range=10*8
 	self.rangePow2=theTimeMachine.range*theTimeMachine.range
 	self.speedUpMul=2
 	self.speedDownMul=2
-	self.lastTime=150
 	self.effectedObject={}
 	self.rClock={}
 	self.hHandPos={}
 	self.mHandPos={}
+	self.sprite=384
 
 	for i=1,48 do
 		--local r=
@@ -425,8 +427,8 @@ function theTimeMachine:onTimeOut()
 end
 function theTimeMachine:update()
 	if(self.inWorking)then
-		self.durTime=self.durTime+1
-		if(self.durTime>self.lastTime)then self:onTimeOut() self:switchOff() end
+		self.tiDur=self.tiDur+1
+		if(self.tiDur>self.durTime)then self:onTimeOut() self:switchOff() end
 	end
 	if(self.tiCD>0)then self.tiCD=self.tiCD-1 end
 end
@@ -436,16 +438,16 @@ function theTimeMachine:draw()
 		local r1=36
 		local r2=120
 		local tmul=2
-		local sh=self.durTime/64
+		local sh=self.tiDur/64
 		if(self.mode==1)then
 			tmul=0.125
 			c1=9
 			sh=1-sh
 		end
-		if(self.durTime<64)then
+		if(self.tiDur<64)then
 			local cp=CenterPoint(player)
-			local ht=tmul*self.durTime//12%48+1
-			local mt=tmul*self.durTime//1%48+1
+			local ht=tmul*self.tiDur//12%48+1
+			local mt=tmul*self.tiDur//1%48+1
 			local hPos=self.hHandPos[ht]
 			local mPos=self.mHandPos[mt]
 			
@@ -458,7 +460,7 @@ function theTimeMachine:draw()
 				linec(cp[1]+NEARBY4[i][1],cp[2]+NEARBY4[i][2],cp[1]+hPos[1]+NEARBY4[i][1],cp[2]+hPos[2]+NEARBY4[i][2],c1)
 			end
 		end
-		local dt=self.durTime//10%8
+		local dt=self.tiDur//10%8
 		for i=1,#self.effectedObject do
 			local obj=self.effectedObject[i]
 			local l=obj.w+obj.h
@@ -891,6 +893,23 @@ function uiStatusBar:draw()
 	for i=1,key1 do
 		spr(208,-3+10*i,15,14,1,0,0,1,1)
 	end
+
+	for i=1,2 do
+		local atf=atfManager[i]
+		spr(atf.sprite+2*atf.mode,7+(16+4)*(i-1),14*8,1,1,0,0,2,2)
+		if(atfManager[i].inWorking)then
+			rect(7+(16+4)*(i-1),15*8-6,16*(1-atf.tiDur/atf.durTime),5,6)
+		elseif(atf.tiCD>0)then
+			rect(7+(16+4)*(i-1),15*8-6,16*(1-atf.tiCD/(atf.cdTime-atf.durTime)),5,2)
+		end
+	end
+	print("X",7,15*8+8,15)
+	print("Y",7+16+4,15*8+8,15)
+	
+	
+	-- spr(atfManager[2].sprite+2*atfManager[2].mode,7+16+4,14*8,1,1,0,0,2,2)
+	-- rect(7+16+4,15*8-6,16*(atfManager[2].tiCD/atfManager[2].cdTime),5,2)
+	-- print("Y",7+16+4,15*8+8,15)
 	
 end
 
