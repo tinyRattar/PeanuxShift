@@ -343,13 +343,28 @@ function theGravition:draw()
 end
 -- endregion
 
-theTimeMachine=artifact(60)
-theTimeMachine.range=10*8
-theTimeMachine.rangePow2=theTimeMachine.range*theTimeMachine.range
-theTimeMachine.speedUpMul=2
-theTimeMachine.speedDownMul=2
-theTimeMachine.lastTime=30
-theTimeMachine.effectedObject={}
+theTimeMachine=artifact(150)
+function theTimeMachine:init()
+	self.range=10*8
+	self.rangePow2=theTimeMachine.range*theTimeMachine.range
+	self.speedUpMul=2
+	self.speedDownMul=2
+	self.lastTime=150
+	self.effectedObject={}
+	self.rClock={}
+	self.hHandPos={}
+	self.mHandPos={}
+
+	for i=1,48 do
+		--local r=
+		local cos=math.cos(i*3.14/24)
+		local sin=math.sin(i*3.14/24)
+		self.hHandPos[i]={sin*3*8,-cos*3*8}
+		self.mHandPos[i]={sin*4*8,-cos*4*8}
+	end
+
+end
+theTimeMachine:init()
 function theTimeMachine:use()
 	if(self:switchOn())then
 		trace("the TimeMachine ON!")
@@ -371,10 +386,11 @@ end
 function theTimeMachine:onTimeOut()
 	for i=1,#theTimeMachine.effectedObject do
 		local obj=theTimeMachine.effectedObject[i]
-		obj.tmMul=1
-		obj=nil
+		if(obj)then	
+			obj.tmMul=1 
+			theTimeMachine.effectedObject[i]=nil
+		end
 	end
-	trace(#theTimeMachine.effectedObject)
 end
 function theTimeMachine:update()
 	if(self.inWorking)then
@@ -384,6 +400,34 @@ function theTimeMachine:update()
 	if(self.tiCD>0)then self.tiCD=self.tiCD-1 end
 end
 function theTimeMachine:draw()
+	if(self.inWorking)then
+		if(self.durTime<64)then
+			local r1=36
+			local r2=120
+			local tmul=2
+			local c1=5
+			local sh=self.durTime/64
+			if(self.mode==1)then
+				tmul=0.125
+				c1=8
+				sh=1-sh
+			end
+			local cp=CenterPoint(player)
+			local ht=tmul*self.durTime//12%48+1
+			local mt=tmul*self.durTime//1%48+1
+			local hPos=self.hHandPos[ht]
+			local mPos=self.mHandPos[mt]
+			
+			circbc(cp[1],cp[2],r1,c1)
+			circbc(cp[1],cp[2],r1+2,c1)
+			circbc(cp[1],cp[2],r1+r2*sh,c1)
+			linec(cp[1],cp[2],cp[1]+mPos[1],cp[2]+mPos[2],c1)
+			linec(cp[1],cp[2],cp[1]+hPos[1],cp[2]+hPos[2],c1)
+			for i=1,#NEARBY4 do
+				linec(cp[1]+NEARBY4[i][1],cp[2]+NEARBY4[i][2],cp[1]+hPos[1]+NEARBY4[i][1],cp[2]+hPos[2]+NEARBY4[i][2],c1)
+			end
+		end
+	end
 end
 -- endregion
 
@@ -644,6 +688,10 @@ end
 
 function rectbc(x,y,width,height,color)
 	rectb(x-camera.x,y-camera.y,width,height,color)
+end
+
+function linec(x0,y0,x1,y1,color)
+	line(x0-camera.x,y0-camera.y,x1-camera.x,y1-camera.y,color)
 end
 
 
