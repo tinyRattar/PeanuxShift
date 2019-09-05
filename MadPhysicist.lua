@@ -250,7 +250,7 @@ function player:touch(tile)
 	if(tileId==232)then 
 		if(self.key1>0)then
 			mset_4ca(tx,ty,248,232)
-			self.key1=self.key1
+			self.key1=self.key1-1
 			-- todo:open nearby door
 		end
 	end
@@ -691,21 +691,21 @@ end
 
 uiStatusBar={hp=player.hp*3}
 function uiStatusBar:draw()
-  rect(7,7,80,7,15)
-	rect(9,9,player.hp,3,4)
-	rect(9+player.hp,9,75-player.hp,3,0)
+  -- rect(7,7,80,7,15)
+	-- rect(9,9,player.hp,3,4)
+	-- rect(9+player.hp,9,75-player.hp,3,0)
 
-	tmp_=10
-	rect(7,7+tmp_,50,7,15)
-	rect(9,9+tmp_,player.hp//2,3,4)
-	rect(9+player.hp//2,9+tmp_,45-player.hp//2,3,0)
+	-- tmp_=10
+	-- rect(7,7+tmp_,50,7,15)
+	-- rect(9,9+tmp_,player.hp//2,3,4)
+	-- rect(9+player.hp//2,9+tmp_,45-player.hp//2,3,0)
 
-	tmp_=20
-	rect(7,7+tmp_,50,7,15)
-	rect(9,9+tmp_,player.hp//2,3,6)
-	rect(9+player.hp//2,9+tmp_,45-player.hp//2,3,0)
+	-- tmp_=20
+	-- rect(7,7+tmp_,50,7,15)
+	-- rect(9,9+tmp_,player.hp//2,3,6)
+	-- rect(9+player.hp//2,9+tmp_,45-player.hp//2,3,0)
 
-	tmp_=30
+	tmp_=0
 	rect(7,7+tmp_,180,7,15)
 	if self.hp>player.hp*3 then 
 		rect(9, 9+tmp_, self.hp, 3, 4)
@@ -715,19 +715,27 @@ function uiStatusBar:draw()
 	end
 	rect(9,9+tmp_,player.hp*3,3,6)
 
-	tmp_=40
-	rect(7,7+tmp_,180,7,15)
-	if self.hp>player.hp*3 then 
-		rect(9, 9+tmp_, self.hp, 3, 4)
-		self.hp = self.hp-1/60*10  
-	else
-		self.hp=player.hp*3
-    rect(9,9+tmp_,player.hp*3,3,6)
-	end
+	-- tmp_=40
+	-- rect(7,7+tmp_,180,7,15)
+	-- if self.hp>player.hp*3 then 
+	-- 	rect(9, 9+tmp_, self.hp, 3, 4)
+	-- 	self.hp = self.hp-1/60*10  
+	-- else
+	-- 	self.hp=player.hp*3
+  --   rect(9,9+tmp_,player.hp*3,3,6)
+	-- end
 	
 end
 
-uiManager={uiStatusBar}
+uiKeyBar={}
+function uiKeyBar:draw()
+	local key1=player.key1
+	for i=1,key1 do
+		spr(208,-3+10*i,15,14,1,0,0,1,1)
+	end
+end
+
+uiManager={uiStatusBar,uiKeyBar}
 
 function loadLevel(levelId)
 	local lOff = {{0,0},{0,17}}
