@@ -217,6 +217,7 @@ function player:touch(tileId,tx,ty)
 		if(self.key1>0)then
 			mset(tx,ty,248)
 			self.key1=self.key1
+			-- todo:open nearby door
 		end
 	end
 end
