@@ -126,7 +126,9 @@ function artifact(cd)
 	}
 	
 	function atf:shift()
+		if(self.inWorking)then return false end
 		self.mode=1-self.mode
+		return true
 	end
 	function atf:switchOn()
 		if(self.tiCD>0)then
@@ -218,8 +220,13 @@ function player:control()
 	end
 
 	if btn(4) then player:startAttack() end
-	if btn(5) then atfManager:useAtf(2) end
-	if btnp(6) then atfManager:shiftAtf(2) end
+	if btnp(5) then atfManager:shiftAtf(2) atfManager:shiftAtf(1) end
+	if btnp(6) then atfManager:useAtf(1) end
+	if btnp(7) then atfManager:useAtf(2) end
+	btnp(id,hold,period)
+	btnp(id,hold,period)
+	
+	
 	--if btnp(6) then atfManager:shiftAtf(1) end
 end
 function player:update()
