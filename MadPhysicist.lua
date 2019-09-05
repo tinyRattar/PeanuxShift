@@ -45,7 +45,8 @@ function entity(x,y,w,h)
 		noEntityCollide=false,
 		noMapCollide=false,
 		pullMul=1,
-		pushMul=1
+		pushMul=1,
+		tmMul=1, --time machine multi
 	}
 	function ety:move(dx,dy,forced)
 		self.x=self.x+dx
@@ -170,6 +171,7 @@ function player:startAttack()
 	if(self.state==0) then
 		self.state=1
 		self.ti1=30
+		self.willAtk=true
 	end
 end
 function player:meleeCalc()
@@ -209,15 +211,15 @@ end
 function player:control()
 	-- controller
 	if(self.state~=-1) then
-		if btn(0) then player:move(0,-1,true) end
-		if btn(1) then player:move(0,1,true) end
-		if btn(2) then player:move(-1,0,true) player.fwd=2 end
-		if btn(3) then player:move(1,0,true) player.fwd=1 end
+		if btn(0) then player:movec(0,-self.tmMul,true) end
+		if btn(1) then player:movec(0,self.tmMul,true) end
+		if btn(2) then player:movec(-self.tmMul,0,true) player.fwd=2 end
+		if btn(3) then player:movec(self.tmMul,0,true) player.fwd=1 end
 	end
 
 	if btn(4) then player:startAttack() end
-	if btn(5) then atfManager:useAtf(1) end
-	if btnp(6) then atfManager:shiftAtf(1) end
+	if btn(5) then atfManager:useAtf(2) end
+	if btnp(6) then atfManager:shiftAtf(2) end
 	--if btnp(6) then atfManager:shiftAtf(1) end
 end
 function player:update()
@@ -225,13 +227,13 @@ function player:update()
 	camera.y = self.y-CAMERA_OFF[2]
 	if(self.tiStun>0)then
 		self.state=0
-		self.tiStun=self.tiStun-1
+		self.tiStun=self.tiStun-self.tmMul
 	else
 		player:control()
 	end
 	if(self.ti1>0) then
-		self.ti1 = self.ti1 - 1
-		if(self.ti1==15)then self:meleeCalc() end
+		self.ti1=self.ti1-self.tmMul
+		if(self.willAtk and self.ti1<=15)then self:meleeCalc() self.willAtk=false end
 		if(self.ti1<=0)then self.state=0 end
 	end
 end
@@ -243,7 +245,7 @@ function player:draw()
 		sprc(256,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
 		self:drawStun()
 	elseif(self.state==0) then
-		sprc(256+t//20%2 * 2,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
+		sprc(256+t//(20/self.tmMul)%2 * 2,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
 	elseif(self.state==1) then
 		if self.ti1>=16 then sprc(260,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
 		elseif self.ti1>=14 then sprc(262,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
@@ -278,6 +280,7 @@ end
 -- endregion
 
 -- region ARTIFACT
+-- region the Gravation
 theGravition=artifact(60)
 theGravition.range=10*8
 theGravition.rangePow2=theGravition.range*theGravition.range
@@ -294,15 +297,14 @@ function theGravition:iPull(m,isReverse)
 	local ir=1
 	if(isReverse)then ir=-1 end
 	local dv=CenterDisVec(player,m)
+	local mdis=dv[1]*dv[1]+dv[2]*dv[2]
+	if(mdis>=self.rangePow2)then return end
 	dv={dv[1]*ir,dv[2]*ir}
 	local dvm=math.abs(dv[1])
 	local dvmt=math.abs(dv[2])
 	if(dvm<dvmt)then dvm=dvmt end
 	if(dvm<1)then return end
-	local mdis=dv[1]*dv[1]+dv[2]*dv[2]
-	if(mdis<self.rangePow2)then
-		m:movec(theGravition.force*dv[1]/dvm*scale,theGravition.force*dv[2]/dvm*scale,true)
-	end
+	m:movec(theGravition.force*dv[1]/dvm*scale,theGravition.force*dv[2]/dvm*scale,true)
 end
 function theGravition:pull(isReverse)
 	for i=1,#mobManager do
@@ -338,6 +340,50 @@ function theGravition:draw()
 		local cp=CenterPoint(player)
 		circbc(cp[1],cp[2],self.range*rscale,1)
 	end
+end
+-- endregion
+
+theTimeMachine=artifact(60)
+theTimeMachine.range=10*8
+theTimeMachine.rangePow2=theTimeMachine.range*theTimeMachine.range
+theTimeMachine.speedUpMul=2
+theTimeMachine.speedDownMul=2
+theTimeMachine.lastTime=30
+theTimeMachine.effectedObject={}
+function theTimeMachine:use()
+	if(self:switchOn())then
+		trace("the TimeMachine ON!")
+		if(self.mode==0)then
+			player.tmMul=2
+			table.insert(self.effectedObject,player)
+		else
+			for i=1,#mobManager do
+				local m=mobManager[i]
+				if(m and m~=player)then
+					local dv=CenterDisVec(player,m)
+					local mdis=dv[1]*dv[1]+dv[2]*dv[2]
+					if(mdis<self.rangePow2)then m.tmMul=0.5 table.insert(self.effectedObject,m) end
+				end
+			end
+		end
+	end
+end
+function theTimeMachine:onTimeOut()
+	for i=1,#theTimeMachine.effectedObject do
+		local obj=theTimeMachine.effectedObject[i]
+		obj.tmMul=1
+		obj=nil
+	end
+	trace(#theTimeMachine.effectedObject)
+end
+function theTimeMachine:update()
+	if(self.inWorking)then
+		self.durTime=self.durTime+1
+		if(self.durTime>self.lastTime)then self:onTimeOut() self:switchOff() end
+	end
+	if(self.tiCD>0)then self.tiCD=self.tiCD-1 end
+end
+function theTimeMachine:draw()
 end
 -- endregion
 
@@ -405,9 +451,11 @@ function slime(x,y)
 	s.fwd={-1,0}
 	s.meleeRange=(16+8)//2+2
 	s.attack=1
+	s.waitMeleeCalc=false
 	function s:startAttack()
 		self.state=1
 		self.tiA=0
+		self.waitMeleeCalc=true
 	end
 	function s:meleeCalc()
 		local atkBox={x=self.x+8*self.fwd[1],y=self.y+8*self.fwd[2],w=8,h=8}
@@ -417,7 +465,7 @@ function slime(x,y)
 	function s:update()
 		if(self.tiStun>0)then
 			self.state=0
-			self.tiStun=self.tiStun-1
+			self.tiStun=self.tiStun-self.tmMul
 			return
 		end
 		if(self.sleep)then
@@ -445,7 +493,7 @@ function slime(x,y)
 			-- 	dx=dx*0.5
 			-- 	dy=dy*0.5
 			-- end
-			self:move(dx*self.ms,dy*self.ms*0.5)
+			self:movec(dx*self.ms*self.tmMul,dy*self.ms*0.5*self.tmMul)
 			if(MDistance({x=tx,y=ty},{x=sx,y=sy})<=self.meleeRange)then
 				if(math.abs(sx-tx)<(self.w//2))then dx=0 end
 				if(math.abs(sy-ty)<(self.h//2))then dy=0 end
@@ -453,9 +501,9 @@ function slime(x,y)
 				self:startAttack()
 			end
 		elseif(self.state==1)then
-			if(self.tiA==15)then self:meleeCalc() end
-			self.tiA=self.tiA+1
-			if(self.tiA==60)then self.state=0 end
+			if(self.waitMeleeCalc and self.tiA>=15)then self:meleeCalc() self.waitMeleeCalc=fasle end
+			self.tiA=self.tiA+self.tmMul
+			if(self.tiA>=60)then self.state=0 end
 		end
 	end
 	
@@ -464,7 +512,7 @@ function slime(x,y)
 			sprc(480,self.x,self.y,14,1,0,0,1,1)
 			self:drawStun()
 		elseif(self.state==0)then
-			sprc(480+t//20%2 * 1,self.x,self.y,14,1,0,0,1,1)
+			sprc(480+t//(20/self.tmMul)%2 * 1,self.x,self.y,14,1,0,0,1,1)
 		elseif(self.state==1) then
 			if(self.tiA<15)then 
 				sprc(482,self.x-self.fwd[1]*(self.tiA//5),self.y-self.fwd[2]*(self.tiA//3),14,1,0,0,1,1)
@@ -781,7 +829,7 @@ function loadLevel(levelId)
 	end
 end
 
-atfManager={theGravition, theGravition}
+atfManager={theGravition, theTimeMachine}
 function atfManager:shiftAtf(index)
 	self[index]:shift()
 end
