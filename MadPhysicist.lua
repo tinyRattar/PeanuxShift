@@ -27,7 +27,7 @@ MAP_DANGER=set({121,248})
 MAP_REMAP_BLANK=set({208,224,240})
 MAP_TOUCH=set({215,232})
 
--- base class
+-- region base class
 function damage(iValue, iElem)
 	dmg={
 		value=iValue,
@@ -144,6 +144,7 @@ function artifact(cd)
 	return atf
 	-- NOTICE: remember calc timer in update()
 end
+-- endregion
 
 -- region PLAYER
 -- _player
@@ -154,6 +155,7 @@ player.attack = 5
 player.state = 0
 player.ti1 = 0
 player.key1=0
+player.tiStun=0
 --player.atkRect = {{player.x+player.w,player.y,10,16},{player.x-10,player.y,10,16}}
 function player:atkRect()
 	p=self
@@ -191,6 +193,7 @@ function player:meleeCalc()
 end
 function player:onHit(dmg)
 	self.hp=self.hp-dmg.value
+	if(self.hp<0)then self.hp=0 end
 	trace("player hp:"..self.hp)
 	--todo: on hit
 end
@@ -220,7 +223,12 @@ end
 function player:update()
 	camera.x = self.x-CAMERA_OFF[1]
 	camera.y = self.y-CAMERA_OFF[2]
-	player:control()
+	if(self.tiStun>0)then
+		self.state=0
+		self.tiStun=self.tiStun-1
+	else
+		player:control()
+	end
 	if(self.ti1>0) then
 		self.ti1 = self.ti1 - 1
 		if(self.ti1==15)then self:meleeCalc() end
@@ -231,7 +239,10 @@ function player:draw()
 	local offX=0
 	local offX_s=11
 	if(player.fwd==2) then offX=self.w-16 offX_s=-11	end
-	if(self.state==0) then
+	if(self.tiStun>0)then
+		sprc(256,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
+		self:drawStun()
+	elseif(self.state==0) then
 		sprc(256+t//20%2 * 2,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
 	elseif(self.state==1) then
 		if self.ti1>=16 then sprc(260,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
@@ -253,6 +264,9 @@ function player:touch(tile)
 			self.key1=self.key1-1
 			-- todo:open nearby door
 		end
+	elseif(tileId==215)then
+		self.tiStun=60
+		shockActive(tx*8,ty*8)
 	end
 end
 function player:enter(tile)
@@ -370,6 +384,7 @@ function mob(x,y,w,h,hp,alertR)
 		if(forced)then
 			if(tileId==215)then
 				self.tiStun=self.stunTime_shockTile
+				shockActive(tx*8,ty*8)
 			end
 		end
 	end
@@ -537,19 +552,37 @@ end
 
 function shine(x,y)
 	local sh = effect(x,y,0,0)
-	sh.ti1=0
+	sh.ti=0
 
 	function sh:update()
-		sh.ti1=sh.ti1+1
-		if(sh.ti1>=60)then self:remove()end
+		self.ti=self.ti+1
+		if(self.ti>=60)then self:remove()end
 	end
 	function sh:draw()
-		sprc(176+(self.ti1//20),self.x,self.y,0,1,0,0,1,1)
+		sprc(176+(self.ti//20)%2,self.x,self.y,0,1,0,0,1,1)
 	end
 
 	table.insert(envManager,sh)
 	return sh
 end
+
+function shockActive(x,y)
+	local sa=effect(x,y,0,0)
+	sa.ti=0
+
+	function sa:update()
+		self.ti=self.ti+1
+		if(self.ti>=60)then self:remove()end
+	end
+	function sa:draw()
+		local off=self.ti//20
+		local color={15,5,3}
+		rectbc(x-off,y-off,8+off*2,8+off*2,color[off+1])
+	end
+	table.insert(envManager,sa)
+	return sa
+end
+		
 -- endregion
 
 -- region TOOL
@@ -560,6 +593,11 @@ end
 function circbc(x,y,radius,color)
 	circb(x-camera.x,y-camera.y,radius,color)
 end
+
+function rectbc(x,y,width,height,color)
+	rectb(x-camera.x,y-camera.y,width,height,color)
+end
+
 
 function mset_4ca(x,y,mid,smid) --4-connected area
 	if(smid==nil or mid==smid)then trace("WARNING") end
@@ -689,41 +727,22 @@ function iMapManager:draw()
 	map(0+self.offx+camera.x//8,0+self.offy+camera.y//8,31,18,8*(camera.x//8)-camera.x,8*(camera.y//8)-camera.y,0,1,redraw)
 end
 
-uiStatusBar={hp=player.hp*3}
+uiStatusBar={hp=player.hp*2}
 function uiStatusBar:draw()
-  -- rect(7,7,80,7,15)
-	-- rect(9,9,player.hp,3,4)
-	-- rect(9+player.hp,9,75-player.hp,3,0)
-
-	-- tmp_=10
-	-- rect(7,7+tmp_,50,7,15)
-	-- rect(9,9+tmp_,player.hp//2,3,4)
-	-- rect(9+player.hp//2,9+tmp_,45-player.hp//2,3,0)
-
-	-- tmp_=20
-	-- rect(7,7+tmp_,50,7,15)
-	-- rect(9,9+tmp_,player.hp//2,3,6)
-	-- rect(9+player.hp//2,9+tmp_,45-player.hp//2,3,0)
-
-	tmp_=0
-	rect(7,7+tmp_,180,7,15)
-	if self.hp>player.hp*3 then 
+	local tmp_=0
+	rect(7,7+tmp_,200,7,15)
+	if self.hp>player.hp*2 then 
 		rect(9, 9+tmp_, self.hp, 3, 4)
 		self.hp = self.hp-1/60*10  
 	else
-		self.hp=player.hp*3  
+		self.hp=player.hp*2  
 	end
-	rect(9,9+tmp_,player.hp*3,3,6)
+	rect(9,9+tmp_,player.hp*2,3,6)
 
-	-- tmp_=40
-	-- rect(7,7+tmp_,180,7,15)
-	-- if self.hp>player.hp*3 then 
-	-- 	rect(9, 9+tmp_, self.hp, 3, 4)
-	-- 	self.hp = self.hp-1/60*10  
-	-- else
-	-- 	self.hp=player.hp*3
-  --   rect(9,9+tmp_,player.hp*3,3,6)
-	-- end
+	local key1=player.key1
+	for i=1,key1 do
+		spr(208,-3+10*i,15,14,1,0,0,1,1)
+	end
 	
 end
 
@@ -735,7 +754,7 @@ function uiKeyBar:draw()
 	end
 end
 
-uiManager={uiStatusBar,uiKeyBar}
+uiManager={uiStatusBar}
 
 function loadLevel(levelId)
 	local lOff = {{0,0},{0,17}}
