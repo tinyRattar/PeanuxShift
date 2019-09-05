@@ -6,6 +6,7 @@
 -- predefine
 CAMERA_OFF={15*8-4,8*8-4}
 NEARBY4 = {{-1,0},{1,0},{0,-1},{0,1}}
+FAKERANDOM8={4,2,7,5,1,8,3,6}
 
 -- predefine set
 function set(ls)
@@ -410,17 +411,17 @@ function theTimeMachine:update()
 end
 function theTimeMachine:draw()
 	if(self.inWorking)then
+		local c1=5
+		local r1=36
+		local r2=120
+		local tmul=2
+		local sh=self.durTime/64
+		if(self.mode==1)then
+			tmul=0.125
+			c1=9
+			sh=1-sh
+		end
 		if(self.durTime<64)then
-			local r1=36
-			local r2=120
-			local tmul=2
-			local c1=5
-			local sh=self.durTime/64
-			if(self.mode==1)then
-				tmul=0.125
-				c1=8
-				sh=1-sh
-			end
 			local cp=CenterPoint(player)
 			local ht=tmul*self.durTime//12%48+1
 			local mt=tmul*self.durTime//1%48+1
@@ -434,6 +435,23 @@ function theTimeMachine:draw()
 			linec(cp[1],cp[2],cp[1]+hPos[1],cp[2]+hPos[2],c1)
 			for i=1,#NEARBY4 do
 				linec(cp[1]+NEARBY4[i][1],cp[2]+NEARBY4[i][2],cp[1]+hPos[1]+NEARBY4[i][1],cp[2]+hPos[2]+NEARBY4[i][2],c1)
+			end
+		end
+		local dt=self.durTime//10%8
+		for i=1,#self.effectedObject do
+			local obj=self.effectedObject[i]
+			local l=obj.w+obj.h
+			local pt=t%l
+			if(self.mode==1)then pt=t//4%l end
+			for j=1,5 do
+				pt=(pt+1)%l
+				if(pt<obj.w)then
+					pixc(obj.x+pt,obj.y,c1) 
+					pixc(obj.x+obj.w-pt,obj.y+obj.h-1,c1)
+				else 
+					pixc(obj.x+obj.w-1,obj.y+pt-obj.w,c1)
+					pixc(obj.x,obj.y+obj.h-pt+obj.w,c1) 
+				end
 			end
 		end
 	end
@@ -701,6 +719,10 @@ end
 
 function linec(x0,y0,x1,y1,color)
 	line(x0-camera.x,y0-camera.y,x1-camera.x,y1-camera.y,color)
+end
+
+function pixc(x,y,color)
+	pix(x-camera.x,y-camera.y,color)
 end
 
 
