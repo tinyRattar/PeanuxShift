@@ -275,6 +275,8 @@ function player:enter(tile)
 	local tileId,tx,ty=tile[1],tile[2],tile[3]
 	if(tileId==248)then
 		mset(tx,ty,255)
+	elseif(tileId==121)then
+		self:onHit(damage(1))
 	end
 end
 -- endregion
