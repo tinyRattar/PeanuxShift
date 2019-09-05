@@ -160,6 +160,8 @@ player.state = 0
 player.ti1 = 0
 player.key1=0
 player.tiStun=0
+player.lastBtn6=0
+player.lastBtn7=0
 --player.atkRect = {{player.x+player.w,player.y,10,16},{player.x-10,player.y,10,16}}
 function player:atkRect()
 	p=self
@@ -221,11 +223,30 @@ function player:control()
 	end
 
 	if btn(4) then player:startAttack() end
-	if btnp(5) then atfManager:shiftAtf(2) atfManager:shiftAtf(1) end
-	if btnp(6) then atfManager:useAtf(1) end
-	if btnp(7) then atfManager:useAtf(2) end
-	btnp(id,hold,period)
-	btnp(id,hold,period)
+  --if btnp(5) then atfManager:shiftAtf(2) atfManager:shiftAtf(1) end
+	--if (btn(6) and not btnp(6)) then atfManager:useAtf(1) elseif btnp(6,30,60) then atfManager:shiftAtf(1) end
+	--if (btn(7) and not btnp(7)) then atfManager:useAtf(2) elseif btnp(6,30,60) then atfManager:shiftAtf(2) end
+	if(btn(6))then
+		self.lastBtn6=self.lastBtn6+1
+		if(self.lastBtn6==30)then
+			atfManager:shiftAtf(1)
+		end
+	else
+		if(self.lastBtn6<15 and self.lastBtn6>0)then atfManager:useAtf(1) end
+		self.lastBtn6=0
+	end
+
+	if(btn(7))then
+		self.lastBtn7=self.lastBtn7+1
+		if(self.lastBtn7==30)then
+			atfManager:shiftAtf(2)
+		end
+	else
+		if(self.lastBtn7<15 and self.lastBtn7>0)then atfManager:useAtf(2) end
+		self.lastBtn7=0
+	end
+	
+	--btnp(id,hold,period)
 	
 	
 	--if btnp(6) then atfManager:shiftAtf(1) end
@@ -1083,6 +1104,22 @@ end
 -- 083:fffffff19999999ffffffff11111111111111111111111111111111111111111
 -- 084:111fb77f111f77ff111f7f9f1111fff9111111ff1111111f1111111111111111
 -- 085:1111111111111111f1111111ff1111119ff11111f9ff1111ff9f11111fff1111
+-- 096:11aaaaaa1a00f77fa0000ff0a0000000a0000000a0000000a0000ff0a000f55f
+-- 097:abbbba110f7f7fa100f0f7fa0000f7fa00ffff7a0f77f0faf7777f0af7777f0a
+-- 098:11aaaaaa1a000000a0000fffa000f5ffa00fff00a00f0000a0f5f000a00f0000
+-- 099:abbbba11ff0fffa15ff55f5aff5555fa0f5555fa0ff55ffa000fff0a0000000a
+-- 112:a00f5555a00f5555a00ff55fa0f5fff0a00f0000a0f5f0f01a0f0f5f11aaaaaa
+-- 113:ff77f00af0ff000a0000000a0000000a0000000a0000000a000000a1aaaaaa11
+-- 114:a0000000a0fff000aff77ff0af7777f0af7777ffa7f77ff71afff0ff11aaaaaa
+-- 115:0000f00a000f7f0a0000f00a00fff00aff7f000afff0000a000000a1aaaaaa11
+-- 128:11aaaaaa1a00ff00a00f33f0a00fccf0a00fccffa00fcccca0fccc33afccc3c3
+-- 129:bbbbba1100ff00a10f33f00a0fccf00affccf00accccf00a33cccf0acc3cccfa
+-- 130:11aaaaaa1a00ff00a00f88f0a00f77f0a00f77ffa00f7777a0f77788af777878
+-- 131:abbbba1100ff00a10f88f00a0f77f00aff77f00a7777f00a88777f0a778777fa
+-- 144:afcc3cc3afcc3cc3afcc3cccafccc3ccafcccc33afcccccc1affffff11aaaaaa
+-- 145:ccc3ccfa33c3ccfaccc3ccfacc3cccfa33ccccfaccccccfaffffffa1aaaaaa11
+-- 146:af778778af778778af778777af777877af777788af7777771affffff11aaaaaa
+-- 147:777877fa887877fa777877fa778777fa887777fa777777faffffffa1aaaaaa11
 -- 204:eeeeeeeeeeeeffeeeeef0feeeeef00feeeef00ffeeef000feeef000feeef0000
 -- 205:eeeeeeeeeeeeeeeeeeeeeeeeeeffffffef000000f000ff00f000ff0000000000
 -- 206:eeeeeeeeeeeeeeeeeeeeeeeefffffffe000000fe0099000f0099000000000000
