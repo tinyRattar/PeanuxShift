@@ -5,6 +5,7 @@
 
 -- predefine
 CAMERA_OFF={15*8-4,8*8-4}
+NEARBY4 = {{-1,0},{1,0},{0,-1},{0,1}}
 
 -- predefine set
 function set(ls)
@@ -21,10 +22,10 @@ function set(ls)
 	end
 	return s
 end
-MAP_COLLIDE=set({15,16,139,141,143,154,156,159,172,173,174,189,190,191,205,207,221,222,223,238,232})
-MAP_DANGER=set({121})
+MAP_COLLIDE=set({15,16,139,141,143,154,156,159,172,173,174,189,190,191,205,207,221,222,223,238})
+MAP_DANGER=set({121,248})
 MAP_REMAP_BLANK=set({208,224,240})
-MAP_TOUCH=set({215})
+MAP_TOUCH=set({215,232})
 
 -- base class
 function damage(iValue, iElem)
@@ -233,8 +234,6 @@ function player:draw()
 	if(self.state==0) then
 		sprc(256+t//20%2 * 2,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
 	elseif(self.state==1) then
-		--sprc(270-self.ti1//10 * 2,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
-
 		if self.ti1>=16 then sprc(260,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
 		elseif self.ti1>=14 then sprc(262,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
 		else sprc(264,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
@@ -244,19 +243,22 @@ function player:draw()
 		elseif self.ti1>=14 then sprc(322,self.x+offX_s,self.y+1,1,1,player.fwd-1,0,2,2)
 		else sprc(324,self.x+offX_s,self.y+6,1,1,player.fwd-1,0,2,2)
 		end
-		--local ar = self:atkRect()
-		--rect(ar[1],ar[2],ar[3],ar[4],2)
-		--trace(261-self.ti1//16%2 * 2)
 	end
 end
 function player:touch(tile)
 	local tileId,tx,ty=tile[1],tile[2],tile[3]
 	if(tileId==232)then 
 		if(self.key1>0)then
-			mset(tx,ty,248)
+			mset_4ca(tx,ty,248,232)
 			self.key1=self.key1
 			-- todo:open nearby door
 		end
+	end
+end
+function player:enter(tile)
+	local tileId,tx,ty=tile[1],tile[2],tile[3]
+	if(tileId==248)then
+		mset(tx,ty,255)
 	end
 end
 -- endregion
@@ -355,6 +357,7 @@ function mob(x,y,w,h,hp,alertR)
 			if(mobManager[i]==self)then table.remove(mobManager,i) end
 		end
 		m.isDead=true
+		shine(self.x,self.y)
 		return true
 		-- table.remove(mobManager,self)
 	end
@@ -373,9 +376,7 @@ function mob(x,y,w,h,hp,alertR)
 	function m:enter(tile)
 		local tileId,tx,ty=tile[1],tile[2],tile[3]
 		if(tileId==121)then
-			if(self:death())then
-				shine(self.x,self.y)
-			end
+			self:death()
 		end
 	end
 
@@ -547,10 +548,9 @@ function shine(x,y)
 	end
 
 	table.insert(envManager,sh)
-	trace(#envManager)
 	return sh
 end
-		
+-- endregion
 
 -- region TOOL
 function sprc(id,x,y,alpha_color,scale,flip,rotate,cell_width,cell_height)
@@ -559,6 +559,17 @@ end
 
 function circbc(x,y,radius,color)
 	circb(x-camera.x,y-camera.y,radius,color)
+end
+
+function mset_4ca(x,y,mid,smid) --4-connected area
+	if(smid==nil or mid==smid)then trace("WARNING") end
+	if(mget(x,y)==smid)then
+		mset(x,y,mid)
+		for i=1,#NEARBY4 do
+			local pos=NEARBY4[i]
+			mset_4ca(x+pos[1],y+pos[2],mid,smid)
+		end
+	end
 end
 
 function MDistance(a, b)
