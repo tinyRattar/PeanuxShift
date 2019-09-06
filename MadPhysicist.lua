@@ -23,7 +23,7 @@ function set(ls)
 	end
 	return s
 end
-MAP_COLLIDE=set({4,20,23,26,27,38,39,40,41,42,44,54,55,58,60,61,62,75,76,77,78,79,93,94,95,110,111})
+MAP_COLLIDE=set({4,20,23,26,27,38,39,40,41,42,44,54,55,58,60,61,62,63,75,76,77,78,79,93,94,95,110,111})
 MAP_ENTER=set({17,178,179,231})
 MAP_REMAP_BLANK=set({208,224,240,241})
 MAP_TOUCH=set({113,128,176,177})
@@ -202,13 +202,13 @@ end
 function player:onHit(dmg)
 	self.hp=self.hp-dmg.value
 	if(self.hp<0)then self.hp=0 end
-	trace("player hp:"..self.hp)
+	--trace("player hp:"..self.hp)
 	--todo: on hit
 end
 function player:hpUp(value)
 	self.hp=self.hp+value
 	if(self.hp>100)then self.hp=100 end
-	trace("player hp:"..self.hp)
+	--trace("player hp:"..self.hp)
 	--todo: hp check
 end
 function player:getKey()
@@ -341,11 +341,13 @@ function theGravition:iPull(m,isReverse)
 	local mdis=dv[1]*dv[1]+dv[2]*dv[2]
 	if(mdis>=self.rangePow2)then return end
 	dv={dv[1]*ir,dv[2]*ir}
-	local dvm=math.abs(dv[1])
-	local dvmt=math.abs(dv[2])
-	if(dvm<dvmt)then dvm=dvmt end
-	if(dvm<1)then return end
-	m:movec(theGravition.force*dv[1]/dvm*scale,theGravition.force*dv[2]/dvm*scale,true)
+	dv=vecNormFake(dv,1)
+	-- if(dv)
+	-- local dvm=math.abs(dv[1])
+	-- local dvmt=math.abs(dv[2])
+	-- if(dvm<dvmt)then dvm=dvmt end
+	-- if(dvm<1)then return end
+	m:movec(theGravition.force*dv[1]*scale,theGravition.force*dv[2]*scale,true)
 end
 function theGravition:pull(isReverse)
 	for i=1,#mobManager do
@@ -636,14 +638,14 @@ function ranger(x,y)
 	rg.range=10*8
 	rg.waitShoot=false
 	function rg:startAttack(vecDirection)
-		trace("start shoot")
 		self.state=1
 		self.tiA=0
 		self.waitShoot=true
 	end
 	function rg:shoot(vecDirection)
 		self.waitShoot=false
-		trace("shoot")
+		local cp=CenterPoint(self)
+		table.insert(envManager,tinyBullet(cp[1],cp[2]))
 		--todo:shoot
 	end
 	function rg:update()
@@ -760,7 +762,7 @@ function bullet(x,y,w,h,iDmg,iElem)
 
 	function blt:hitCheck()
 		if(self.hitPlayer)then
-			if(iEntityTrigger(player,self))then self:hit(player) end
+			if(iEntityTrigger(player,self))then return self:hit(player) end
 		else
 			for i=1,#mobManager do
 				local m=#mobManager
@@ -771,16 +773,17 @@ function bullet(x,y,w,h,iDmg,iElem)
 				end
 			end
 		end
+		return false
 	end
 	function blt:hit(target)
 		if(self.pierce)then
 			if(not self.hitMobs:contains(target))then
-				target.onHit(damage(self.dmg,self.elem))
+				target:onHit(damage(self.dmg,self.elem))
 				self.hitMobs.add(target)
 				return true
 			end
 		else
-			target.onHit(damage(self.dmg,self.elem))
+			target:onHit(damage(self.dmg,self.elem))
 			return true
 		end
 		return false
@@ -803,13 +806,18 @@ function tinyBullet(x,y,w,h,iDmg,iElem)
 	tb.lifetime=60
 
 	function tb:update()
+		local ox,oy=self.x,self.y
 		self:defaultTic()
+		if(ox==self.x and oy==self.y)then self:remove() end
 		if(self:hitCheck())then
 			self:remove()
 		end
 	end
 	function tb:draw()
-		pix(self.x,self.y,2)
+		--pixc(self.x,self.y,4)
+		circc(self.x,self.y,1,4)
+		circbc(self.x,self.y,2,15)
+		
 	end
 
 	return tb
@@ -877,6 +885,10 @@ function circbc(x,y,radius,color)
 	circb(x-camera.x,y-camera.y,radius,color)
 end
 
+function circc(x,y,radius,color)
+	circ(x-camera.x,y-camera.y,radius,color)
+end
+
 function rectbc(x,y,width,height,color)
 	rectb(x-camera.x,y-camera.y,width,height,color)
 end
@@ -915,6 +927,15 @@ end
 
 function CenterPoint(a)
 	return {a.x+a.w//2,a.y+a.h//2}
+end
+
+function vecNormFake(v,thresh)
+	local th=thresh or 0
+	local vm=math.abs(v[1])
+	local vmt=math.abs(v[2])
+	if(vm<vmt)then vm=vmt end
+	if(vm<=th)then return{0,0} end
+	return{v[1]/vm,v[2]/vm}
 end
 
 function boxOverlapCast(box)
@@ -1082,7 +1103,7 @@ function loadLevel(levelId)
 			if(mtId==240)then 
 				table.insert(mobManager,slime(i*8,j*8))
 			elseif(mtId==241)then 
-					table.insert(mobManager,ranger(i*8,j*8))
+				table.insert(mobManager,ranger(i*8,j*8))
 			elseif(mtId==224)then
 				table.insert(envManager,apple(i*8,j*8))
 			elseif(mtId==208)then
@@ -1379,7 +1400,7 @@ end
 -- 238:0000004000000400004040004444000044400000440000004000000000000000
 -- 239:0feeeeee0feeeeee0feeeeee0feeeeee0feeeeee0feeeeee0feeeeee0feeeeee
 -- 240:00fffff00f555c3f0f575c3ff55755cff5c55ccff3cf5c3f0f3c53f000ffff00
--- 241:00000f0000fff3f00f555c3f0f5755cff5555cf0f5c55ccff33c533f0fff0ff0
+-- 241:0000000000fffff00f555c3f0f57553ff5555cf0f5c55ccff33c533f0fff0ff0
 -- 242:00fffff00f555c4f0f545c4ff55455cff5c55ccff4cf5c4f0f4c54f000ffff00
 -- 252:eeeeeef0eeeeeef0eeeeeef0eeeeeef0eeeeeef0eeeeeef0eeeeef00eeeeffff
 -- 253:00000000000000000000000000000000000000000000000000000000ffffffff
