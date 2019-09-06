@@ -48,8 +48,14 @@ function entity(x,y,w,h)
 		pullMul=1,
 		pushMul=1,
 		tmMul=1, --time machine multi
+
+		tCollided=false,
+		tMoved=false
 	}
 	function ety:move(dx,dy,forced)
+		self.tCollided=false
+		self.tMoved=false
+		local ox,oy=self.x,self.y
 		self.x=self.x+dx
 		local collidedTiles,enteredTiles=mapCollision(self,forced)
 		
@@ -92,6 +98,10 @@ function entity(x,y,w,h)
 				self.y=self.y-dy
 			end
 		end
+
+		if(dx~=0 and ox==self.x)then self.tCollided=true end
+		if(dy~=0 and oy==self.y)then self.tCollided=true end
+		if(ox~=self.x or oy~=self.y)then self.tMoved=true end
 		--todo: calc touch
 	end
 	function ety:movec(dx,dy,forced) -- continuous move
@@ -645,7 +655,8 @@ function ranger(x,y)
 	function rg:shoot(vecDirection)
 		self.waitShoot=false
 		local cp=CenterPoint(self)
-		table.insert(envManager,tinyBullet(cp[1],cp[2]))
+		local fwd=vecNormFake(vecDirection)
+		table.insert(envManager,tinyBullet(cp[1],cp[2],fwd))
 		--todo:shoot
 	end
 	function rg:update()
@@ -800,15 +811,15 @@ function bullet(x,y,w,h,iDmg,iElem)
 	return blt
 end
 
-function tinyBullet(x,y,w,h,iDmg,iElem)
+function tinyBullet(x,y,fwd)
 	local tb=bullet(x,y,1,1,5,0)
 	tb.hitPlayer=true
 	tb.lifetime=60
+	tb.fwd=fwd or {1,0}
 
 	function tb:update()
-		local ox,oy=self.x,self.y
 		self:defaultTic()
-		if(ox==self.x and oy==self.y)then self:remove() end
+		if(self.tCollided)then self:remove() end
 		if(self:hitCheck())then
 			self:remove()
 		end
