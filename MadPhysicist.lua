@@ -746,6 +746,76 @@ function keyItem(x,y)
 end
 -- endregion
 
+-- region BULLET
+function bullet(x,y,w,h,iDmg,iElem)
+	local blt=item(x,y,w,h)
+	blt.dmg=iDmg
+	blt.iElem=iElem or 0
+	blt.lifetime=nil
+	blt.iLife=0
+	blt.hitPlayer=false
+	blt.pierce=false
+	blt.hitMobs=set({})
+	blt.fwd={0,1}
+
+	function blt:hitCheck()
+		if(self.hitPlayer)then
+			if(iEntityTrigger(player,self))then self:hit(player) end
+		else
+			for i=1,#mobManager do
+				local m=#mobManager
+				if(m.canHit)then
+					if(iEntityTrigger(m,self))then 
+						return self:hit(m)
+					end
+				end
+			end
+		end
+	end
+	function blt:hit(target)
+		if(self.pierce)then
+			if(not self.hitMobs:contains(target))then
+				target.onHit(damage(self.dmg,self.elem))
+				self.hitMobs.add(target)
+				return true
+			end
+		else
+			target.onHit(damage(self.dmg,self.elem))
+			return true
+		end
+		return false
+	end
+	function blt:defaultTic()
+		if(self.lifetime and self.iLife>=self.lifetime)then
+			self:remove()
+		else
+			self:move(self.fwd[1],self.fwd[2])
+			self.iLife=self.iLife+1
+		end
+	end
+
+	return blt
+end
+
+function tinyBullet(x,y,w,h,iDmg,iElem)
+	local tb=bullet(x,y,1,1,5,0)
+	tb.hitPlayer=true
+	tb.lifetime=60
+
+	function tb:update()
+		self:defaultTic()
+		if(self:hitCheck())then
+			self:remove()
+		end
+	end
+	function tb:draw()
+		pix(self.x,self.y,2)
+	end
+
+	return tb
+end
+-- endregion
+
 -- region EFFECT
 function effect(x,y,w,h)
 	local ef = entity(x,y,w,h)
