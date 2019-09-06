@@ -940,6 +940,7 @@ function loadLevel(levelId)
 	iMapManager.offy = lOff[levelId][2]
 	-- todo initMap
 	for i=1,#mobManager do mobManager[i]=nil end
+	for i=1,#envManager do envManager[i]=nil end
 	player.x=playerPos[levelId][1]
 	player.y=playerPos[levelId][2]
 	table.insert(mobManager,player)
