@@ -182,7 +182,7 @@ player.state = 0
 player.ti1 = 0
 player.key1=0
 player.tiStun=0
-
+player.lastBtn5=0
 player.lastBtn6=0
 player.lastBtn7=0
 player.onButter=false
@@ -254,7 +254,15 @@ function player:control()
 	end
 
 	if btn(4) then player:startAttack() end
-
+	if(btn(5))then
+		self.lastBtn5=self.lastBtn5+1
+		if(self.lastBtn5==30)then
+			atfManager:shiftAtf(3)
+		end
+	else
+		if(self.lastBtn5<15 and self.lastBtn5>0)then atfManager:useAtf(3) end
+		self.lastBtn5=0
+	end
 
 	if(btn(6))then
 		self.lastBtn6=self.lastBtn6+1
@@ -530,7 +538,7 @@ function theTimeMachine:draw()
 end
 
 theKelvinWand=artifact(30,60)
-theKelvinWand.sprite=384
+theKelvinWand.sprite=356
 function theKelvinWand:use()
 	self:switchOn()
 end
@@ -1198,7 +1206,7 @@ function uiStatusBar:draw()
 		spr(208,-3+10*i,15,14,1,0,0,1,1)
 	end
 
-	for i=1,2 do
+	for i=1,3 do
 		local atf=atfManager[i]
 		spr(atf.sprite+2*atf.mode,7+(16+4)*(i-1),14*8,1,1,0,0,2,2)
 		if(atfManager[i].inWorking)then
@@ -1209,6 +1217,7 @@ function uiStatusBar:draw()
 	end
 	print("X",7,15*8+8,15)
 	print("Y",7+16+4,15*8+8,15)
+	print("B",7+20*2,15*8+8,15)
 	
 	
 	-- spr(atfManager[2].sprite+2*atfManager[2].mode,7+16+4,14*8,1,1,0,0,2,2)
@@ -1260,7 +1269,7 @@ function loadLevel(levelId)
 	end
 end
 
-atfManager={theGravition, theKelvinWand,theTimeMachine}
+atfManager={theGravition,theTimeMachine,theKelvinWand}
 function atfManager:shiftAtf(index)
 	self[index]:shift()
 end
@@ -1496,14 +1505,18 @@ end
 -- 097:abbbba110f7f7fa100f0f7fa0000f7fa00ffff7a0f77f0faf7777f0af7777f0a
 -- 098:11aaaaaa1a000000a0000fffa000f5ffa00fff00a00f0000a0f5f000a00f0000
 -- 099:abbbba11ff0fffa15ff55f5aff5555fa0f5555fa0ff55ffa000fff0a0000000a
--- 100:00aaaaaa0aeeeeeeaeeeeeeeaeeeeeeeaeeeeeeeaeeeeeefaeeeeeffaeeeeff4
--- 101:abbbba00eeffffa0eefeeefaeffeeefaff4eeefaf444fffa444ffeea44ffeeea
+-- 100:00aaaaaa0a000000a0000000a0000000a0000000a000000fa00000ffa0000ff4
+-- 101:abbbba0000ffffa000feeefa0ffeeefaff4eeefaf444fffa444ff00a44ff000a
+-- 102:00aaaaaa0a000000a0000000a0000000a0000000a000000fa00000ffa0000ffe
+-- 103:abbbba0000ffffa000feeefa0ffeeefaffeeeefafeeefffaeeeff00aeeff000a
 -- 112:a00f5555a00f5555a00ff55fa0f5fff0a00f0000a0f5f0f01a0f0f5f11aaaaaa
 -- 113:ff77f00af0ff000a0000000a0000000a0000000a0000000a000000a1aaaaaa11
 -- 114:a0000000a0fff000aff77ff0af7777f0af7777ffa7f77ff71afff0ff11aaaaaa
 -- 115:0000f00a000f7f0a0000f00a00fff00aff7f000afff0000a000000a1aaaaaa11
--- 116:aeefff44aef44444af44444faf44444faf44444faf4444feaaffffeeaaaaaaaa
--- 117:4ffeeeeaffeeeeeafeeeeeeaeeeeeeeaeeeeeeeaeeeeeeeaeeeeeeaaaaaaaaaa
+-- 116:a00fff44a0f44444af44444faf44444faf44444faf4444f0aaffff00aaaaaaaa
+-- 117:4ff0000aff00000af000000a0000000a0000000a0000000a000000aaaaaaaaaa
+-- 118:a00fff99a0f99999af99999faf99999faf99999faf9999f0aaffff00aaaaaaaa
+-- 119:eff0000aff00000af000000a0000000a0000000a0000000a000000aaaaaaaaaa
 -- 128:11aaaaaa1a00ff00a00f33f0a00fccf0a00fccffa00fcccca0fccc33afccc3c3
 -- 129:bbbbba1100ff00a10f33f00a0fccf00affccf00accccf00a33cccf0acc3cccfa
 -- 130:11aaaaaa1a00ff00a00f88f0a00f77f0a00f77ffa00f7777a0f77788af777878
