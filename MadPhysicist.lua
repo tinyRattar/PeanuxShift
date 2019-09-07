@@ -182,6 +182,7 @@ player.state = 0
 player.ti1 = 0
 player.key1=0
 player.tiStun=0
+
 player.lastBtn6=0
 player.lastBtn7=0
 player.onButter=false
@@ -253,6 +254,8 @@ function player:control()
 	end
 
 	if btn(4) then player:startAttack() end
+
+
 	if(btn(6))then
 		self.lastBtn6=self.lastBtn6+1
 		if(self.lastBtn6==30)then
@@ -526,24 +529,25 @@ function theTimeMachine:draw()
 	end
 end
 
-theKelvinWand=artifact(30,30)
-function theKelvinWand:init()
+theKelvinWand=artifact(30,60)
+theKelvinWand.sprite=384
+function theKelvinWand:use()
+	self:switchOn()
 end
-theKelvinWand:init()
-function theKelvinWand:switchOn() --hold btn to SHIFT
-	if(self.inWorking)then return false end
-	self.mode=1-self.mode
-	return true
+function theKelvinWand:cast()
+	local elem=1
+	if(self.mode==1)then elem=2 end
+	local cp=CenterPoint(player)
+	table.insert(envManager,KelvinBullet(cp[1],cp[2],player.fwd,1,elem))
 end
-function theKelvinWand:shift() --tap btn to SWITCHON(DISCHARGE)
-	if(self.tiCD>0)then
-		return false
-	else
-		self.tiCD=self.cdTime
-		self.tiDur=0
-		self.inWorking=true
-		return true
+function theKelvinWand:update()
+	if(self.inWorking)then
+		self:cast() 
+		self:switchOff()
 	end
+	if(self.tiCD>0)then self.tiCD=self.tiCD-1 end
+end
+function theKelvinWand:draw()
 end
 -- endregion
 
@@ -556,22 +560,22 @@ function mob(x,y,w,h,hp,alertR)
 	m.sleep=true
 	m.alertRange=alertR or 0
 	m.ms=1
+	m.rawMs=m.ms
 	m.dmgStunTresh=0
 	m.stunTime=30
 	m.stunTime_shockTile=120
 	m.tiStun=0
 	m.canHit=true
 	m.isDead=false
-	m.fireStack=0
-	m.iceStack=0
 	m.tiFire=0
 	m.tiIce=0
-	function m:onHit(dmg)
+	function m:onHit(dmg,noStun)
 		if(self.canHit)then 
 			self.sleep=false
 			self.hp=self.hp-dmg.value
 			trace("mob hp"..self.hp)
-			if(dmg.value>self.dmgStunTresh)then self.tiStun=self.stunTime end
+			if(not noStun and dmg.value>self.dmgStunTresh)then self.tiStun=self.stunTime end
+			if(dmg.elem==1)then self.tiFire=150 elseif(dmg.elem==2)then self.tiIce=30 end
 			if(self.hp<=0)then self:death() end
 			return true
 		end
@@ -618,6 +622,15 @@ function mob(x,y,w,h,hp,alertR)
 		return dv,dvn
 	end
 	function m:defaultElem()
+		if(self.tiFire>0)then
+			if(self.tiFire%30==0) then self:onHit(damage(2,0),true) end
+			self.tiFire=self.tiFire-1
+		end
+		if(self.tiIce>0)then
+			self.tiIce=self.tiIce-1
+			return false
+		end
+		return true
 	end
 
 	return m
@@ -628,7 +641,7 @@ function slime(x,y)
 	s.ms=0.5
 	s.tiA=0
 	s.fwd={-1,0}
-	s.meleeRange=(16+8)//2+2
+	s.meleeRange=(16+8)//2+6
 	s.attack=1
 	s.waitMeleeCalc=false
 	function s:startAttack()
@@ -642,6 +655,7 @@ function slime(x,y)
 	end
 
 	function s:update()
+		if(not self:defaultElem())then return end
 		if(self.tiStun>0)then
 			self.state=0
 			self.tiStun=self.tiStun-self.tmMul
@@ -653,16 +667,18 @@ function slime(x,y)
 		end
 		if(self.state==0)then
 			local dv,dvn=self:defaultMove()
-			if((math.abs(dv[1])+math.abs(dv[2]))<=self.meleeRange)then
+			if((math.max(math.abs(dv[1]),math.abs(dv[2])))<=self.meleeRange)then
 				self.fwd=dvn
 				--if(dv[1]<(self.w//2))then self.fwd[1]=0 end
 				--if(dv[2]<(self.h//2))then self.fwd[2]=0 end
 				self:startAttack()
 			end
 		elseif(self.state==1)then
-			if(self.waitMeleeCalc and self.tiA>=15)then self:meleeCalc() self.waitMeleeCalc=fasle end
+			if(self.waitMeleeCalc and self.tiA>=35)then self:meleeCalc() self.waitMeleeCalc=fasle end
 			self.tiA=self.tiA+self.tmMul
-			if(self.tiA>=60)then self.state=0 end
+			if(self.tiA>=90)then self:defaultMove() end
+			--if(self.tiA>=90)then end
+			if(self.tiA>=120)then self.state=0 end
 		end
 	end
 	
@@ -676,7 +692,9 @@ function slime(x,y)
 			if(self.tiA<15)then 
 				sprc(482,self.x-self.fwd[1]*(self.tiA//5),self.y-self.fwd[2]*(self.tiA//3),14,1,0,0,1,1)
 			elseif(self.tiA<35)then
-				sprc(482,self.x+self.fwd[1]*(2*self.tiA//3-13),self.y+self.fwd[2]*(2*self.tiA//3-15),14,1,0,0,1,1)
+				sprc(482,self.x+self.fwd[1]*(11*(self.tiA-15)/20-3),self.y+self.fwd[2]*(11*(self.tiA-15)/20-3),14,1,0,0,1,1)
+			elseif(self.tiA<50)then
+				sprc(480,self.x+self.fwd[1]*8,self.y+self.fwd[2]*8,14,1,0,0,1,1)
 			else
 				sprc(480,self.x,self.y,14,1,0,0,1,1)
 			end
@@ -705,6 +723,7 @@ function ranger(x,y)
 		--todo:shoot
 	end
 	function rg:update()
+		if(not self:defaultElem())then return end
 		if(self.tiStun>0)then
 			self.state=0
 			self.tiStun=self.tiStun-self.tmMul
@@ -839,21 +858,22 @@ end
 function bullet(x,y,w,h,iDmg,iElem)
 	local blt=item(x,y,w,h)
 	blt.dmg=iDmg
-	blt.iElem=iElem or 0
+	blt.elem=iElem or 0
 	blt.lifetime=nil
 	blt.iLife=0
 	blt.hitPlayer=false
 	blt.pierce=false
 	blt.hitMobs=set({})
 	blt.fwd={0,1}
+	blt.speed=1
 
 	function blt:hitCheck()
 		if(self.hitPlayer)then
 			if(iEntityTrigger(player,self))then return self:hit(player) end
 		else
 			for i=1,#mobManager do
-				local m=#mobManager
-				if(m.canHit)then
+				local m=mobManager[i]
+				if(m and m.canHit)then
 					if(iEntityTrigger(m,self))then 
 						return self:hit(m)
 					end
@@ -879,7 +899,7 @@ function bullet(x,y,w,h,iDmg,iElem)
 		if(self.lifetime and self.iLife>=self.lifetime)then
 			self:remove()
 		else
-			self:move(self.fwd[1],self.fwd[2],true)
+			self:move(self.speed*self.fwd[1],self.speed*self.fwd[2],true)
 			self.iLife=self.iLife+1
 		end
 	end
@@ -908,6 +928,28 @@ function tinyBullet(x,y,fwd)
 	end
 
 	return tb
+end
+
+function KelvinBullet(x,y,fwd,iDmg,iElem)
+	local kb=bullet(x,y,2,2,iDmg,iElem)
+	kb.lifetime=60
+	kb.speed=2
+	kb.fwd=fwd or {1,0}
+
+	function kb:update()
+		self:defaultTic()
+		if(self.tCollided)then self:remove() end
+		if(self:hitCheck())then	self:remove()	end
+	end
+	function kb:draw()
+		--pixc(self.x,self.y,4)
+		local color=5
+		if(self.elem==2)then color=9 end
+		circc(self.x,self.y,2,color)
+		circbc(self.x,self.y,3,15)
+	end
+
+	return kb
 end
 -- endregion
 
@@ -1147,7 +1189,7 @@ function uiStatusBar:draw()
 		rect(9, 9+tmp_, self.hp, 3, 4)
 		self.hp = self.hp-1/60*10  
 	else
-		self.hp=player.hp*2  
+		self.hp=player.hp*2
 	end
 	rect(9,9+tmp_,player.hp*2,3,6)
 
@@ -1218,7 +1260,7 @@ function loadLevel(levelId)
 	end
 end
 
-atfManager={theGravition, theTimeMachine}
+atfManager={theGravition, theKelvinWand,theTimeMachine}
 function atfManager:shiftAtf(index)
 	self[index]:shift()
 end
@@ -1543,9 +1585,9 @@ end
 -- 025:a1d3d3d3e3e3e3e3e39ae3e3d3e3e3e3e3d3e3f3e3b4d4d4d4c4e3d3ffffffffd3f41bf4f4f4d30dfefefefefefefefefefefefefefefefefefefea211fefefefeffffffffffffffa100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a9
 -- 026:a1d3ffffffffffffffffffffd3e3e3e3e3d3fffffffffffffffffffffffffffffefe1bfefefefeffffffffffffffffffffffffffffffffffff0fffa211ffff0fffffffffffffffffa100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a9
 -- 027:a1ff111111111111ffffffffd3e3e3e3e3d3ffffffffffffffffffffffffffffffff1bffffffffffffffff0fff1111ffffffffffffffffffffffffa211ffffffffffffffffffffffa100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a9
--- 028:a1ff110effffff11ff0fffffffff09ff09ffffffffffffffffffffffffffffffffff1bffffffffffffffffffff1111ffffffff0fffffffffffffffa211ffffffffffffffffffffffa100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a9
--- 029:a1ff11ffff0dff11ffffffffffffff0909ffffffff0fffffffffffffffffffffff70a1a1a1a160ffffffffffff1111ffffffff11111111ffffffffd311ffffffffa2ffffffffffffa100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a9
--- 030:a1ff11ffffffff11ffffffffffff090909ffffffffffffffffffffffffffffffffa1b2b2b2b2a1ffffffffffff1111ffffffff11111111ffffffffd311ffffffffa2ffffffffffffa100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a9
+-- 028:a1ff110effffff11ff0fffffffff09ff09ffffff1d1d1dffffffffffffffffffffff1bffffffffffffffffffff1111ffffffff0fffffffffffffffa211ffffffffffffffffffffffa100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a9
+-- 029:a1ff11ffff0dff11ffffffffffffff0909ffffff1d0f1dffffffffffffffffffff70a1a1a1a160ffffffffffff1111ffffffff11111111ffffffffd311ffffffffa2ffffffffffffa100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a9
+-- 030:a1ff11ffffffff11ffffffffffff090909ffffff1d1d1dffffffffffffffffffffa1b2b2b2b2a1ffffffffffff1111ffffffff11111111ffffffffd311ffffffffa2ffffffffffffa100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a9
 -- 031:c3ff110effffff11ff0fffffffffff0909ffffffffffffffffffffff6308080863a1b1b1b1b1a1ffffffffffffffffffffffffffffffffffffffffd311ffffffffa2ffffffffffffa100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a9
 -- 032:c3ff111111111111ffffff85e4e4e4e4e4e495ffffffffffffffffff1dffffffffc3b1b1b1b1c3ffffffffffffffffffffffffffffffffffffffffffffffffffffc3ffffffffffffc300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a9
 -- 033:c3e4ffffffffffffffffffb5e5e5e5e5e5e5b6ffffffffffffffffff1dff1f0effc3e5e5e5e5c3111111111111111111111111111111ffffffffffffff0fffffffc3ffffffffffffc300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a9
