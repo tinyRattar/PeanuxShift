@@ -641,6 +641,15 @@ function mob(x,y,w,h,hp,alertR)
 		end
 		return true
 	end
+	function m:drawElem()
+		if(self.tiFire>0)then
+			trace("indraw")
+			sprc(210+t//30%2,self.x,self.y+self.h-8,0,self.w//8,0,0,1,1)
+		end
+		if(self.tiIce>0)then
+			sprc(212,self.x,self.y+self.h-8,0,self.w//8,0,0,1,1)
+	  end
+	end
 
 	return m
 end
@@ -708,6 +717,7 @@ function slime(x,y)
 				sprc(480,self.x,self.y,14,1,0,0,1,1)
 			end
 		end
+		self:drawElem()
 	end
 	return s
 end
@@ -771,6 +781,7 @@ function ranger(x,y)
 				sprc(496+t//(20/self.tmMul)%2 * 1,self.x,self.y,0,1,0,0,1,1)
 			end
 		end
+		self:drawElem()
 	end
 
 	return rg
@@ -1444,6 +1455,9 @@ end
 -- 207:bbdbbbdebbdbbbdebbdbbbdebbdbbbdeaaabbbdeaaabbbdeaaaaaaaeaaaaaaae
 -- 208:effffffef555555ff5ffff5ff555555feff5fffeeef555feeef5ffeeeeef55fe
 -- 209:22222222e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e222222222
+-- 210:0000000000000000000000000040004004540454453545355300530000000000
+-- 211:0000000000000000000000000400040045404540535453543005303500000000
+-- 212:00000000000000000000f0f0f0f08f808f8f989f989899989999999900000000
 -- 215:353535355cccccc33c5353c55c3535c33c5353c55c3535c33cccccc553535353
 -- 217:ddddddddeeeeeeeeffffffffeeeeeeeedddddddddddddddddddddddddddddddd
 -- 218:efddddddeffffffdeffeeeedeeffffffdeeeeeeeddddddddbbbbbbbbabbbbbbb
