@@ -517,11 +517,15 @@ function mob(x,y,w,h,hp,alertR)
 	m.canHit=true
 	m.isDead=false
 	function m:onHit(dmg)
-		self.sleep=false
-		self.hp=self.hp-dmg.value
-		trace("mob hp"..self.hp)
-		if(dmg.value>self.dmgStunTresh)then self.tiStun=self.stunTime end
-		if(self.hp<=0)then self:death() end
+		if(self.canHit)then 
+			self.sleep=false
+			self.hp=self.hp-dmg.value
+			trace("mob hp"..self.hp)
+			if(dmg.value>self.dmgStunTresh)then self.tiStun=self.stunTime end
+			if(self.hp<=0)then self:death() end
+			return true
+		end
+		return false
 		-- todo: element attack
 	end
 	function m:death()
