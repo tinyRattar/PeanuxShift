@@ -963,10 +963,11 @@ function KelvinBullet(x,y,fwd,iDmg,iElem)
 	end
 	function kb:draw()
 		--pixc(self.x,self.y,4)
-		local color=5
-		if(self.elem==2)then color=9 end
-		circc(self.x,self.y,2,color)
-		circbc(self.x,self.y,3,15)
+		local color=4
+		local color2=5
+		if(self.elem==2)then color=9 color2=8 end
+		circc(self.x,self.y,2,color2)
+		circc(self.x,self.y,1,color)
 	end
 
 	return kb
