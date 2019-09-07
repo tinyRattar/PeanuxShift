@@ -164,7 +164,7 @@ end
 -- region PLAYER
 -- _player
 player=entity(32,60,16,16)
-player.fwd = 1
+player.fwd = {1,0}
 player.hp = 50
 player.attack = 5
 player.state = 0
@@ -175,11 +175,18 @@ player.lastBtn6=0
 player.lastBtn7=0
 --player.atkRect = {{player.x+player.w,player.y,10,16},{player.x-10,player.y,10,16}}
 function player:atkRect()
-	p=self
-	if(p.fwd==1) then 
-		res = {p.x+p.w,p.y,10,16}
-	else
-		res = {p.x-10,p.y,10,16}
+	local p=self
+	local ar=10
+	local ox=0
+	local oy=0
+	if(p.fwd[1]==1)then
+		res={p.x+p.w,p.y,10,16}
+	elseif(self.fwd[1]==-1)then
+		res={p.x-ar,p.y,10,16}
+	elseif(self.fwd[2]==1)then
+		res={p.x,p.y+p.h,16,10}
+	elseif(self.fwd[2]==-1)then
+		res={p.x,p.y-ar,16,10}
 	end
 	return res
 end
@@ -197,13 +204,12 @@ function player:meleeCalc()
 		local tar=hitList[i]
 		if(tar~=self) then
 			-- todo: element attack
-			local knockback=1
+			local knockback=self.fwd
 			-- todo: knockback check
-			if(self.fwd==2) then knockback=-1 end
 			if(tar.canHit)then
 				tar:onHit(damage(self.attack,0))
 				if(tar.tiStun>0)then
-					for i=1,10 do tar:move(knockback,0,true) end
+					for i=1,10 do tar:move(knockback[1],knockback[2],true) end
 				end
 			end
 		end
@@ -227,16 +233,13 @@ end
 function player:control()
 	-- controller
 	if(self.state~=-1) then
-		if btn(0) then player:movec(0,-self.tmMul,true) end
-		if btn(1) then player:movec(0,self.tmMul,true) end
-		if btn(2) then player:movec(-self.tmMul,0,true) player.fwd=2 end
-		if btn(3) then player:movec(self.tmMul,0,true) player.fwd=1 end
+		if btn(0) then player:movec(0,-self.tmMul,true) player.fwd={0,-1} end
+		if btn(1) then player:movec(0,self.tmMul,true) player.fwd={0,1} end
+		if btn(2) then player:movec(-self.tmMul,0,true) player.fwd={-1,0} end
+		if btn(3) then player:movec(self.tmMul,0,true) player.fwd={1,0} end
 	end
 
 	if btn(4) then player:startAttack() end
-  --if btnp(5) then atfManager:shiftAtf(2) atfManager:shiftAtf(1) end
-	--if (btn(6) and not btnp(6)) then atfManager:useAtf(1) elseif btnp(6,30,60) then atfManager:shiftAtf(1) end
-	--if (btn(7) and not btnp(7)) then atfManager:useAtf(2) elseif btnp(6,30,60) then atfManager:shiftAtf(2) end
 	if(btn(6))then
 		self.lastBtn6=self.lastBtn6+1
 		if(self.lastBtn6==30)then
@@ -256,11 +259,6 @@ function player:control()
 		if(self.lastBtn7<15 and self.lastBtn7>0)then atfManager:useAtf(2) end
 		self.lastBtn7=0
 	end
-	
-	--btnp(id,hold,period)
-	
-	
-	--if btnp(6) then atfManager:shiftAtf(1) end
 end
 function player:update()
 	camera.x = self.x-CAMERA_OFF[1]
@@ -280,21 +278,24 @@ end
 function player:draw()
 	local offX=0
 	local offX_s=11
-	if(player.fwd==2) then offX=self.w-16 offX_s=-11	end
+	local off_sy=0
+	local sprFlip=(1-self.fwd[1])//2
+	if(player.fwd[1]==-1) then offX=self.w-16 offX_s=-11	end
+	if(player.fwd[2]==1) then offX_s=0 off_sy=12 elseif(player.fwd[2]==-1) then offX_s=0 off_sy=-11 end
 	if(self.tiStun>0)then
-		sprc(256,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
+		sprc(256,self.x+offX,self.y,1,1,sprFlip,0,2,2)
 		self:drawStun()
 	elseif(self.state==0) then
-		sprc(256+t//(20/self.tmMul)%2 * 2,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
+		sprc(256+t//(20/self.tmMul)%2 * 2,self.x+offX,self.y,1,1,sprFlip,0,2,2)
 	elseif(self.state==1) then
-		if self.ti1>=16 then sprc(260,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
-		elseif self.ti1>=14 then sprc(262,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
-		else sprc(264,self.x+offX,self.y,1,1,player.fwd-1,0,2,2)
+		if self.ti1>=16 then sprc(260,self.x+offX,self.y,1,1,sprFlip,0,2,2)
+		elseif self.ti1>=14 then sprc(262,self.x+offX,self.y,1,1,sprFlip,0,2,2)
+		else sprc(264,self.x+offX,self.y,1,1,sprFlip,0,2,2)
 		end
 
-		if self.ti1>=16 then sprc(320,self.x+offX_s,self.y,1,1,player.fwd-1,0,2,2)
-		elseif self.ti1>=14 then sprc(322,self.x+offX_s,self.y+1,1,1,player.fwd-1,0,2,2)
-		else sprc(324,self.x+offX_s,self.y+6,1,1,player.fwd-1,0,2,2)
+		if self.ti1>=16 then sprc(320,self.x+offX_s,self.y+off_sy,1,1,sprFlip,0,2,2)
+		elseif self.ti1>=14 then sprc(322,self.x+offX_s,self.y+off_sy+1,1,1,sprFlip,0,2,2)
+		else sprc(324,self.x+offX_s,self.y+off_sy+6,1,1,sprFlip,0,2,2)
 		end
 	end
 end
