@@ -25,7 +25,7 @@ function set(ls)
 end
 MAP_COLLIDE=set({4,20,23,26,27,38,39,40,41,42,44,54,55,58,60,61,62,63,75,76,77,78,79,93,94,95,110,111})
 MAP_ENTER=set({17,178,179,231})
-MAP_REMAP_BLANK=set({208,224,240,241})
+MAP_REMAP_BLANK=set({208,224,240,241,144})
 MAP_TOUCH=set({113,128,176,177})
 
 -- region base class
@@ -301,13 +301,13 @@ function player:draw()
 end
 function player:touch(tile)
 	local tileId,tx,ty=tile[1],tile[2],tile[3]
-	if(tileId==177)then 
-		if(self.key1>0)then
+	if(tileId==177)then
+		if(mget(tx,ty)==177 and self.key1>0)then
 			mset_4ca(tx,ty,178,177)
 			self.key1=self.key1-1
 		end
 	elseif(tileId==176)then 
-			if(self.key1>0)then
+			if(mget(tx,ty)==176 and self.key1>0)then
 				mset_4ca(tx,ty,179,176)
 				self.key1=self.key1-1
 			end
@@ -722,6 +722,21 @@ function fence(x,y)
 	end
 
 	return fe
+end
+
+function weakRock(x,y)
+	local wr=mob(x,y,8,8,1,-1)
+	wr.pullMul=0
+	wr.pushMul=0
+	wr.tmMul=0
+
+	function wr:update()
+	end
+	function wr:draw()
+		sprc(144,self.x,self.y,0,1,0,0,1,1)
+	end
+
+	return wr
 end
 -- endregion
 
@@ -1143,6 +1158,8 @@ function loadLevel(levelId)
 				table.insert(envManager,keyItem(i*8,j*8))
 			elseif(mtId==209)then
 				table.insert(mobManager,fence(i*8,j*8))
+			elseif(mtId==144)then
+				table.insert(mobManager,weakRock(i*8,j*8))
 			end
 		end
 	end
