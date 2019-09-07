@@ -537,7 +537,7 @@ function theTimeMachine:draw()
 	end
 end
 
-theKelvinWand=artifact(30,60)
+theKelvinWand=artifact(60,30)
 theKelvinWand.sprite=356
 function theKelvinWand:use()
 	self:switchOn()
@@ -550,8 +550,9 @@ function theKelvinWand:cast()
 end
 function theKelvinWand:update()
 	if(self.inWorking)then
-		self:cast() 
-		self:switchOff()
+		if(self.tiDur==0) then self:cast() end
+		self.tiDur=self.tiDur+1
+		if(self.tiDur>self.durTime)then self:switchOff() end
 	end
 	if(self.tiCD>0)then self.tiCD=self.tiCD-1 end
 end
