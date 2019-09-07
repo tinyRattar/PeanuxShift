@@ -442,7 +442,6 @@ function theTimeMachine:init()
 		self.hHandPos[i]={sin*3*8,-cos*3*8}
 		self.mHandPos[i]={sin*4*8,-cos*4*8}
 	end
-
 end
 theTimeMachine:init()
 function theTimeMachine:use()
@@ -526,6 +525,26 @@ function theTimeMachine:draw()
 		end
 	end
 end
+
+theKelvinWand=artifact(30,30)
+function theKelvinWand:init()
+end
+theKelvinWand:init()
+function theKelvinWand:switchOn() --hold btn to SHIFT
+	if(self.inWorking)then return false end
+	self.mode=1-self.mode
+	return true
+end
+function theKelvinWand:shift() --tap btn to SWITCHON(DISCHARGE)
+	if(self.tiCD>0)then
+		return false
+	else
+		self.tiCD=self.cdTime
+		self.tiDur=0
+		self.inWorking=true
+		return true
+	end
+end
 -- endregion
 
 -- region MOB
@@ -536,12 +555,17 @@ function mob(x,y,w,h,hp,alertR)
 	m.state=0
 	m.sleep=true
 	m.alertRange=alertR or 0
+	m.ms=1
 	m.dmgStunTresh=0
 	m.stunTime=30
 	m.stunTime_shockTile=120
 	m.tiStun=0
 	m.canHit=true
 	m.isDead=false
+	m.fireStack=0
+	m.iceStack=0
+	m.tiFire=0
+	m.tiIce=0
 	function m:onHit(dmg)
 		if(self.canHit)then 
 			self.sleep=false
@@ -585,6 +609,16 @@ function mob(x,y,w,h,hp,alertR)
 			self:death()
 		end
 	end
+	function m:defaultMove()
+		local dv=CenterDisVec(player,self)
+		local dvn=vecNormFake(dv,1)
+		local _tmMul=self.tmMul
+		if(self.tmMul>0)then _tmMul=1 end
+		self:movec(dvn[1]*self.ms*_tmMul,dvn[2]*self.ms*_tmMul)
+		return dv,dvn
+	end
+	function m:defaultElem()
+	end
 
 	return m
 end
@@ -618,31 +652,11 @@ function slime(x,y)
 			return
 		end
 		if(self.state==0)then
-			local dx=0
-			local dy=0
-			local sx=self.x+self.w//2
-			local sy=self.y+self.h//2
-			local tx=player.x+player.w//2
-			local ty=player.y+player.h//2
-			if(sx<=tx-1)then 
-				dx=1
-			elseif(sx>=tx+1)then
-				dx=-1
-			end
-			if(sy<=ty-1)then 
-				dy=1
-			elseif(sy>=ty+1)then
-				dy=-1
-			end
-			-- if(dx~=0 and dy~=0)then
-			-- 	dx=dx*0.5
-			-- 	dy=dy*0.5
-			-- end
-			self:movec(dx*self.ms*self.tmMul,dy*self.ms*0.5*self.tmMul)
-			if(MDistance({x=tx,y=ty},{x=sx,y=sy})<=self.meleeRange)then
-				if(math.abs(sx-tx)<(self.w//2))then dx=0 end
-				if(math.abs(sy-ty)<(self.h//2))then dy=0 end
-				self.fwd={dx,dy}
+			local dv,dvn=self:defaultMove()
+			if((math.abs(dv[1])+math.abs(dv[2]))<=self.meleeRange)then
+				self.fwd=dvn
+				--if(dv[1]<(self.w//2))then self.fwd[1]=0 end
+				--if(dv[2]<(self.h//2))then self.fwd[2]=0 end
 				self:startAttack()
 			end
 		elseif(self.state==1)then
@@ -997,6 +1011,16 @@ end
 function CenterDisVec(a, b)
 	return {a.x+a.w//2-(b.x+b.w//2),a.y+a.h//2-(b.y+b.h//2)}
 end
+
+function CenterDisVecWithThresh(a, b, thresh)
+	local th=thresh or 1
+	local vec=CenterDisVec(a,b)
+	for i=1,2 do
+		if(math.abs(vec[i])<th)then vec[i]=0 end
+	end
+end
+
+
 
 function CenterPoint(a)
 	return {a.x+a.w//2,a.y+a.h//2}
