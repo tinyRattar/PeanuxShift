@@ -24,7 +24,7 @@ function set(ls)
 	return s
 end
 MAP_COLLIDE=set({0,4,20,23,26,27,38,39,40,41,42,44,54,55,58,60,61,62,63,75,76,77,78,79,93,94,95,110,111})
-MAP_ENTER_DANGER=set({16,178,179})
+MAP_ENTER_DANGER=set({16,178,179,182,166})
 MAP_ENTER_FREE=set({231,238,167,168,169,170,183,184,185,80,222,237,238,254})
 MAP_REMAP_BLANK=set({208,224,240,241,144})
 MAP_TOUCH=set({17,113,128,165,181})
@@ -382,6 +382,9 @@ function player:enter(tile)
 		self.onButter=true
 	elseif(tileId==80)then
 		self.onFireTile=true
+	elseif(tileId==182 or tileId==166)then
+		self:onHit(damage(1))
+		self:move(-self.fwd[1],-self.fwd[2],true)
 	end
 end
 -- endregion
@@ -639,6 +642,8 @@ function mob(x,y,w,h,hp,alertR)
 		local tileId,tx,ty=tile[1],tile[2],tile[3]
 		if(tileId==16)then
 			self:death()
+		elseif(tileId==182 or tileId==166)then
+			self:death()
 		end
 	end
 	function m:defaultMove()
@@ -839,12 +844,14 @@ end
 
 function fireTentacle(x,y)
 	local ft=mob(x,y,8,8,1,-1)
+	ft.noEntityCollide=true
 	ft.pullMul=0
 	ft.pushMul=0
 	ft.tmMul=0
-	ft.rawChangeTime=5
+	ft.rawChangeTime=1
 	ft.tiC=0
 	ft.sprite=182
+	ft.horSprite=166
 
 	function ft:changeOneTile()
 		local tmp=1
@@ -864,21 +871,25 @@ function fireTentacle(x,y)
 		for i=1,#NEARBY4 do
 			local tfwd=NEARBY4[i]
 			local tileId=mget(iMapManager.offx+self.x//8+tfwd[1],iMapManager.offy+self.y//8+tfwd[2])
-			if(tileId==182)then
+			if(tileId==self.sprite)then
 				self.fwd=tfwd
+				break
+			elseif(tileId==self.horSprite)then
+				self.fwd=tfwd
+				self.sprite=self.horSprite
 				break
 			end
 		end
 		local tLen=0
 		if(self.fwd)then
-			while(mget(iMapManager.offx+self.tailx+self.fwd[1],iMapManager.offy+self.taily+self.fwd[2])==182)do
+			while(mget(iMapManager.offx+self.tailx+self.fwd[1],iMapManager.offy+self.taily+self.fwd[2])==self.sprite)do
 				tLen=tLen+1
 				self.tailx=self.tailx+self.fwd[1]
 				self.taily=self.taily+self.fwd[2]
 			end
 			self.maxLen=tLen
 		else
-			trace("Fire Tentacle has no fwd. put tile#182 around it.")
+			trace("Fire Tentacle has no fwd. put tile "..self.sprite.." around it.")
 		end
 		self.curLen=self.maxLen
 		self.toShort=true
@@ -899,7 +910,7 @@ function fireTentacle(x,y)
 	end
 	function ft:update()
 		local tScale=1
-		if(self.tiIce>0)then tScale=0.2 self.tiIce=self.tiIce-1  end
+		if(self.tiIce>0)then tScale=0.1 self.tiIce=self.tiIce-1  end
 		if(self.tiC<=0)then
 			self:changeOneTile()
 			if(self.curLen==0)then self.toShort=false end
@@ -912,11 +923,11 @@ function fireTentacle(x,y)
 		local color=4
 		if(self.tiIce>0)then color=9 end
 		rectbc(self.x,self.y,self.w,self.h,color)
-		
 	end
 
 	return ft
 end
+
 
 -- endregion
 
