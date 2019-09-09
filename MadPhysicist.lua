@@ -24,7 +24,7 @@ function set(ls)
 	return s
 end
 MAP_COLLIDE=set({0,4,20,23,26,27,38,39,40,41,42,44,54,55,58,60,61,62,63,75,76,77,78,79,93,94,95,110,111})
-MAP_ENTER_DANGER=set({16,178,179,182,166})
+MAP_ENTER_DANGER=set({16,178,179,182,166,164,180})
 MAP_ENTER_FREE=set({231,238,167,168,169,170,183,184,185,80,222,237,238,254})
 MAP_REMAP_BLANK=set({208,224,240,241,144})
 MAP_TOUCH=set({17,113,128,165,181})
@@ -311,6 +311,12 @@ function player:update()
 			self:onHit(damage(1,0))
 		end
 	end
+
+	if(self.willKnockWithDmg)then
+		self:onHit(damage(1))
+		self:move(-self.fwd[1],-self.fwd[2],true)
+		self.willKnockWithDmg=false
+	end
 	
 	if(self.onButter)then
 		local mV=1
@@ -383,8 +389,9 @@ function player:enter(tile)
 	elseif(tileId==80)then
 		self.onFireTile=true
 	elseif(tileId==182 or tileId==166)then
-		self:onHit(damage(1))
-		self:move(-self.fwd[1],-self.fwd[2],true)
+		self.willKnockWithDmg=true
+	elseif(tileId==180 or tileId==164)then
+		self.willKnockWithDmg=true
 	end
 end
 -- endregion
@@ -842,7 +849,7 @@ function weakRock(x,y)
 	return wr
 end
 
-function fireTentacle(x,y)
+function fireTentacle(x,y,noInit)
 	local ft=mob(x,y,8,8,1,-1)
 	ft.noEntityCollide=true
 	ft.pullMul=0
@@ -866,11 +873,13 @@ function fireTentacle(x,y)
 		if(not self.toShort)then mset(iMapManager.offx+self.tailx,iMapManager.offy+self.taily,self.sprite) end
 	end
 	function ft:init()
+		trace(self)
 		self.tailx=self.x//8
 		self.taily=self.y//8
 		for i=1,#NEARBY4 do
 			local tfwd=NEARBY4[i]
 			local tileId=mget(iMapManager.offx+self.x//8+tfwd[1],iMapManager.offy+self.y//8+tfwd[2])
+			trace(tileId)
 			if(tileId==self.sprite)then
 				self.fwd=tfwd
 				break
@@ -889,7 +898,7 @@ function fireTentacle(x,y)
 			end
 			self.maxLen=tLen
 		else
-			trace("Fire Tentacle has no fwd. put tile "..self.sprite.." around it.")
+			trace("Tentacle has no fwd. put tile "..self.sprite.." around it.")
 		end
 		self.curLen=self.maxLen
 		self.toShort=true
@@ -902,7 +911,7 @@ function fireTentacle(x,y)
 		end
 		if(self.fwd[2]~=0)then self.h=self.h+math.abs(tLen)*8 end
 	end
-	ft:init()
+	if(not noInit)then ft:init() end
 	function ft:onHit(dmg)
 		if(dmg.elem==2)then
 			self.tiIce=300
@@ -910,7 +919,7 @@ function fireTentacle(x,y)
 	end
 	function ft:update()
 		local tScale=1
-		if(self.tiIce>0)then tScale=0.1 self.tiIce=self.tiIce-1  end
+		if(self.tiIce>0)then tScale=0.05 self.tiIce=self.tiIce-1  end
 		if(self.tiC<=0)then
 			self:changeOneTile()
 			if(self.curLen==0)then self.toShort=false end
@@ -928,6 +937,46 @@ function fireTentacle(x,y)
 	return ft
 end
 
+function iceTentacle(x,y)
+	local it=fireTentacle(x,y,true)
+	it.rawChangeTime=10
+	it.tiC=0
+	it.sprite=164
+	it.horSprite=180
+
+	it:init()
+	function it:onHit(dmg)
+		if(dmg.elem==1)then
+			self.tiFire=300
+		end
+	end
+	function it:update()
+		local tScale=1
+		if(self.tiFire>0 and self.curLen>0)then 
+			if(self.tiC<=0)then
+				self.toShort=true
+				self:changeOneTile()
+				self.tiC=self.rawChangeTime
+			end
+			self.tiC=self.tiC-1
+			self.tiFire=self.tiFire-1
+		elseif(self.tiFire<0 and self.curLen<self.maxLen)then
+			if(self.tiC<=0)then
+				self.toShort=false
+				self:changeOneTile()
+				self.tiC=self.rawChangeTime
+			end
+			self.tiC=self.tiC-1
+		end
+	end
+	function it:draw()
+		local color=9
+		if(self.tiFire>0)then color=4 end
+		rectbc(self.x,self.y,self.w,self.h,color)
+	end
+
+	return it
+end
 
 -- endregion
 
@@ -1440,6 +1489,8 @@ function loadLevel(levelId)
 				table.insert(mobManager,weakRock(i*8,j*8))
 			elseif(mtId==131)then
 				table.insert(mobManager,fireTentacle(i*8,j*8))
+			elseif(mtId==132)then
+				table.insert(mobManager,iceTentacle(i*8,j*8))
 			end
 		end
 	end
@@ -1848,7 +1899,7 @@ end
 -- 024:a1d3d3d3e3e3c1e0e3a5e3e3d3f4f4f4f4d3e3f3e30000000000e3d3ffffffffd3e3d3e3c1f0d3f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4a2f4f4f4f4f4ffffffffffffffa1000000000000000000000000000000000000000000000000000000000000000000000000e317ff0dffffffeeeeeeffff5868ffffffeeeeeeeeffffffff0101e3000000e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3ffffffe3e3e300000000e3e3e34b4b4b4b4b4b4b4be3000000000000000000e3ffffffffffffffffffffffffffffffff4affffffffffffffffffffffffffffffffe3000000000000000000000000000000000000
 -- 025:a1d3d3d3e3e3e3e3e3a5e3e3d3e3e3e3e3d3e3f3e3b4d4d4d4c4e3d3ffffffffd3f43af4f4f4d30dfefefefefefefefefefefefefefefefefefefea201fefefefeffffffffffffffa1000000000000000000000000000000000000000000000000000000000000000000000000e317ffffff11ffeeeeeeffff5969ffffffeeeeeeeeffffffff0101e3000000e3ffffffffffeeeeeeff0f0f0f0ee3ffffffffffffe3e3000000e3ffffffffe3ffffffffffe3000000000000000000e3ffffffffffffffffffffffffffffffff3affffffff630707070707070707070763e3000000000000000000000000000000000000
 -- 026:a1d3ffffffffffffffffffffd3e3e3e3e3d3fffffffffffffffffffffffffffffefe5afefefefeffffffffffffffffffffffffffffffffffff0fffa201ffff0fffffffffffffffffa1000000000000000000000000000000000000000000000000000000000000000000000000e317ffffff11ffffffffffffffffffffffffffffffffffffff0101e3000000e3ffffffffffeeeeeeff0f1f0f0ee3ffffffffffff49e3e3e3e3e3ffffffffe3ffffffffffe3000000000000000000e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3000000000000000000000000000000000000
--- 027:a1ff010101010101ffffffffd3e3e3e3e3d3ffffffffffffffffffffffffffffffff5affffffffffffffff0fff0101ffffffffffffffffffffffffa201ffffffffffffffffffffffa1000000000000000000000000000000000000000000000000000000000000000000000000e317ffffff11ffffffaaaaaaaaaaaaffffe3e3e3e348e3e3e3e3e3e3e3e3e3e3ffffff47ffeeeeeeff0f0f0fffe3ffffffffffff5affffffffffffffffffffffffffffffe30000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 027:a1ff010101010101ffffffffd3e3e3e3e3d3ffffffffffffffffffffffffffffffff5affffffffffffffff0fff0101ffffffffffffffffffffffffa201ffffffffffffffffffffffa1000000000000000000000000000000000000000000000000000000000000000000000000e317ffffff11ffffffaaaaaaaaaaaaffffe3e3e3e3e3e3e3e3e3e3e3e3e3e3e3ffffff47ffeeeeeeff0f0f0fffe3ffffffffffff5affffffffffffffffffffffffffffffe30000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 -- 028:a1ff010effffff01ff0fffffffff09ff09ffffff1d1d1dffffffffffffffffffffff5affffffffffffffffffff0101ffffffff0fffffffffffffffa201ffffffffffffffffffffffa10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 -- 029:a1ff01ffff0dff01ffffffffffffff0909ffffff1d0f1dffffffffffffffffffff70a1a1a1a160ffffffffffff0101ffffffff01010101ffffffffd301ffffffffa2ffffffffffffa10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 -- 030:a1ff01ffffffff01ffffffffffff090909ffffff1d1d1dffffffffffffffffffffa1b2b2b2b2a1ffffffffffff0101ffffffff01010101ffffffffd301ffffffffa2ffffffffffffa10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
