@@ -649,6 +649,9 @@ function mob(x,y,w,h,hp,alertR)
 		local tileId,tx,ty=tile[1],tile[2],tile[3]
 		if(tileId==16)then
 			self:death()
+		elseif(tileId==80)then
+			if(t%20==0)then self:onHit(damage(1))end
+			--todo: default buff calc to avoid multi tile hit per tic
 		elseif(tileId==182 or tileId==166)then
 			self:death()
 		end
