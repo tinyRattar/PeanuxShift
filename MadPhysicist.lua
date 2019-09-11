@@ -304,8 +304,8 @@ function player:control()
 	end
 end
 function player:update()
-	camera.x = self.x-CAMERA_OFF[1]
-	camera.y = self.y-CAMERA_OFF[2]
+	camera.x = self.x-CAMERA_OFF[1]+cameraOffset[1]
+	camera.y = self.y-CAMERA_OFF[2]+cameraOffset[2]
 	local ox,oy=self.x,self.y
 	if(self.onFireTile)then
 		if(t%20==0)then
@@ -387,6 +387,7 @@ function player:touch(tile)
 			end
 	elseif(tileId==113 or tileId==128)then
 		self.tiStun=60
+		shockScreen(1,3)
 		shockActive((tx-iMapManager.offx)*8,(ty-iMapManager.offy)*8)
 	end
 end
@@ -941,6 +942,7 @@ function bombMan(x,y)
 			end
 		end
 		explode(self.x,self.y)
+		shockScreen(2,1,true)
 		self:death()
 	end
 	function bm:onHit(dmg,noStun)
@@ -1027,14 +1029,19 @@ function chargeElite(x,y)
 		self.tiA=0
 		self.waitMeleeHit=true
 	end
+	function ce:forceStop()
+		self.waitMeleeHit=false 
+		self.tiA=self.tA2
+		shockActive(self.x+self.fwd[1]*4,self.y+self.fwd[2]*4,self.w,self.h,{4,4,5,5,12,12,2,2,15,15},2)
+		shockScreen(2,3,true)
+	end
 	function ce:meleeCalc()
 		local atkBox={x=self.x+2*self.fwd[1],y=self.y+2*self.fwd[2],w=16,h=16}
 		if(iEntityCollision(player,atkBox))then 
 			player:onHit(damage(self.attack))
-			self.waitMeleeHit=false 
-			self.tiA=self.tA2
+			self:forceStop()
 			player:movec(self.fwd[1]*4,self.fwd[2]*4,true)
-			shockActive(self.x+self.fwd[1]*4,self.y+self.fwd[2]*4,self.w,self.h,{4,4,5,5,12,12,2,2,15,15},2)
+			player.tiStun=30
 		end
 	end
 	function ce:update()
@@ -1060,13 +1067,12 @@ function chargeElite(x,y)
 				local ox,oy=self.x,self.y
 				self:movec(self.fwd[1]*ce.chargeMs,self.fwd[2]*ce.chargeMs)
 				dust(self.x+8,self.y+8)
-				if(math.abs(self.x-ox)<=1 and math.abs(self.y-oy)<=1)then 
-					self.tiA=self.tA2
-					shockActive(self.x+self.fwd[1]*4,self.y+self.fwd[2]*4,self.w,self.h,{4,4,5,5,12,12,2,2,15,15},2)
-				end					
 				if(self.waitMeleeHit)then
 					self:meleeCalc()
 				end
+				if(math.abs(self.x-ox)<=1 and math.abs(self.y-oy)<=1)then 
+					self:forceStop()
+				end					
 			end
 			self.tiA=self.tiA+self.tmMul
 			if(self.tiA>=self.tA3)then self:defaultMove() end
@@ -1147,6 +1153,7 @@ function laserElite(x,y)
 				dust(self.x-16+(i-1)*8+4,self.y-16+(j-1)*8+4)
 			end
 		end
+		shockScreen(2,3)
 	end
 	function le:laserCalc()
 		local sx,sy=self.x+8,self.y+6
@@ -1600,7 +1607,6 @@ function effect(x,y,w,h)
 			if(envManager[i]==self)then table.remove(envManager,i) end
 		end
 	end
-
 	return ef
 end
 
@@ -1707,7 +1713,43 @@ function dust(x,y,num)
 	table.insert(envManager,ds)
 	return ds
 end
-			
+
+function shockScreen(magnitude,times,changeX)
+	local ss=effect(0,0,0,0)
+	ss.ti=0
+	ss.mag=magnitude
+	ss.times=times
+	ss.maxTime=times*magnitude*4
+	ss.increase=true
+	ss.curMag=0
+	if(changeX)then
+		ss.ci=1
+	else
+		ss.ci=2
+	end
+
+	function ss:update()
+		self.ti=self.ti+1
+		if(self.ti>=self.maxTime)then 
+			cameraOffset[1]=0
+			cameraOffset[2]=0
+			self:remove()
+		else
+			if(ss.increase)then
+				ss.curMag=ss.curMag+1
+				if(ss.curMag==ss.mag)then ss.increase=false end
+			else
+				ss.curMag=ss.curMag-1
+				if(ss.curMag==-ss.mag)then ss.increase=true end
+			end
+			cameraOffset[ss.ci]=ss.curMag
+		end
+	end
+	function ss:draw()
+	end
+	table.insert(envManager,ss)
+	return ss
+end
 		
 -- endregion
 
@@ -2071,16 +2113,10 @@ mobManager={}
 envManager={}
 -- endregion
 
---playerManager={player}
-
---npcManager={}
---atfManager={theGravition, theGravition}
-
---table.insert(mobManager,player)
---table.insert(mobManager,slime(140,50))
 
 t=0
 camera={x=0,y=0}
+cameraOffset={0,0}
 
 mainManager = {mobManager,atfManager,envManager}
 drawManager = {{iMapManager},envManager,{player},mobManager,atfManager,uiManager}
