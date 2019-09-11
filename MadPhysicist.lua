@@ -645,7 +645,7 @@ function mob(x,y,w,h,hp,alertR)
 			if(mobManager[i]==self)then table.remove(mobManager,i) end
 		end
 		m.isDead=true
-		shine(self.x,self.y)
+		shine(self.x,self.y,self.w//8)
 		return true
 		-- table.remove(mobManager,self)
 	end
@@ -1604,16 +1604,17 @@ function effect(x,y,w,h)
 	return ef
 end
 
-function shine(x,y)
+function shine(x,y,scale)
 	local sh = effect(x,y,0,0)
 	sh.ti=0
+	sh.scale=scale
 
 	function sh:update()
 		self.ti=self.ti+1
 		if(self.ti>=60)then self:remove()end
 	end
 	function sh:draw()
-		sprc(194+(self.ti//20),self.x,self.y,0,1,0,0,1,1)
+		sprc(194+(self.ti//20),self.x,self.y,0,sh.scale,0,0,1,1)
 	end
 
 	table.insert(envManager,sh)
