@@ -26,10 +26,18 @@ end
 MAP_COLLIDE=set({0,4,20,23,26,27,38,39,40,41,42,44,54,55,58,60,61,62,63,75,76,77,78,79,93,94,95,110,111,131,132,163})
 MAP_ENTER_DANGER=set({16,178,179,182,166,164,180})
 MAP_ENTER_FREE=set({231,238,167,168,169,170,183,184,185,80,222,237,238,254})
-MAP_REMAP_BLANK=set({208,224,225,226,240,241,242,243,244,245,144})
+MAP_REMAP_BLANK=set({208,224,225,226,227,240,241,242,243,244,245,144})
 MAP_TOUCH=set({17,113,128,165,181})
 MAP_WATER=set({167,168,169,170,183,184,185})
 MAP_BUTTER=set({222,237,238,254})
+
+-- region TXT
+TEXTS={{"What the fck, you are a fantasy physical boy. ",
+"Welcome to Super.Hyper.Incredible.Fhysical.Tower. ",
+"REMEMBER to use physical artifact and your ",
+"physical caliber."}
+}
+-- endregion
 
 -- region base class
 function damage(iValue, iElem)
@@ -602,6 +610,7 @@ end
 function mob(x,y,w,h,hp,alertR)
 	local m=entity(x,y,w,h)
 	m.hp=hp
+	m.maxHp=hp
 	m.state=0
 	m.sleep=true
 	m.alertRange=alertR or 0
@@ -685,12 +694,14 @@ function mob(x,y,w,h,hp,alertR)
 		return true
 	end
 	function m:drawElem()
-		if(self.tiFire>0)then
-			sprc(210+t//30%2,self.x,self.y+self.h-8,0,self.w//8,0,0,1,1)
+		for i=1,self.w//8 do
+			if(self.tiFire>0)then
+				sprc(210+t//30%2,self.x+(i-1)*8,self.y+self.h-8,0,1,0,0,1,1)
+			end
+			if(self.tiIce>0)then
+				sprc(212,self.x+(i-1)*8,self.y+self.h-8,0,1,0,0,1,1)
+			end
 		end
-		if(self.tiIce>0)then
-			sprc(212,self.x,self.y+self.h-8,0,self.w//8,0,0,1,1)
-	  end
 	end
 	function m:defaultTileCalc()
 		self:move(0,0,true)
@@ -698,6 +709,25 @@ function mob(x,y,w,h,hp,alertR)
 			if(t%20==0)then self:onHit(damage(1),true) end
 		end
 		self.onFireTile=false
+	end
+	function m:defaultUpdate()
+		self:defaultTileCalc()
+		if(not self:defaultElem())then return false end
+		if(self.tiStun>0)then
+			self.state=0
+			self.tiStun=self.tiStun-self.tmMul
+			return false
+		end
+		if(self.sleep)then
+			self:tryAwake()
+			return false
+		end
+
+		return true
+	end
+	function m:drawHp()
+		linec(self.x,self.y-1,self.x+self.w,self.y-1,4)
+		linec(self.x,self.y-1,self.x+self.w*self.hp/self.maxHp,self.y-1,6)
 	end
 
 	return m
@@ -725,17 +755,18 @@ function slime(x,y)
 	end
 
 	function s:update()
-		self:defaultTileCalc()
-		if(not self:defaultElem())then return end
-		if(self.tiStun>0)then
-			self.state=0
-			self.tiStun=self.tiStun-self.tmMul
-			return
-		end
-		if(self.sleep)then
-			self:tryAwake()
-			return
-		end
+		if(not self:defaultUpdate())then return end
+		-- self:defaultTileCalc()
+		-- if(not self:defaultElem())then return end
+		-- if(self.tiStun>0)then
+		-- 	self.state=0
+		-- 	self.tiStun=self.tiStun-self.tmMul
+		-- 	return
+		-- end
+		-- if(self.sleep)then
+		-- 	self:tryAwake()
+		-- 	return
+		-- end
 		if(self.state==0)then
 			local dv,dvn=self:defaultMove()
 			if((math.max(math.abs(dv[1]),math.abs(dv[2])))<=self.meleeRange)then
@@ -745,9 +776,9 @@ function slime(x,y)
 				self:startAttack()
 			end
 		elseif(self.state==1)then
-			if(self.waitMeleeCalc and self.tiA>=self.tA1)then self:meleeCalc() self.waitMeleeCalc=fasle end
+			if(self.waitMeleeCalc and self.tiA>=self.tA1)then self:meleeCalc() self.waitMeleeCalc=false end
 			self.tiA=self.tiA+self.tmMul
-			if(self.tiA>=self.tA2)then trace("move in attack") self:defaultMove() end
+			if(self.tiA>=self.tA2)then self:defaultMove() end
 			--if(self.tiA>=90)then end
 			if(self.tiA>=self.tA3)then self.state=0 end
 		end
@@ -798,17 +829,18 @@ function ranger(x,y)
 		--todo:shoot
 	end
 	function rg:update()
-		self:defaultTileCalc()
-		if(not self:defaultElem())then return end
-		if(self.tiStun>0)then
-			self.state=0
-			self.tiStun=self.tiStun-self.tmMul
-			return
-		end
-		if(self.sleep)then
-			self:tryAwake()
-			return
-		end
+		if(not self:defaultUpdate())then return end
+		-- self:defaultTileCalc()
+		-- if(not self:defaultElem())then return end
+		-- if(self.tiStun>0)then
+		-- 	self.state=0
+		-- 	self.tiStun=self.tiStun-self.tmMul
+		-- 	return
+		-- end
+		-- if(self.sleep)then
+		-- 	self:tryAwake()
+		-- 	return
+		-- end
 		local sx=self.x+self.w//2
 		local sy=self.y+self.h//2
 		local tx=player.x+player.w//2
@@ -902,7 +934,9 @@ function bombMan(x,y)
 		hitList = boxOverlapCast(atkBox)
 		for i=1,#hitList do
 			local tar=hitList[i]
-			if(tar~=self and tar.canHit or tar==player) then
+			if(tar~=self and tar.canHit) then
+				tar:onHit(damage(self.attack*5,0))
+			elseif(tar==player)then
 				tar:onHit(damage(self.attack,0))
 			end
 		end
@@ -953,7 +987,7 @@ function bomb(x,y)
 	end
 	function bb:update()
 		if(self.state==1)then
-			if(self.waitMeleeCalc and self.tiA>=self.tA1)then self:meleeCalc() self.waitMeleeCalc=fasle end
+			if(self.waitMeleeCalc and self.tiA>=self.tA1)then self:meleeCalc() self.waitMeleeCalc=false end
 			self.tiA=self.tiA+1
 			if(self.tiA>=self.tA3)then self.state=0 end
 		end
@@ -972,6 +1006,149 @@ function bomb(x,y)
 	end
 
 	return bb
+end
+
+function laserElite(x,y)
+	local le = mob(x,y,16,16,100,10*8)
+	le.ms=0.5
+	le.tiA=0
+	le.fwd={-1,0}
+	le.meleeRange=(16+16)//2+8
+	le.laserRange=(16+16)//2+120
+	le.meleeAttack=5
+	le.laserAttack=10
+	le.waitAttackCalc=false
+	le.pullMul=0.5
+	le.pushMul=0.5
+	le.dmgStunTresh=10
+	le.tA1=40 --hold->up
+	le.tA2=55 --up->down
+	le.tA3=60 --down->calc
+	le.tA4=90 --keep idle
+	le.tA5=120 --return move
+	le.tAl1=60 --hold->emit(calc)
+	le.tAl2=90 --emit->emit finish
+	le.tAl3=120 --return move
+	function le:startMeleeAttack()
+		self.state=1
+		self.tiA=0
+		self.waitAttackCalc=true
+	end
+	function le:startLaserAttack()
+		self.state=2
+		self.tiA=0
+		self.waitAttackCalc=true
+	end
+	function le:meleeCalc()
+		local atkBox={x=self.x-16,y=self.y-16,w=48,h=48}
+		hitList = boxOverlapCast(atkBox)
+		for i=1,#hitList do
+			local tar=hitList[i]
+			if(tar==player) then
+				tar:onHit(damage(self.meleeAttack,0))
+			end
+		end
+		for i=1,6 do
+			for j=1,6 do
+				dust(self.x-16+(i-1)*8+4,self.y-16+(j-1)*8+4)
+			end
+		end
+	end
+	function le:laserCalc()
+		local sx,sy=self.x+8,self.y+6
+		for i=1,240 do
+			local lx,ly=sx+self.fwd[1]*i,sy+self.fwd[2]*i
+			if(PointInEntity({lx,ly},player,2))then
+				player:onHit(damage(self.laserAttack,0))
+				break
+			end
+		end
+	end
+	function le:leMove()
+		local dv=CenterDisVec(player,self)
+		local dvn=vecNormFake(dv,1)
+		local _tmMul=self.tmMul
+		if(self.tmMul>0)then _tmMul=1 end
+		local distance=(math.max(math.abs(dv[1]),math.abs(dv[2])))
+		if(distance<=(self.meleeRange))then
+			self:movec(-dvn[1]*self.ms*_tmMul,-dvn[2]*self.ms*_tmMul)
+		elseif(distance>(self.laserRange-6*8))then
+			self:movec(dvn[1]*self.ms*_tmMul,dvn[2]*self.ms*_tmMul)
+		end
+		--self:movec(dvn[1]*self.ms*_tmMul,dvn[2]*self.ms*_tmMul)
+		return dv,dvn,distance
+	end
+	function le:update()
+		if(not self:defaultUpdate())then return end
+		if(self.state==0)then
+			local dv,dvn,distance=self:leMove()
+			if(distance<=self.meleeRange)then
+				--self.fwd=dvn
+				self:startMeleeAttack()
+			elseif(distance<=self.laserRange)then
+				self.fwd=dvn
+				self:startLaserAttack()
+			end
+		elseif(self.state==1)then
+			if(self.waitAttackCalc and self.tiA>=self.tA3)then self:meleeCalc() self.waitAttackCalc=false end
+			self.tiA=self.tiA+self.tmMul
+			if(self.tiA>=self.tA4)then self:leMove() end
+			if(self.tiA>=self.tA5)then self.state=0 end
+		elseif(self.state==2)then
+			if(self.waitAttackCalc and self.tiA>=self.tAl1)then self:laserCalc() self.waitAttackCalc=false end
+			self.tiA=self.tiA+self.tmMul
+			if(self.tiA>=self.tAl2)then self:leMove() end
+			if(self.tiA>=self.tAl3)then self.state=0 end
+		end
+	end
+	
+	function le:draw()
+		if(self.tiStun>0)then
+			sprc(422,self.x,self.y,14,1,0,0,2,2)
+			self:drawStun()
+		elseif(self.state==0)then
+			sprc(422+t//(20/self.tmMul)%2 * 2,self.x,self.y,14,1,0,0,2,2)
+		elseif(self.state==1) then
+			if(self.tiA<self.tA1)then
+				sprc(426,self.x,self.y,14,1,0,0,2,2)
+			elseif(self.tiA<self.tA2)then
+				sprc(426,self.x,self.y-8*((self.tiA-self.tA1)/(self.tA2-self.tA1)),14,1,0,0,2,2)
+			elseif(self.tiA<self.tA3)then
+				sprc(426,self.x,self.y-8*(1-(self.tiA-self.tA2)/(self.tA3-self.tA2)),14,1,0,0,2,2)
+			elseif(self.tiA<self.tA4)then
+				sprc(422,self.x,self.y,14,1,0,0,2,2)
+			else
+				sprc(422+t//(20/self.tmMul)%2 * 2,self.x,self.y,14,1,0,0,2,2)
+			end
+
+			if(self.tiA>self.tA1 and self.tiA<self.tA3)then
+				rectbc(self.x-16,self.y-16,48,48,3+t//2%3)
+			end
+
+		elseif(self.state==2)then
+			local sx,sy=self.x+8,self.y+6
+			if(self.tiA<self.tAl1)then
+				sprc(426,self.x,self.y,14,1,0,0,2,2)
+				rectc(sx-1,sy-1,3,3,8)
+				if(t%10<4)then linec(sx,sy,sx+self.fwd[1]*240,sy+self.fwd[2]*240,8) end
+			elseif(self.tiA<self.tAl2)then
+				local size=3*(self.tAl2-self.tiA)//(self.tAl2-self.tAl1)
+				local colors={9,8,15}
+				rectc(sx-1,sy-1,3,3,8)
+				sprc(422,self.x,self.y,14,1,0,0,2,2)
+				for i=1,240 do
+					circbc(sx+self.fwd[1]*i,sy+self.fwd[2]*i,size,colors[size+1])
+				end
+				--linec(sx,sy,sx+self.fwd[1]*240,sy+self.fwd[2]*240,8) end
+			else
+				sprc(422+t//(20/self.tmMul)%2 * 2,self.x,self.y,14,1,0,0,2,2)
+			end
+		end
+		self:drawElem()
+		if(self.hp<self.maxHp)then self:drawHp() end
+	end
+	return le
+
 end
 
 -- region FakeMob
@@ -1399,6 +1576,39 @@ function explode(x,y)
 	table.insert(envManager,ep)
 	return ep
 end
+
+function dust(x,y,num)
+	local ds=effect(x,y,0,0)
+	ds.ti=0
+	ds.fwds={}
+	ds.num=num or 2
+	for i=1,ds.num do
+		local fx=-1+2*math.random()
+		local fy=-1+2*math.random()
+		ds.fwds[i]={fx,fy}
+	end
+
+	function ds:update()
+		self.ti=self.ti+1
+		if(self.ti>=30)then self:remove()end
+	end
+	function ds:draw()
+		local color=12
+		if(self.ti>5)then
+			color=10
+		elseif(self.ti>10)then
+			color=2
+		elseif(self.ti>15)then
+			color=0
+		end
+		for i=1,#self.fwds do
+			local fwd=self.fwds[i]
+			circc(self.x+fwd[1]*self.ti,self.y+fwd[2]*self.ti,3*(1-self.ti/30),color)
+		end
+	end
+	table.insert(envManager,ds)
+	return ds
+end
 			
 		
 -- endregion
@@ -1418,6 +1628,10 @@ end
 
 function rectbc(x,y,width,height,color)
 	rectb(x-camera.x,y-camera.y,width,height,color)
+end
+
+function rectc(x,y,width,height,color)
+	rect(x-camera.x,y-camera.y,width,height,color)
 end
 
 function linec(x0,y0,x1,y1,color)
@@ -1521,6 +1735,22 @@ function iEntityTrigger(src,tar)
 	end
 end
 
+function PointInEntity(point,tar,maxDis)
+	local dis=maxDis or 0
+	local l1=tar.x
+	local r1=tar.x+tar.w-1
+	local u1=tar.y
+	local d1=tar.y+tar.h-1
+	local px=point[1]
+	local py=point[2]
+	if(px>(r1+dis) or (l1-dis)>px or (u1-dis)>py or py>(d1+dis))then
+		return false
+	else
+		return true
+	end
+end
+
+
 function mapCollision(ety)
 	--trace(ety.noMapCollide)
 	local collidedTileList={}
@@ -1571,6 +1801,33 @@ function triggerMapTiles(ety)
 		end
 	end
 	return true
+end
+-- endregion
+
+-- region DIALOG
+function dialog(index)
+	local dl={}
+	dl.txts=TEXTS[index]
+	
+	function dl:remove()
+		for i=1,#uiManager do
+			if(uiManager[i]==self)then table.remove(uiManager,i) end
+		end
+	end
+	-- function dl:update()
+	-- 	if(btn(4))then trace("btn") self:remove() end
+	-- end
+	function dl:draw()
+		if(btn(4))then self:remove() end
+		rectb(2*8-1,12*8-1,26*8+2,4*8+4+2,15)
+		rect(2*8,12*8,26*8,4*8+4,0)
+		for i=1,#dl.txts do
+			print(dl.txts[i],2*8+4,12*8-4+i*8,15,1,1,true)
+		end
+	end
+
+	table.insert(uiManager,dl)
+	return dl
 end
 -- endregion
 
@@ -1648,6 +1905,7 @@ uiManager={uiStatusBar}
 
 curLevel=1
 function loadLevel(levelId)
+	curLevel=levelId
 	local lOff = {{0,0},{0,17*2+2}}
 	local MapSize = {{30*3,17*2+2},{30*3,17*2}}
 	local playerPos = {{120,80},{30+0,120}}
@@ -1659,7 +1917,9 @@ function loadLevel(levelId)
 	for i=1,#envManager do envManager[i]=nil end
 	player.x=playerPos[levelId][1]
 	player.y=playerPos[levelId][2]
+	player:update() --reset camera
 	table.insert(mobManager,player)
+	if(curLevel==1)then dialog(1) end
 	for i=1,MapSize[levelId][1] do
 		for j=1,MapSize[levelId][2] do
 			local mtId=mget(i+iMapManager.offx,j+iMapManager.offy)
@@ -1679,6 +1939,8 @@ function loadLevel(levelId)
 				table.insert(mobManager,bombMan(i*8,j*8))
 			elseif(mtId==226)then 
 				table.insert(mobManager,bomb(i*8,j*8))
+			elseif(mtId==227)then 
+				table.insert(mobManager,laserElite(i*8,j*8))
 			elseif(mtId==224)then
 				table.insert(envManager,apple(i*8,j*8))
 			elseif(mtId==208)then
@@ -1724,11 +1986,13 @@ drawManager = {{iMapManager},envManager,{player},mobManager,atfManager,uiManager
 loadLevel(curLevel)
 
 function TIC()
-	-- update
-	for i=1,#mainManager do
-		for j=1,#mainManager[i] do
-			local obj=mainManager[i][j]
-			if(obj)then obj:update() end
+	if(#uiManager<2)then
+		-- update
+		for i=1,#mainManager do
+			for j=1,#mainManager[i] do
+				local obj=mainManager[i][j]
+				if(obj)then obj:update() end
+			end
 		end
 	end
 
@@ -1952,7 +2216,7 @@ end
 -- 224:eeffffeeeffc66feff4444fff434434ff444444ff443344fff4444ffeffffffe
 -- 225:eeeeeeeeeeea0eeeee3333eee3ff3111e373315ee3735111e3353551ee555111
 -- 226:eeeeeeeeeeea0eeeee3333eee3ff335ee3f3355ee333535ee335355eee5555ee
--- 227:eeeeeeeeeeeeeeeeee4eeeeeeeeee444eeee444feee444f0eee444f0ee4444f0
+-- 227:eeeeeeeeee5555eee55775cee5577111e555515ee555c111e5c5e15eeeeee111
 -- 230:aaaaaaaaabbbbbbbaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaadbaaaaaadd
 -- 231:aaaaaaaabbbbbbbaaaaaaabaaaeeeebaaaedddbaaaedddbadaedddbabaedddba
 -- 235:ededededfffffffeefefefedfefefefeefefefedfefefefe4fefefed44fefefe
@@ -2107,22 +2371,22 @@ end
 -- 161:000000004004000044444400444cc440f4c4c4400fc4c4000f4444000f444400
 -- 162:000000000004444000400044000004000000444f00044cf0044c44f0040c44f0
 -- 163:00000000444000004040000044444400ff40040000f0004000f4044000f44000
--- 166:eeeeeeeeeeeeeeeeee4eeeeeeeeee444eeee444feee444f0eee444f0ee4444f0
--- 167:eeeeeeeee4eeeeee4eee4eee4444eeeeff444eee00f44eee00f44eee00f444ee
--- 168:eeeeeeeeeeeeeeeeeeeeeeeeee4eeeeeeeeee444eeee444feee444f0eee444f0
--- 169:eeeeeeeeeeeeeeeee4eeeeee4eee4eee4444eeeeff444eee00f44eee00f44eee
--- 170:eeeeeeeeeeeeeeeeeeeeeeeeee4eeeeeeeeee444eeee444feee444f3eee444f3
--- 171:eeeeeeeeeeeeeeeee4eeeeee4eee4eee4444eeeeff444eee33f44eee33f44eee
+-- 166:eeeeeeeeeeeeeeeeee5eeeeeeeeee555eeee555feee555f7eee555f7ee5555f7
+-- 167:eeeeeeeee5eeeeee5eee5eee5555eeeeff555eee77f55eee77f55eee77f555ee
+-- 168:eeeeeeeeeeeeeeeeeee3eeeeeeeeeeeeeeeee555eeee555feee555f7eee555f7
+-- 169:eeeeeeeeeeeeeeeee5eeeeee5eeee3ee5555eeeeff555eee77f55eee77f55eee
+-- 170:eeeeeeeeeeeeeeeeee4eeeeeeeeee555eeee555feee555f4eee555f4ee5555f4
+-- 171:eeeeeeeee4eeeeee5eee4eee5555eeeeff555eee44f55eee44f55eee44f555ee
 -- 176:44c044ff044c044400040c4c000400c400440000440000000000000000000000
 -- 177:fc4c4440444c4404c44444004c00040400404044044000000000000000000000
 -- 178:0444444f0044c4440004cc440000444400400440004400000004000000044000
 -- 179:ffc44440444cc444444c0004cc4c04400c040400000040000000400000000000
--- 182:ee44444feee44444eee4e444ee44e444ee4e44c4eeee44e4eeeee4eeeeeeeeee
--- 183:ff444cee4444ccee444444eec4c44eee4ee44eee4e44eeeee4eeeeeeeeeeeeee
--- 184:ee4444f0ee44444feee44444eee4e444ee4e44c4eeee44e4eeeee4eeeeeeeeee
--- 185:00f444eeff444cee4444ccee444444ee4ee44eee4e44eeeee4eeeeeeeeeeeeee
--- 186:ee4444f3ee44444feee44444eee4e444ee4e44c4eeee44e4eeeee4eeeeeeeeee
--- 187:33f444eeff444cee4444ccee444444ee4ee44eee4e44eeeee4eeeeeeeeeeeeee
+-- 182:ee55555feee55555eee5e555ee55e555ee5e55c5eeee55e5eeeee5eeeeeeeeee
+-- 183:ff555cee5555ccee555555eec5c55eee5ee55eee5e55eeeee5eeeeeeeeeeeeee
+-- 184:ee5555f7ee55555feee55555ee55e555ee3e55c5eeee55e5eeeee5eeeeeeeeee
+-- 185:77f555eeff555cee5555cceec5c55eee5ee55eee5e55eeeee3eeeeeeeeeeeeee
+-- 186:ee55555feee55555eee5e555ee55e555ee4e55c5eeee55e5eeeee5eeeeeeeeee
+-- 187:ff555cee5555ccee555555eec5c55eee5ee55eee5e55eeeee4eeeeeeeeeeeeee
 -- 192:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee9eeeeee99eeeeee98eeeee9e8
 -- 193:eeeeeeeeeeeeeeeee9eeeeee9eeeeeee99eeeeee899eeeeeee9eeeee8e9eeeee
 -- 194:eeeeeee9eeeee9eeeeeeeee9eeeeee99eeeeee99eeeee999eeeee998eeeee998
@@ -2158,7 +2422,7 @@ end
 -- 008:0000c3ffffffffffffc300000000a17efefffffeff5afefefea226fffffffefefefefefe1de3f300000000e3a10000a1ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffa65b5b5b5ba10000000000000000e3ffffffffe305ffffffffffffffffff01d363ffffffffffffffff631d1d1d1dffffffffffffffe300000000000000e3ffffffffffff4affffffffffffffffff5868eeeee300000000e3ffffaa1dffffffffff1dffff0fffe30000000000e30323fffffffffffffffffffffffffffffffffffffffffffffffffffe0505052505e3000000000000000000000000000000000000
 -- 009:0000c3ffffffffffffc300000000a1ffffeeeeeeff5affffff9292ffffffffaaaaaaaaff1de3f3b4d4d4c4e3a10000a1ff0effff0effffffffffffffffffffffffffffffffffffffffffffffffffff5affffffffa100000000000000e3e3ffffffffe305ffffffffffffffffff01d317ffffffffffff1fff171dff0fffffffffffffffffe300000000000000e3ff0fffff0fff4affffffffffffffffff5969deeee300000000e3ffffaa1dffffffffff1dff0fff0fe3e300000000e3ffffffffffffffff47ffffffffffffffaaffffffffffffffffffffffffffffffffe3000000000000000000000000000000000000
 -- 010:000084e4e4e4e4e4e49400000000a1ffffeeeeeeff5affffffff1effffffffffffffaaaa1dfefefefefefefea10000a1ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff5aff6e7effa100000000000000ffffffffffffe305ff1fffffffff1fffff01d317ffffffffffffffff171d0f0e0fffffffffffffffe300000000000000e3ffffffffffff4affffffffffffffffffffffffeee300000000e3ffffff1dffff1fffff1d0fff0fff38e3e3e3e3e3e3ffffffffffffffffffffffffffffffffaaffffffffff5868ffffffffffffffffffe3000000000000000000000000000000000000
--- 011:000000d5e5e5e5e5f50000000000a1ffffeeeeeeffa237ffffff2effffffffffffffffaa1dffffffff0effffa10000a1ffffff0dffffffffffffffffffffffffffffffffffffffffffffffffffffff5aff6f7fffc300000000000000ffffffffffffe305ffffffffffffffffff01d317ffff1fffffffffff171dff0fffffffffffffffffe3e3e3e3e3e3e3e3e30909090909093aaaaaaaaaaaaaffffffffffffffe300000000e3ffffff1dffffffffff1dffff0fff39ffffff09ff09ffffffffffffffffffffffffffffffffaaffffffffff5969fffffffffffffeffffe3000000000000000000000000000000000000
+-- 011:000000d5e5e5e5e5f50000000000a1ffffeeeeeeffa237ffffff2effffffffff3effffaa1dffffffff0effffa10000a1ffffff0dffffffffffffffffffffffffffffffffffffffffffffffffffffff5aff6f7fffc300000000000000ffffffffffffe305ffffffffffffffffff01d317ffff1fffffffffff171dff0fffffffffffffffffe3e3e3e3e3e3e3e3e30909090909093aaaaaaaaaaaaaffffffffffffffe300000000e3ffffff1dffffffffff1dffff0fff39ffffff09ff09ffffffffffffffffffffffffffffffffaaffffffffff5969fffffffffffffeffffe3000000000000000000000000000000000000
 -- 012:0000000000000000000000000000c3ffffff0dffffc3a28282828282828292ffffffffaa1dffffffffffffffa10000c3ff0effff0effffffffffffffffffffffffffffffffffffffffffffffffffff5affffffffc3000000ffffffffffffffffffff381d1d1d1d1d1d1d1d1d63080808631d1d1d1d1d1d1d63e348e3e3e3e3090909090949ffffffffffff09e30a6a6a6a6a1ae31d1d1d1d1d1de3090909090909e300000000e3ffffff1dffffffffff1dff0fffff39ff0eff09ff09ffffffffffffffffffffffffffffffffaaffffffffffffffffffffffffff47ffffe3000000000000000000000000000000000000
 -- 013:0000000000000000000000000000c3ffffffffffffc3a2ff6363ffffffffffffffffaaffa237ffffffffffffa10000c3ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffa65b5b5b5bc3000000ffffffffffffffff0fff6bffffffffffffffffffffffffffffffffffffffffffffff4affffffffffffffffff5affffffffffff09ffffffffffffff1dffffffffffffffffffffffffffe300000000e3ffffff1d1d1d1d1d1d1d0fff0fff39ff0eff09ff09ffffffffffffffffffffffffffffffff1dffffffffffffffffffffffffffffffffe3e3e3e3e3e3e3e3e3e3e30000000000000000
 -- 014:0000000000000000000000000000c3e4e4e4e4e4e4c3a2ff1717ffffffffaaaaffaaaaffc3929292ffffffffa10000c3ffffffffffff630808080808080808080863a1ffffffa1630808080863ffffffffffffffc3000000ffff0000e3e3ffffffff6bffffffffffeeeeedff0fff0fff0fffffeeeeedffffffff4affffff0fffffff0fff5affffffffffff09ffffffff0fffff1dff1d1d1d1d1dffffffffffff09e3e3000000e3ffffffffffffffffffffffffffff39ffffff09ff09ffffffffffffffffffffffffffffff1dff1dffffffffffffffffffffffffffffffe3ff09ff09ff0effffffe30000000000000000
