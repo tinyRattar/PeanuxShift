@@ -926,7 +926,9 @@ function bombMan(x,y)
 		hitList = boxOverlapCast(atkBox)
 		for i=1,#hitList do
 			local tar=hitList[i]
-			if(tar~=self and tar.canHit or tar==player) then
+			if(tar~=self and tar.canHit) then
+				tar:onHit(damage(self.attack*5,0))
+			elseif(tar==player)then
 				tar:onHit(damage(self.attack,0))
 			end
 		end
