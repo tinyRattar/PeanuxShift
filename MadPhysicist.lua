@@ -1062,9 +1062,9 @@ function laserElite(x,y)
 		local _tmMul=self.tmMul
 		if(self.tmMul>0)then _tmMul=1 end
 		local distance=(math.max(math.abs(dv[1]),math.abs(dv[2])))
-		if(distance<=(self.meleeRange-4))then
+		if(distance<=(self.meleeRange))then
 			self:movec(-dvn[1]*self.ms*_tmMul,-dvn[2]*self.ms*_tmMul)
-		elseif(distance>(self.laserRange-4*8))then
+		elseif(distance>(self.laserRange-6*8))then
 			self:movec(dvn[1]*self.ms*_tmMul,dvn[2]*self.ms*_tmMul)
 		end
 		--self:movec(dvn[1]*self.ms*_tmMul,dvn[2]*self.ms*_tmMul)
