@@ -974,6 +974,80 @@ function bomb(x,y)
 	return bb
 end
 
+function chargeElite(x,y)
+	local ce = mob(x,y,16,16,200,10*8)
+	ce.ms=1
+	ce.chargeMs=2
+	ce.tiA=0
+	ce.fwd={-1,0}
+	ce.meleeRange=(16+16)//2+8*2
+	ce.attack=10
+	ce.waitMeleeCalc=false
+	ce.tA1=60 --start charge
+	ce.tA2=60+150 --in charging
+	ce.tA3=60+150+150 --return move
+	function ce:startAttack()
+		self.state=1
+		self.tiA=0
+		self.waitMeleeCalc=true
+	end
+	function ce:startCharge()
+		
+	end
+	function ce:meleeCalc()
+		local atkBox={x=self.x+8*self.fwd[1],y=self.y+8*self.fwd[2],w=8,h=8}
+		if(iEntityCollision(player,atkBox))then player:onHit(damage(self.attack)) end
+	end
+	function ce:update()
+		self:defaultTileCalc()
+		if(not self:defaultElem())then return end
+		if(self.tiStun>0)then
+			self.state=0
+			self.tiStun=self.tiStun-self.tmMul
+			return
+		end
+		if(self.sleep)then
+			self:tryAwake()
+			return
+		end
+		if(self.state==0)then
+			local dv,dvn=self:defaultMove()
+			if((math.max(math.abs(dv[1]),math.abs(dv[2])))<=self.meleeRange)then
+				self.fwd=dvn
+				self:startAttack()
+			end
+		elseif(self.state==1)then
+			if(self.tiA>=ti1)then self:movec(self.fwd[1]*ce.chargeMs,self.fwd[2]*ce.chargeMs) end
+			if(self.waitMeleeCalc and self.tiA>=self.tA1)then self:meleeCalc() self.waitMeleeCalc=fasle end
+			self.tiA=self.tiA+self.tmMul
+			if(self.tiA>=self.tA2)then self:defaultMove() end
+			--if(self.tiA>=90)then end
+			if(self.tiA>=self.tA3)then self.state=0 end
+		end
+	end
+	
+	function ce:draw()
+		if(self.tiStun>0)then
+			sprc(480,self.x,self.y,14,1,0,0,1,1)
+			self:drawStun()
+		elseif(self.state==0)then
+			sprc(480+t//(20/self.tmMul)%2 * 1,self.x,self.y,14,1,0,0,1,1)
+		elseif(self.state==1) then
+			if(self.tiA<15)then 
+				sprc(482,self.x-self.fwd[1]*(self.tiA//5),self.y-self.fwd[2]*(self.tiA//3),14,1,0,0,1,1)
+			elseif(self.tiA<35)then
+				sprc(482,self.x+self.fwd[1]*(11*(self.tiA-15)/20-3),self.y+self.fwd[2]*(11*(self.tiA-15)/20-3),14,1,0,0,1,1)
+			elseif(self.tiA<50)then
+				sprc(480,self.x+self.fwd[1]*8,self.y+self.fwd[2]*8,14,1,0,0,1,1)
+			else
+				sprc(480,self.x,self.y,14,1,0,0,1,1)
+			end
+		end
+		self:drawElem()
+	end
+	return s
+end
+
 -- region FakeMob
 function fence(x,y)
 	local fe=mob(x,y,8,8,-1,-1)
