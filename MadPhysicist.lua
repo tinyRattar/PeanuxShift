@@ -31,6 +31,14 @@ MAP_TOUCH=set({17,113,128,165,181})
 MAP_WATER=set({167,168,169,170,183,184,185})
 MAP_BUTTER=set({222,237,238,254})
 
+-- region TXT
+TEXTS={{"What the fck, you are a fantasy physical boy. ",
+"Welcome to Super.Hyper.Incredible.Fhysical.Tower. ",
+"REMEMBER to use physical artifact and your ",
+"physical caliber."}
+}
+-- endregion
+
 -- region base class
 function damage(iValue, iElem)
 	dmg={
@@ -1796,6 +1804,33 @@ function triggerMapTiles(ety)
 end
 -- endregion
 
+-- region DIALOG
+function dialog(index)
+	local dl={}
+	dl.txts=TEXTS[index]
+	
+	function dl:remove()
+		for i=1,#uiManager do
+			if(uiManager[i]==self)then table.remove(uiManager,i) end
+		end
+	end
+	-- function dl:update()
+	-- 	if(btn(4))then trace("btn") self:remove() end
+	-- end
+	function dl:draw()
+		if(btn(4))then self:remove() end
+		rectb(2*8-1,12*8-1,26*8+2,4*8+4+2,15)
+		rect(2*8,12*8,26*8,4*8+4,0)
+		for i=1,#dl.txts do
+			print(dl.txts[i],2*8+4,12*8-4+i*8,15,1,1,true)
+		end
+	end
+
+	table.insert(uiManager,dl)
+	return dl
+end
+-- endregion
+
 -- region MANAGER
 function redraw(tile,x,y)
 	local outTile,flip,rotate=tile,0,0
@@ -1870,6 +1905,7 @@ uiManager={uiStatusBar}
 
 curLevel=1
 function loadLevel(levelId)
+	curLevel=levelId
 	local lOff = {{0,0},{0,17*2+2}}
 	local MapSize = {{30*3,17*2+2},{30*3,17*2}}
 	local playerPos = {{120,80},{30+0,120}}
@@ -1881,7 +1917,9 @@ function loadLevel(levelId)
 	for i=1,#envManager do envManager[i]=nil end
 	player.x=playerPos[levelId][1]
 	player.y=playerPos[levelId][2]
+	player:update() --reset camera
 	table.insert(mobManager,player)
+	if(curLevel==1)then dialog(1) end
 	for i=1,MapSize[levelId][1] do
 		for j=1,MapSize[levelId][2] do
 			local mtId=mget(i+iMapManager.offx,j+iMapManager.offy)
@@ -1948,11 +1986,13 @@ drawManager = {{iMapManager},envManager,{player},mobManager,atfManager,uiManager
 loadLevel(curLevel)
 
 function TIC()
-	-- update
-	for i=1,#mainManager do
-		for j=1,#mainManager[i] do
-			local obj=mainManager[i][j]
-			if(obj)then obj:update() end
+	if(#uiManager<2)then
+		-- update
+		for i=1,#mainManager do
+			for j=1,#mainManager[i] do
+				local obj=mainManager[i][j]
+				if(obj)then obj:update() end
+			end
 		end
 	end
 
