@@ -1220,6 +1220,8 @@ function Trinity:init(x,y)
 	self.hp=1000
 	self.uiHp=1000
 	self.maxHp=1000
+	self.stackDmg=0
+	self.tarDmg=100
 	self.x=x
 	self.y=y
 	self.nt=Newton(x-40,y)
@@ -1237,6 +1239,8 @@ function Trinity:init(x,y)
 end
 function Trinity:onHit(dmg)
 	self.hp=self.hp-dmg.value
+	self.stackDmg=self.stackDmg+dmg.value
+	if(self.stackDmg>=self.tarDmg)then self.stackDmg=self.stackDmg-self.tarDmg player:onHit(damage(25)) end
 	if(self.hp<=0)then self:death() end
 end
 function Trinity:death()
@@ -1258,6 +1262,10 @@ function Trinity:draw()
 			self.uihp = self.hp
 		end
 		rect(9+tmp_x,9+tmp_,self.hp/self.maxHp * 120,3,6)
+		local count=self.maxHp/self.tarDmg
+		for i=1,count-1 do
+			line(8+tmp_x+i*120/count,9+tmp_,8+tmp_x+i*120/count,9+tmp_+3,15)
+		end
 		print("Trinity",11+tmp_x+120,8+tmp_,0,0,1,true)
 		
 	end
