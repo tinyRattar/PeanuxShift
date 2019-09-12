@@ -188,6 +188,7 @@ end
 player=entity(32,60,16,16)
 player.fwd = {1,0}
 player.hp=50
+player.maxHp=100
 player.attack = 5
 player.state = 0
 player.ti1 = 0
@@ -245,13 +246,14 @@ function player:onHit(dmg)
 		self:hpUp(-dmg.value)
 	else
 		self.hp=self.hp-dmg.value
-		if(self.hp<0)then self.hp=0 GameOverDialog() end
+		if(self.hp<0)then self.hp=0 player.dead=true GameOverDialog() end
 	end
 end
 function player:hpUp(value)
 	self.hp=self.hp+value
 	if(self.hp>100)then self.hp=100 end
 	starDust(self.x+4,self.y,12,16,6,6,15,5)
+	if(inbossBattle and self.hp>=self.maxHp) then player.dead=true GameOverDialog() end
 end
 function player:getKey()
 	self.key1=self.key1+1
@@ -341,7 +343,7 @@ function player:update()
 	end
 end
 function player:draw()
-	if(player.hp<=0)then sprc(268,self.x,self.y,6,1,sprFlip,0,2,2) return end
+	if(player.dead)then sprc(268,self.x,self.y,6,1,sprFlip,0,2,2) return end
 	local sprFlip=(1-self.fwd[1])//2
 	local sprite=260
 	if(player.fwd[2]==1) then sprite=256 elseif(player.fwd[2]==-1) then sprite=264 end
@@ -399,7 +401,11 @@ function player:enter(tile)
 	elseif(tileId==16)then
 		self:onHit(damage(1))
 	elseif(tileId==231)then
-		loadLevel(curLevel+1)
+		if(curLevel<5)then
+		  loadLevel(curLevel+1)
+		else
+			loadLevel(4)
+		end
 	elseif(tileId==238)then
 		self.onButter=true
 	elseif(tileId==80)then
@@ -2622,10 +2628,11 @@ end
 
 function gameOver()
 	player.hp=50
+	player.dead=false
 	if(curLevel<=3)then
 		loadLevel(curLevel)
 	elseif(curLevel>=4)then
-		loadLevel(4)
+		loadLevel(5)
 	end
 end
 
