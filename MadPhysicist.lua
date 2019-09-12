@@ -2217,8 +2217,8 @@ iMapManager={offx=0,offy=0}
 -- function iMapManager:update() end
 function iMapManager:draw()
 	--map(cell_x,cell_y,cell_w,cell_h,x,y,alpha_color,scale,remap)
-	map(5*30,7*17,31,18,-30*8+(t)%(60*8),0,1,1)
-	map(5*30,7*17,31,18,-30*8+(t-30*8)%(60*8),0,1,1)
+	map(5*30,7*17,31,18,-30*8+(3*t)%(60*8),0,1,1)
+	map(5*30,7*17,31,18,-30*8+(3*t-30*8)%(60*8),0,1,1)
 	--map(5*30+60*(t//2%60),7*17,31,18,0,0,1,1)
 	map(0+self.offx+camera.x//8,0+self.offy+camera.y//8,31,18,8*(camera.x//8)-camera.x,8*(camera.y//8)-camera.y,1,1,redraw)
 end
