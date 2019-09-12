@@ -243,10 +243,13 @@ function player:meleeCalc()
 	end
 end
 function player:onHit(dmg)
-	self.hp=self.hp-dmg.value
-	if(self.hp<0)then self.hp=0 end
+	if(dmg.value<0)then 
+		self:hpUp(-dmg.value)
+	else
+		self.hp=self.hp-dmg.value
+		if(self.hp<0)then self.hp=0 end
+	end
 	--trace("player hp:"..self.hp)
-	--todo: on hit
 end
 function player:hpUp(value)
 	self.hp=self.hp+value
@@ -1221,6 +1224,7 @@ function Trinity:init(x,y)
 	table.insert(mobManager,gl)
 	nt.sleep=false
 	gl.sleep=false
+	inbossBattle=true
 end
 --Trinity:init()
 -- endregion
@@ -1413,7 +1417,8 @@ function Galileo(x,y)
 	gl.dmgStunTresh=200
 	gl.stunTime=3600
 	gl.ms=1
-	gl.meleeAttack=10
+	gl.meleeAttack=-10
+	gl.meleeRange=4*8
 	gl.pullMul=0.5
 	gl.pushMul=0.5
 	gl.tmMul=0
@@ -1448,8 +1453,6 @@ function Galileo(x,y)
 		if(not self:defaultUpdate())then return end
 		if(self.state==0)then
 			local dv,dvn,dis=self:defaultMove(true)
-			trace(dvn[1])
-			trace(dvn[2])
 			if(dis<=self.meleeRange)then
 				self:startAttack(1)
 				self.fwd=dvn
@@ -1485,6 +1488,22 @@ function Galileo(x,y)
 		self:drawElem()
 	end
 	return gl
+end
+
+function Kelvin(x,y)
+	local kl=Newton(x,y)
+	kl.hp=200
+	kl.maxHp=200
+	kl.dmgStunTresh=100
+	kl.stunTime=3600
+	kl.leaveRange=5*8
+	kl.apprRange=6*8
+	kl.ms=0.5
+	kl.meleeAttack=10
+	kl.pullMul=0.5
+	kl.pushMul=0.5
+	kl.tmMul=0
+	kl.tA1={60,90,150,210}
 end
 
 -- endregion
@@ -1808,16 +1827,20 @@ function KelvinBullet(x,y,fwd,iDmg,iElem)
 		local tileId,tx,ty=tile[1],tile[2],tile[3]
 		if(self.elem==1)then
 			if(MAP_BUTTER:contains(tileId))then
-				mset_4ca_set(tx,ty,80,MAP_BUTTER)
+				--if(inbossBattle)then mset_4ca_set(tx,ty,255,MAP_BUTTER) else
+				mset_4ca_set(tx,ty,80,MAP_BUTTER) 
+				--end
 				self:remove()
 			end
 		elseif(self.elem==2)then
 			if(MAP_WATER:contains(tileId))then
-				--mset(tx,ty,17)
-				mset_4ca_set(tx,ty,17,MAP_WATER)
+				--if(inbossBattle)then mset_4ca_set(tx,ty,255,MAP_WATER) else
+				mset_4ca_set(tx,ty,17,MAP_WATER) 
+				--end
 				self:remove()
 			elseif(tileId==80)then
-				mset_4ca(tx,ty,238,80)
+				if(inbossBattle)then mset_4ca(tx,ty,255,80) else
+				mset_4ca(tx,ty,238,80) end
 				self:remove()
 			end
 		end
@@ -1826,7 +1849,8 @@ function KelvinBullet(x,y,fwd,iDmg,iElem)
 		local tileId,tx,ty=tile[1],tile[2],tile[3]
 		if(self.elem==1)then
 			if(tileId==17)then
-				mset_4ca(tx,ty,171,17)
+				if(inbossBattle)then mset_4ca(tx,ty,255,17) else
+				mset_4ca(tx,ty,171,17) end
 			end
 		end
 	end
@@ -2358,7 +2382,7 @@ end
 
 uiManager={uiStatusBar}
 
-curLevel=1
+curLevel=5
 function loadLevel(levelId)
 	curLevel=levelId
 	local lOff = {{0,0},{0,17*2+2},{0,17*4-3},{0,17*5},{30*7-5,17*2-4}}
