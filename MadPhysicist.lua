@@ -1677,7 +1677,7 @@ end
 function tinyBullet(x,y,fwd)
 	local tb=bullet(x,y,1,1,5,0)
 	tb.hitPlayer=true
-	tb.lifetime=60
+	tb.lifetime=180
 	tb.fwd=fwd or {1,0}
 
 	function tb:update()
