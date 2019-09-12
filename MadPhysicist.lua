@@ -2665,8 +2665,9 @@ function TIC()
   -- draw
   cls(0)
   for i=1,#drawManager do
-    for j=1,#drawManager[i] do
-			drawManager[i][j]:draw()
+		for j=1,#drawManager[i] do
+			local obj=drawManager[i][j]
+			if(obj)then	drawManager[i][j]:draw() end
 		end
 	end
 	
