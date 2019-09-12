@@ -888,16 +888,7 @@ function staticRanger(x,y,fwd)
 	srg.tA3=15
 	srg.dmgStunTresh=999
 	function srg:update()
-		self:defaultTileCalc()
-		if(not self:defaultElem())then return end
-		if(self.tiStun>0)then
-			self.state=0
-			self.tiStun=self.tiStun-self.tmMul
-			return
-		end
-		if(self.sleep)then
-			self.sleep=true
-		end
+		if(not self:defaultUpdate())then return end
 		if(self.state==0)then
 			self:startAttack()
 		elseif(self.state==1)then
@@ -1045,17 +1036,7 @@ function chargeElite(x,y)
 		end
 	end
 	function ce:update()
-		self:defaultTileCalc()
-		if(not self:defaultElem())then return end
-		if(self.tiStun>0)then
-			self.state=0
-			self.tiStun=self.tiStun-self.tmMul
-			return
-		end
-		if(self.sleep)then
-			self:tryAwake()
-			return
-		end
+		if(not self:defaultUpdate())then return end
 		if(self.state==0)then
 			local dv,dvn=self:defaultMove()
 			if((math.max(math.abs(dv[1]),math.abs(dv[2])))<=self.meleeRange)then
