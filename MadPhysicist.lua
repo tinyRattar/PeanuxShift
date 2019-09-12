@@ -2553,6 +2553,7 @@ uiManager={uiStatusBar}
 curLevel=1
 function loadLevel(levelId)
 	curLevel=levelId
+	player.key1=0
 	local lOff = {{0,0},{0,17*2+2},{0,17*4-3},{0,17*5},{30*7-5,17*2-4}}
 	local MapSize = {{30*3,17*2+2},{30*3,17*2-2-3},{30*3,17+3},{30*3,17*3},{30*1+2,17*3+10}}
 	local playerPos = {{120,80},{30+0,120},{56,96},{64,120},{112,120}}
