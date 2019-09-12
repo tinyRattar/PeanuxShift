@@ -2358,7 +2358,7 @@ end
 
 uiManager={uiStatusBar}
 
-curLevel=5
+curLevel=1
 function loadLevel(levelId)
 	curLevel=levelId
 	local lOff = {{0,0},{0,17*2+2},{0,17*4-3},{0,17*5},{30*7-5,17*2-4}}
