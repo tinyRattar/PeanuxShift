@@ -756,6 +756,7 @@ function slime(x,y)
 			end
 		elseif(self.state==1)then
 			if(self.waitMeleeCalc and self.tiA>=self.tA1)then self:meleeCalc() self.waitMeleeCalc=false end
+			if(self.tmMul<=0)then self.tiA=self.tiA+1 end
 			self.tiA=self.tiA+self.tmMul
 			if(self.tiA>=self.tA2)then self:defaultMove() end
 			if(self.tiA>=self.tA3)then self.state=0 end
@@ -1216,18 +1217,50 @@ end
 -- region Trinity
 Trinity={}
 function Trinity:init(x,y)
+	self.hp=1000
+	self.uiHp=1000
+	self.maxHp=1000
 	self.x=x
 	self.y=y
-	local nt=Newton(x-40,y)
-	local gl=Galileo(x+40,y)
-	local kl=Kelvin(x,y+60)
-	table.insert(mobManager,nt)
-	table.insert(mobManager,gl)
-	table.insert(mobManager,kl)
-	nt.sleep=false
-	gl.sleep=false
-	kl.sleep=false
+	self.nt=Newton(x-40,y)
+	self.gl=Galileo(x+40,y)
+	self.kl=Kelvin(x,y+60)
+	table.insert(mobManager,self.nt)
+	table.insert(mobManager,self.gl)
+	table.insert(mobManager,self.kl)
+	self.nt.sleep=false
+	self.gl.sleep=false
+	self.kl.sleep=false
 	inbossBattle=true
+
+	self.active=true
+end
+function Trinity:onHit(dmg)
+	self.hp=self.hp-dmg.value
+	if(self.hp<=0)then self:death() end
+end
+function Trinity:death()
+	self.nt.death()
+	self.gl.death()
+	self.kl.death()
+	self.active=false
+end
+function Trinity:draw()
+	if(self.active)then
+		local tmp_=120
+		local tmp_x=72
+		rect(7+tmp_x,7+tmp_,150+4,7,15)
+		rect(9+tmp_x,9+tmp_,120,3,0)
+		if self.uiHp>self.hp then 
+			rect(9+tmp_x, 9+tmp_, self.uihp/self.maxHp * 120, 3, 4)
+			self.uiHp = self.uiHp-0.5
+		else
+			self.uihp = self.hp
+		end
+		rect(9+tmp_x,9+tmp_,self.hp/self.maxHp * 120,3,6)
+		print("Trinity",11+tmp_x+120,8+tmp_,0,0,1,true)
+		
+	end
 end
 --Trinity:init()
 -- endregion
@@ -1235,8 +1268,9 @@ end
 
 function Newton(x,y)
 	local nt=mob(x,y,16,16,300,0)
-	nt.dmgStunTresh=100
-	nt.stunTime=3600
+	nt.maxHp=nt.hp
+	nt.dmgStunTresh=150
+	nt.stunTime=900
 	nt.ms=0.75
 	nt.tiA=0
 	nt.fwd={-1,0}
@@ -1257,6 +1291,20 @@ function Newton(x,y)
 	nt.tA1={60,90,120,120}
 	nt.tA2={60,70,120,210}
 	nt.tA3={120,150,210,330}
+
+	function nt:onHit(dmg,noStun)
+		Trinity:onHit(dmg)
+		if(self.canHit)then
+			self.sleep=false
+			self.hp=self.hp-dmg.value
+			if(self.maxHp-self.hp>self.dmgStunTresh)then self.tiStun=self.stunTime end
+			if(self.tiStun>0)then self.maxHp=self.hp end
+			if(dmg.elem==1)then self.tiFire=150 elseif(dmg.elem==2)then self.tiIce=30 end
+			--if(self.hp<=0)then self:death() end
+			return true
+		end
+		return false
+	end
 	function nt:startAttack(index)
 		self.state=index
 		self.tiA=0
@@ -1418,7 +1466,7 @@ function Galileo(x,y)
 	gl.hp=400
 	gl.maxHp=400
 	gl.dmgStunTresh=200
-	--gl.stunTime=3600
+	gl.stunTime=900
 	gl.ms=1
 	gl.meleeAttack=-10
 	gl.meleeRange=4*8
@@ -1498,7 +1546,7 @@ function Kelvin(x,y)
 	kl.hp=200
 	kl.maxHp=200
 	kl.dmgStunTresh=100
-	kl.stunTime=3600
+	kl.stunTime=900
 	kl.leaveRange=3*8
 	kl.apprRange=6*8
 	kl.ms=0.5
@@ -2499,7 +2547,7 @@ end
 
 uiManager={uiStatusBar}
 
-curLevel=1
+curLevel=5
 function loadLevel(levelId)
 	curLevel=levelId
 	local lOff = {{0,0},{0,17*2+2},{0,17*4-3},{0,17*5},{30*7-5,17*2-4}}
@@ -2576,7 +2624,7 @@ camera={x=0,y=0}
 cameraOffset={0,0}
 
 mainManager = {mobManager,atfManager,envManager,aEnvManager}
-drawManager = {{iMapManager},envManager,{player},mobManager,aEnvManager,atfManager,uiManager}
+drawManager = {{iMapManager},envManager,{player},mobManager,aEnvManager,atfManager,uiManager,{Trinity}}
 
 loadLevel(curLevel)
 
