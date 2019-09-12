@@ -186,7 +186,7 @@ end
 -- _player
 player=entity(32,60,16,16)
 player.fwd = {1,0}
-player.hp = 50
+player.hp=50
 player.attack = 5
 player.state = 0
 player.ti1 = 0
@@ -244,7 +244,7 @@ function player:onHit(dmg)
 		self:hpUp(-dmg.value)
 	else
 		self.hp=self.hp-dmg.value
-		if(self.hp<0)then self.hp=0 end
+		if(self.hp<0)then self.hp=0 gameOver() end
 	end
 end
 function player:hpUp(value)
@@ -2606,6 +2606,7 @@ function loadLevel(levelId)
 end
 
 function gameOver()
+	player.hp=50
 	if(curLevel<=3)then
 		loadLevel(curLevel)
 	elseif(curLevel>=4)then
