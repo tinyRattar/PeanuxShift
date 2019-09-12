@@ -1215,8 +1215,12 @@ Trinity={}
 function Trinity:init(x,y)
 	self.x=x
 	self.y=y
-	--table.insert(mobManager,Newton(x,y))
-	table.insert(mobManager,Galileo(x,y))
+	local nt=Newton(x-40,y)
+	local gl=Galileo(x+40,y)
+	table.insert(mobManager,nt)
+	table.insert(mobManager,gl)
+	nt.sleep=false
+	gl.sleep=false
 end
 --Trinity:init()
 -- endregion
@@ -1408,7 +1412,7 @@ function Galileo(x,y)
 	gl.maxHp=400
 	gl.dmgStunTresh=200
 	gl.stunTime=3600
-	gl.ms=1.5
+	gl.ms=1
 	gl.meleeAttack=10
 	gl.pullMul=0.5
 	gl.pushMul=0.5
