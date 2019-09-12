@@ -2509,17 +2509,17 @@ function iMapManager:draw()
 	map(0+self.offx+camera.x//8,0+self.offy+camera.y//8,31,18,8*(camera.x//8)-camera.x,8*(camera.y//8)-camera.y,1,1,redraw)
 end
 
-uiStatusBar={hp=player.hp*2}
+uiStatusBar={hp=player.hp}
 function uiStatusBar:draw()
 	local tmp_=0
-	rect(7,7+tmp_,200,7,15)
-	if self.hp>player.hp*2 then 
+	rect(7,7+tmp_,100+2,7,15)
+	if self.hp>player.hp then 
 		rect(9, 9+tmp_, self.hp, 3, 4)
 		self.hp = self.hp-1/60*10  
 	else
-		self.hp=player.hp*2
+		self.hp=player.hp
 	end
-	rect(9,9+tmp_,player.hp*2,3,6)
+	rect(9,9+tmp_,player.hp,3,6)
 
 	local key1=player.key1
 	for i=1,key1 do
@@ -2556,7 +2556,7 @@ end
 
 uiManager={uiStatusBar}
 
-curLevel=5
+curLevel=1
 function loadLevel(levelId)
 	curLevel=levelId
 	local lOff = {{0,0},{0,17*2+2},{0,17*4-3},{0,17*5},{30*7-5,17*2-4}}
