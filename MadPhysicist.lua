@@ -1220,8 +1220,10 @@ function Trinity:init(x,y)
 	self.y=y
 	local nt=Newton(x-40,y)
 	local gl=Galileo(x+40,y)
-	table.insert(mobManager,nt)
-	table.insert(mobManager,gl)
+	local kl=Kelvin(x,y+60)
+	--table.insert(mobManager,nt)
+	--table.insert(mobManager,gl)
+	table.insert(mobManager,kl)
 	nt.sleep=false
 	gl.sleep=false
 	inbossBattle=true
@@ -1415,7 +1417,7 @@ function Galileo(x,y)
 	gl.hp=400
 	gl.maxHp=400
 	gl.dmgStunTresh=200
-	gl.stunTime=3600
+	--gl.stunTime=3600
 	gl.ms=1
 	gl.meleeAttack=-10
 	gl.meleeRange=4*8
@@ -1496,14 +1498,127 @@ function Kelvin(x,y)
 	kl.maxHp=200
 	kl.dmgStunTresh=100
 	kl.stunTime=3600
-	kl.leaveRange=5*8
+	kl.leaveRange=3*8
 	kl.apprRange=6*8
 	kl.ms=0.5
 	kl.meleeAttack=10
 	kl.pullMul=0.5
 	kl.pushMul=0.5
 	kl.tmMul=0
-	kl.tA1={60,90,150,210}
+	kl.tA1={60,90,150,450}
+
+	function kl:startAttack(index)
+		self.state=index
+		self.tiA=0
+		self.waitAttackCalc=true
+		self.mem=index
+		starDust(self.x,self.y,16,16,10,8,15,5)
+	end
+	function kl:castIceBall()
+		table.insert(mobManager,KelvinIceBall(self.x,self.y))
+	end
+	function kl:update()
+		local _t=1
+		self.tiIce=0
+		self.tiFire=0
+		if(not self:defaultUpdate())then return end
+		if(self.state==0)then
+			local dv,dvn,dis=self:iMove()
+			if(dis<=self.apprRange)then
+				self:startAttack(1)
+				--self.fwd=dvn
+			end
+		elseif(self.state==1)then
+			if(self.tiA>=self.tA1[1] and self.waitAttackCalc)then
+				self.waitAttackCalc=false
+				self:castIceBall()
+			end
+			--if(self.tiA<self.tA1[1])then _t=self.tmMul end
+			self.tiA=self.tiA+_t
+			if(self.tiA>=self.tA1[3])then self:iMove() end
+			if(self.tiA>=self.tA1[4])then self.state=0 end
+		end
+	end
+	function kl:draw()
+		local _t=1
+		local sprite=486+t//(20/_t)%2 * 2
+		if(self.tiStun>0)then
+			sprc(486,self.x,self.y,1,1,0,0,2,2)
+			self:drawStun()
+		elseif(self.state==0)then
+			sprc(sprite,self.x,self.y,1,1,0,0,2,2)
+		elseif(self.state==1) then
+			if(self.tiA<self.tA1[1])then
+				--rectbc(self.x+16*self.fwd[1],self.y+16*self.fwd[2],24,24,3+t//2%3)
+				--sprc(368,self.x+16*self.fwd[1],self.y+16*self.fwd[2]-(1-(self.tiA/self.tA1[1]))*80,0,3,0,0,1,1)
+				sprc(490,self.x,self.y,1,1,0,0,2,2)
+			else
+				sprc(sprite,self.x,self.y,1,1,0,0,2,2)
+			end
+		end
+		self:drawElem()
+	end
+	return kl
+end
+
+function KelvinIceBall(x,y)
+	local km=bombMan(x,y)
+	km.hp=2
+	km.h=16
+	km.w=16
+	km.tiLife=300
+	km.noEntityCollide=true
+	km.noMapCollide=true
+	km.ms=0.25
+	km.meleeRange=12
+	km.attack=-10
+	km.pullMul=0.5
+	km.pushMul=0.5
+	km.sleep=false
+
+	function km:meleeCalc()
+		local atkBox={x=self.x-8,y=self.y-8,w=32,h=32}
+		hitList = boxOverlapCast(atkBox)
+		for i=1,#hitList do
+			local tar=hitList[i]
+			if(tar==player)then
+				tar:onHit(damage(self.attack,0))
+			end
+		end
+		for i=1,2 do
+			for j=1,2 do
+				dust(self.x+(i-1)*8+4,self.y+(j-1)*8+4,4,{9,8,8,0},4,30)
+			end
+		end
+		shockScreen(2,1,true)
+		self:death()
+	end
+	function km:death()
+		for i=1,#mobManager do
+			if(mobManager[i]==self)then table.remove(mobManager,i) end
+		end
+		return true
+	end
+	function km:onHit(dmg,noStun)
+		if(dmg.elem==1)then 
+			self.hp=self.hp-1
+			dust(self.x+8,self.y+8,4,{16,15,14,14},2,30)
+			if(self.hp<=0)then self:meleeCalc() end
+		end
+	end
+	function km:draw()
+		-- warning update in draw
+		if(self.tiLife<=0)then self:meleeCalc() end
+		self.tiLife=self.tiLife-1
+		--
+		sprc(371,self.x,self.y,0,2,0,0,1,1)
+		if(self.state==1 and self.tiA<self.tA1)then
+			rectbc(self.x-8,self.y-8,32,32,8)
+		end
+		self:drawElem()
+	end
+
+	return km
 end
 
 -- endregion
@@ -2820,6 +2935,7 @@ end
 -- 112:00000000000ff00000fddf000fdfbbf00fdbbaf000fbaf00000ff00000000000
 -- 113:000000f00000ffef000feedf00feedf000fedf000fdff0000df0000000000000
 -- 114:0000000000f6f0000f644f00f54434f0fc5544f0fcc44cf00fccff0000ff0000
+-- 115:00000000000ff00000f88f000f8f99f00f8997f000f97f00000ff00000000000
 -- 128:11aaaaaa1a00f77fa0000ff0a0000000a0000000a0000000a0000ff0a000f55f
 -- 129:abbbba110f7f7fa100f0f7fa0000f7fa00ffff7a0f77f0faf7777f0af7777f0a
 -- 130:11aaaaaa1a000000a0000fffa000f5ffa00fff00a00f0000a0f5f000a00f0000
