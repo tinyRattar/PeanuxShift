@@ -661,13 +661,15 @@ function mob(x,y,w,h,hp,alertR)
 			self:death()
 		end
 	end
-	function m:defaultMove()
+	function m:defaultMove(needDis)
 		local dv=CenterDisVec(player,self)
 		local dvn=vecNormFake(dv,1)
 		local _tmMul=self.tmMul
-		if(self.tmMul>0)then _tmMul=1 end
+		local distance=0
+		if(self.tmMul<=0)then _tmMul=1 end
 		self:movec(dvn[1]*self.ms*_tmMul,dvn[2]*self.ms*_tmMul)
-		return dv,dvn
+		if(needDis)then distance=(math.max(math.abs(dv[1]),math.abs(dv[2]))) end
+		return dv,dvn,distance
 	end
 	function m:defaultElem()
 		if(self.tiFire>0)then
@@ -1213,17 +1215,18 @@ Trinity={}
 function Trinity:init(x,y)
 	self.x=x
 	self.y=y
-	table.insert(mobManager,Newton(x,y))
+	--table.insert(mobManager,Newton(x,y))
+	table.insert(mobManager,Galileo(x,y))
 end
 --Trinity:init()
 -- endregion
 
 
 function Newton(x,y)
-	local nt = mob(x,y,16,16,300,0)
+	local nt=mob(x,y,16,16,300,0)
 	nt.dmgStunTresh=100
 	nt.stunTime=3600
-	nt.ms=0.5
+	nt.ms=0.75
 	nt.tiA=0
 	nt.fwd={-1,0}
 	nt.leaveRange=5*8
@@ -1234,7 +1237,7 @@ function Newton(x,y)
 	nt.force=1
 	nt.pullMul=0
 	nt.pushMul=0
-	nt.tmMul=0
+	-- nt.tmMul=0
 	-- nt.tRMC=60 --random move change
 	-- nt.randFwd={0,0}
 	nt.mem=0
@@ -1397,6 +1400,87 @@ function Newton(x,y)
 	end
 
 	return nt
+end
+
+function Galileo(x,y)
+	local gl=Newton(x,y)
+	gl.hp=400
+	gl.maxHp=400
+	gl.dmgStunTresh=200
+	gl.stunTime=3600
+	gl.ms=1.5
+	gl.meleeAttack=10
+	gl.pullMul=0.5
+	gl.pushMul=0.5
+	gl.tmMul=0
+	gl.tA1={60,90,150,210}
+
+	function gl:startAttack(index)
+		self.state=index
+		self.tiA=0
+		self.waitAttackCalc=true
+		self.mem=index
+		--starDust(x,y,w,h,num,color,tLife,tGenInter)
+		starDust(self.x,self.y,16,16,15,2,15,5)
+	end
+	function gl:ballCalc()
+		local atkBox={x=self.x+16*self.fwd[1],y=self.y+16*self.fwd[2],w=24,h=24}
+		hitList = boxOverlapCast(atkBox)
+		for i=1,#hitList do
+			local tar=hitList[i]
+			if(tar==player) then
+				tar:onHit(damage(self.meleeAttack,0))
+			end
+		end
+		for i=1,3 do
+			for j=1,3 do
+				dust(atkBox.x+(i-1)*8+4,atkBox.y+(j-1)*8+4)
+			end
+		end
+		shockScreen(2,3)
+	end
+	function gl:update()
+		local _t=1
+		if(not self:defaultUpdate())then return end
+		if(self.state==0)then
+			local dv,dvn,dis=self:defaultMove(true)
+			trace(dvn[1])
+			trace(dvn[2])
+			if(dis<=self.meleeRange)then
+				self:startAttack(1)
+				self.fwd=dvn
+			end
+		elseif(self.state==1)then
+			if(self.tiA>=self.tA1[1] and self.waitAttackCalc)then
+				self.waitAttackCalc=false
+				self:ballCalc()
+			end
+			--if(self.tiA<self.tA1[1])then _t=self.tmMul end
+			self.tiA=self.tiA+_t
+			if(self.tiA>=self.tA1[3])then self:defaultMove() end
+			if(self.tiA>=self.tA1[4])then self.state=0 end
+		end
+	end
+	function gl:draw()
+		local _t=1
+		local sprite=416+t//(20/_t)%2 * 2
+		if(self.tiStun>0)then
+			sprc(416,self.x,self.y,1,1,0,0,2,2)
+			self:drawStun()
+		elseif(self.state==0)then
+			sprc(sprite,self.x,self.y,1,1,0,0,2,2)
+		elseif(self.state==1) then
+			if(self.tiA<self.tA1[1])then
+				rectbc(self.x+16*self.fwd[1],self.y+16*self.fwd[2],24,24,3+t//2%3)
+				sprc(368,self.x+16*self.fwd[1],self.y+16*self.fwd[2]-(1-(self.tiA/self.tA1[1]))*80,0,3,0,0,1,1)
+				sprc(420,self.x,self.y,1,1,0,0,2,2)
+			else
+				sprc(sprite,self.x,self.y,1,1,0,0,2,2)
+			end
+		end
+		self:drawElem()
+	end
+	return gl
 end
 
 -- endregion
@@ -2270,7 +2354,7 @@ end
 
 uiManager={uiStatusBar}
 
-curLevel=1
+curLevel=5
 function loadLevel(levelId)
 	curLevel=levelId
 	local lOff = {{0,0},{0,17*2+2},{0,17*4-3},{0,17*5},{30*7-5,17*2-4}}
@@ -2732,12 +2816,12 @@ end
 -- 153:ccc3ccfa33c3ccfaccc3ccfacc3cccfa33ccccfaccccccfaffffffa1aaaaaa11
 -- 154:af778778af778778af778777af777877af777788af7777771affffff11aaaaaa
 -- 155:777877fa887877fa777877fa778777fa887777fa777777faffffffa1aaaaaa11
--- 160:eeeeffffeeeffb3feeffb333eefb3333eefbcc3ceefe3c33eefe3333eefe3eee
--- 161:ffffeeeef3bffeee3fbbffee333bbfeecc3bbfeecc3b3fee33333fee333effee
--- 162:eeeeffffeeeffb3feeffb333eefb3333eefbcc3ceefe3c33eefe3333eefe3eee
--- 163:ffffeeeef3bffeee3fbbffee333bbfeecc3bbfeecc3b3fee33333fee333effee
--- 164:eeeeffffeeeffb3feeffb333eefb3333eefbc33ceefe3c33eefe3333eefe3eee
--- 165:ffffeeeef3bffeee3fbbffee333bbfee333bbfeecc3b3fee33333fee333effee
+-- 160:1111ffff111ffb3f11ffb33311fb333311fbcc3c11fe3c3311fe333311fe3eee
+-- 161:ffff1111f3bff1113fbbff11333bbf11cc3bbf11cc3b3f1133333f11333eff11
+-- 162:1111ffff111ffb3f11ffb33311fb333311fbcc3c11fe3c3311fe333311fe3eee
+-- 163:ffff1111f3bff1113fbbff11333bbf11cc3bbf11cc3b3f1133333f11333eff11
+-- 164:1111ffff111ffb3f11ffb33311fb333311fbc33c11fe3c3311fe333311fe3eee
+-- 165:ffff1111f3bff1113fbbff11333bbf11333bbf11cc3b3f1133333f11333eff11
 -- 166:eeeeeeeeeeeeeeeeee5eeeeeeeeee555eeee555feee555f7eee555f7ee5555f7
 -- 167:eeeeeeeee5eeeeee5eee5eee5555eeeeff555eee77f55eee77f55eee77f555ee
 -- 168:eeeeeeeeeeeeeeeeeee3eeeeeeeeeeeeeeeee555eeee555feee555f7eee555f7
@@ -2746,12 +2830,12 @@ end
 -- 171:eeeeeeeee4eeeeee5eee4eee5555eeeeff555eee44f55eee44f55eee44f555ee
 -- 172:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee9eeeeee99eeeeee98eeeee9e8
 -- 173:eeeeeeeeeeeeeeeee9eeeeee9eeeeeee99eeeeee899eeeeeee9eeeee8e9eeeee
--- 176:eef3ecceeeefe33eeefffeeeef00ffeef33000ddef330000eeff0000eef00000
--- 177:e3edfeeeeeedffeeedff0feedff000fe000033fe00033fee0000feee00000fee
--- 178:eef3ecceeeefe33eeeeefeeeefff00eeff0000ddf3300000ef330000eef00000
--- 179:e3edfeeeeeedfeeeedffeeeed00fffee000000fe000033fe00033fee00000fee
--- 180:eef3eccefeefe33e3ffffeeef300ffee330000ddfff00000eeef0000eeef0000
--- 181:e3edfeeeeeedffeeedffffeedff00ffe000000fe00000fee00003fee000000fe
+-- 176:11f3ecce111fe33e11fffeee1f00ffeef33000dd1f33000011ff000011f00000
+-- 177:e3edf111eeedff11edff0f11dff000f1000033f100033f110000f11100000f11
+-- 178:11f3ecce111fe33e1111feee1fff00eeff0000ddf33000001f33000011f00000
+-- 179:e3edf111eeedf111edff1111d00fff11000000f1000033f100033f1100000f11
+-- 180:11f3eccef11fe33e3ffffeeef300ffee330000ddfff00000111f0000111f0000
+-- 181:e3edf111eeedff11edffff11dff00ff1000000f100000f1100003f11000000f1
 -- 182:ee55555feee55555eee5e555ee55e555ee5e55c5eeee55e5eeeee5eeeeeeeeee
 -- 183:ff555cee5555ccee555555eec5c55eee5ee55eee5e55eeeee5eeeeeeeeeeeeee
 -- 184:ee5555f7ee55555feee55555ee55e555ee3e55c5eeee55e5eeeee5eeeeeeeeee
@@ -2798,12 +2882,12 @@ end
 -- 227:eeeeeeeeeeea0eeeee3333eee3ff335ee373375ee373575ee335355eee5555ee
 -- 228:eeeeeeeeeeeeeeeeeeea0eeeee3333eee3ff335ee373375ee335355eee5555ee
 -- 229:eeeeeeeeeeeeeeeeeeea0eeeee4444eee4ff44cee47447cee444c4ceeeccccee
--- 230:eeeeefffeeeef33eeeef3333eeef3c3ceeef3333eeefd333eeefdeeeeefeedce
--- 231:fffeeeeee3efeeee3e3efeeec3eefeee333eafee3ee3afeeee33afeeeeeafeee
--- 232:eeeeefffeeeef33eeeef3333eeef3c3ceeef3333eeefd333eeefdeeeeefeedce
--- 233:fffeeeeee3efeeee3e3efeeec3eefeee333eafee3ee3afeeee33afeeeeeafeee
--- 234:eeeeefffeeeef33eeeef3333eeef3c3ceeef3c33eeefd333eeefdeeeeefeedce
--- 235:fffeeeeee3efeeee3e3efeeec3eefeeec33eafee3ee3afeeee33afeeeeeafffe
+-- 230:11111fff1111f33e111f3333111f3c3c111f3333111fd333111fdeee11feedce
+-- 231:fff11111e3ef11113e3ef111c3eef111333eaf113ee3af11ee33af11eeeaf111
+-- 232:11111fff1111f33e111f3333111f3c3c111f3333111fd333111fdeee11feedce
+-- 233:fff11111e3ef11113e3ef111c3eef111333eaf113ee3af11ee33af11eeeaf111
+-- 234:11111fff1111f33e111f3333111f3c3c111f3c33111fd333111fdeee11feedce
+-- 235:fff11111e3ef11113e3ef111c3eef111c33eaf113ee3af11ee33af11eeeafff1
 -- 236:000000000004444000400044000004000000444f00044cf0044c44f0040c44f0
 -- 237:00000000444000004040000044444400ff40040000f0004000f4044000f44000
 -- 238:0004440000440044040004440400cc4c004044ff0444cf0044cc4f004c004f00
@@ -2811,12 +2895,12 @@ end
 -- 240:00fffff00f555c3f0f575c3ff55755cff5c55ccff3cf5c3f0f3c53f000ffff00
 -- 241:0000000000fffff00f555c3f0f57553ff5555cf0f5c55ccff33c533f0fff0ff0
 -- 242:00fffff00f555c4f0f545c4ff55455cff5c55ccff4cf5c4f0f4c54f000ffff00
--- 246:eefbeeeeeef7eeeeef777eb7ef777777eef37777eeef7777eeeef777eeef000f
--- 247:eeeb7feeebb777febb7777fe77777fee77773fee7777feeef777feee0000feee
--- 248:eefbeeeeeeffdeeeeff77de7ef777777ee777777eee37777eeeef777eeef000f
--- 249:eeebffeeeeb77ffeeb7777fe777777ee77777fee77773eeef777feee0000feee
--- 250:eefbeeeeef3bbeeeef777bb7eef77777eeef7777eeef7777eeeef777eeef000f
--- 251:eeeb73feebb777febb777ffe7777ffee7777feee7777feeef777feee0000feee
+-- 246:11fbeeee11f7eeee1f777eb71f77777711f37777111f77771111f777111f000f
+-- 247:eeeb7f11ebb777f1bb7777f177777f1177773f117777f111f777f1110000f111
+-- 248:11fbeeee11ffdeee1ff77de71f77777711777777111377771111f777111f000f
+-- 249:eeebff11eeb77ff1eb7777f17777771177777f1177773111f777f1110000f111
+-- 250:11fbeeee1f3bbeee1f777bb711f77777111f7777111f77771111f777111f000f
+-- 251:eeeb73f1ebb777f1bb777ff17777ff117777f1117777f111f777f1110000f111
 -- 252:0444444f0044c4440004cc440000444400400440004400000004000000044000
 -- 253:ffc44440444cc444444c0004cc4c04400c040400000040000000400000000000
 -- 254:44c044ff044c044400040c4c000400c400440000440000000000000000000000
