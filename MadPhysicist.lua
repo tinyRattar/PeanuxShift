@@ -32,7 +32,8 @@ MAP_WATER=set({171})
 MAP_BUTTER=set({238})
 
 -- region TXT
-TEXTS={{"What the fck, you are a fantasy physical boy. ",
+TEXTS={gameover={"YOU DEID!"},
+	{"What the fck, you are a fantasy physical boy. ",
 "Welcome to Super.Hyper.Incredible.Fhysical.Tower. ",
 "REMEMBER to use physical artifact and your ",
 "physical caliber."}
@@ -244,7 +245,7 @@ function player:onHit(dmg)
 		self:hpUp(-dmg.value)
 	else
 		self.hp=self.hp-dmg.value
-		if(self.hp<0)then self.hp=0 gameOver() end
+		if(self.hp<0)then self.hp=0 GameOverDialog() end
 	end
 end
 function player:hpUp(value)
@@ -2450,14 +2451,17 @@ end
 -- endregion
 
 -- region DIALOG
-function dialog(index)
+function dialog(index,noAutoActive)
 	local dl={}
-	dl.txts=TEXTS[index]
+	if(not noAutoActive)then dl.txts=TEXTS[index] end
 	
+	function dl:afterRemove()
+	end
 	function dl:remove()
 		for i=1,#uiManager do
 			if(uiManager[i]==self)then table.remove(uiManager,i) end
 		end
+		self:afterRemove()
 	end
 	-- function dl:update()
 	-- 	if(btn(4))then trace("btn") self:remove() end
@@ -2471,8 +2475,18 @@ function dialog(index)
 		end
 	end
 
-	table.insert(uiManager,dl)
+	if(not noAutoActive)then table.insert(uiManager,dl) end
 	return dl
+end
+
+function GameOverDialog()
+	local gd=dialog(0)
+	gd.txts=TEXTS.gameover
+
+	function gd:afterRemove()
+		gameOver()
+	end
+	table.insert(uiManager,gd)
 end
 -- endregion
 
