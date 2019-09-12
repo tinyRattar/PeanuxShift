@@ -2270,7 +2270,7 @@ end
 
 uiManager={uiStatusBar}
 
-curLevel=5
+curLevel=1
 function loadLevel(levelId)
 	curLevel=levelId
 	local lOff = {{0,0},{0,17*2+2},{0,17*4-3},{0,17*5},{30*7-5,17*2-4}}
@@ -2766,12 +2766,12 @@ end
 -- 195:effeeeeef55feeee5555feee35555fee33555feec33555fe335c55fe333cc5fe
 -- 196:eeeeeffeeeeef55feeef5555eeef5533eef55533eef553c3ef55c3c3ef5cc333
 -- 197:effeeeeef55feeee5555feee35555fee33555feec3355feec35555fe3335cfee
--- 198:eeeeeeeeeeeeeeeeee4eeeeeeeeee444eeee444feee444f7eee444f7ee4444f7
--- 199:eeeeeeeee4eeeeee4eee4eee4444eeeeff444eee77f44eee77f44eee77f444ee
--- 200:eeeeeeeeeeeeeee4eee4eeeeeeeee444eeee444feee444f7eee444f7ee4444f7
--- 201:eeeeeeeeeeeeeeee4eeeee4e4444eeeeff444eee77f44eee77f44eee77f444ee
--- 202:eeeeeeeeeeeeeeeeeee4eeeeeeeeeeeeeeeee444eeee444feee444f7eee444f7
--- 203:eeeeeeeeeeeeeeeee4eeeeee4eeee4ee4444eeeeff444eee77f44eee77f44eee
+-- 198:eee4eeeeee4e4eeeeeee44eeeee44e44eee44444e444c44f4ecc44f7eeec44f7
+-- 199:eeeeeeeeeeeee4eee4ee4eee444ee4ee4444eeeeff444ee477f44e4e77f4444e
+-- 200:eeeeeeeeee4eeeeeeee4ee4eee4ee444eeee44444ee4444fe4e444f7e44444f7
+-- 201:eeee4eeeeee4e4eeee44eeee44e44eee44444eeeff4c444e77f4cce477f4ceee
+-- 202:eee4eeeeee4e4eeeeeee44eeeee44e44eee44444e444c44f4ecc44f7eeec44f7
+-- 203:eeeeeeeeeeeee4eee4ee4eee444ee4ee4444eeeeff444ee477f44e4e77f4444e
 -- 204:eeeeeee9eeeee9eeeeeeeee9eeeeee99eeeeee99eeeee999eeeee998eeeee998
 -- 205:9eeeeeee999eeeee9999eeee999e9eee999eeeee8999eeee8899eeee8899eeee
 -- 206:eeeeeee9eeeeee99eeeee9e9eeeee999eeee9999eeeee999eee9e998eee99998
@@ -2782,12 +2782,12 @@ end
 -- 211:333c555f335755cfff77c55ff7777ccf77c77ffecccc3feecccffeee00feeeee
 -- 212:ef5553cceef5c333ef5cc7ffef3f777ff3377c77efffcccceeeefccceeeee00f
 -- 213:335555fe35575c5ff775ccfe777c7fee77c77ffecccc3ffefccfffeef00feeee
--- 214:ee44444feee44444eee4e444ee44e444ee4e44c4eeee44e4eeeee4eeeeeeeeee
--- 215:ff444cee4444ccee444444eec4c44eee4ee44eee4e44eeeee4eeeeeeeeeeeeee
--- 216:ee44444feee44444eee4e444eee44444eeee44c4eeeee4e4eeeee4eeeeeeee4e
--- 217:ff444cee4444ccee444444eec4c44eee44e44eee4e4e44eeee4eeeeeeeeeeeee
--- 218:ee4444f7ee44444feee44444ee44e444ee4e44c4eeee44e4eeeee4eeeeeeeeee
--- 219:77f444eeff444cee4444cceec4c44eee4ee44eee4e44eeeee4eeeeeeeeeeeeee
+-- 214:ee4444f7e444444f4ee444444e44e444e44e44c4eeee44e4eeeee4eeeeeeeeee
+-- 215:77f4c4eeff44ccee4444cceec4c44eee4ee44eee4e44eeeee4eeeeeeeeeeeeee
+-- 216:ee4c44f7eecc444feecc4444eee44c4ceee44ee4eeee44e4eeeeee4eeeeeeeee
+-- 217:77f444eeff44444e44444ee4444e44e44c44e44e4e44eeeeee4eeeeeeeeeeeee
+-- 218:ee4444f7e444444f4ee444444e44e444e44e44c4eeee44e4eeeee4eeeeeeeeee
+-- 219:77f4c4eeff44ccee4444cceec4c44eee4ee44eee4e44eeeee4eeeeeeeeeeeeee
 -- 220:eeeee998eeeee998eee9e998eee9e999eeee9999eeee9e99eeee9ee9eeeee9ee
 -- 221:8899eeee8899eeee8899eeee8899eeee999eeeee99eeeeee99eeeeeeeeeeeeee
 -- 222:eeeee998eeeee998eeeee998eeeee998eeeee998eeeeee99eeeeeee9eeeee9e9
