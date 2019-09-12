@@ -1221,11 +1221,12 @@ function Trinity:init(x,y)
 	local nt=Newton(x-40,y)
 	local gl=Galileo(x+40,y)
 	local kl=Kelvin(x,y+60)
-	--table.insert(mobManager,nt)
-	--table.insert(mobManager,gl)
+	table.insert(mobManager,nt)
+	table.insert(mobManager,gl)
 	table.insert(mobManager,kl)
 	nt.sleep=false
 	gl.sleep=false
+	kl.sleep=false
 	inbossBattle=true
 end
 --Trinity:init()
@@ -1574,6 +1575,7 @@ function KelvinIceBall(x,y)
 	km.attack=-10
 	km.pullMul=0.5
 	km.pushMul=0.5
+	km.tmMul=0
 	km.sleep=false
 
 	function km:meleeCalc()
