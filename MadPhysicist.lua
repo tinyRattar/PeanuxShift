@@ -251,7 +251,7 @@ end
 function player:hpUp(value)
 	self.hp=self.hp+value
 	if(self.hp>100)then self.hp=100 end
-	starDust(self.x,self.y,16,16,5)
+	starDust(self.x+4,self.y,12,16,6,6,15,5)
 	--trace("player hp:"..self.hp)
 	--todo: hp check
 end
@@ -426,34 +426,17 @@ function theGravition:use()
 		trace("the Gravition ON!")
 	end
 end
-function theGravition:iPull(m,isReverse)
-	local scale=m.pullMul
-	if(isReverse)then scale=m.pushMul end
-	if(scale<=0)then return end
-	local ir=1
-	if(isReverse)then ir=-1 end
-	local dv=CenterDisVec(player,m)
-	local mdis=dv[1]*dv[1]+dv[2]*dv[2]
-	if(mdis>=self.rangePow2)then return end
-	dv={dv[1]*ir,dv[2]*ir}
-	dv=vecNormFake(dv,1)
-	-- if(dv)
-	-- local dvm=math.abs(dv[1])
-	-- local dvmt=math.abs(dv[2])
-	-- if(dvm<dvmt)then dvm=dvmt end
-	-- if(dvm<1)then return end
-	m:movec(theGravition.force*dv[1]*scale,theGravition.force*dv[2]*scale,true)
-end
 function theGravition:pull(isReverse)
 	for i=1,#mobManager do
 		local m=mobManager[i]
 		if(m and m~=player)then
-			self:iPull(m,isReverse)
+			--self:iPull(m,isReverse)
+			iPull(player,m,isReverse,self.force,self.rangePow2)
 		end
 	end
 	for i=1,#envManager do
 		local e=envManager[i]
-		if(e)then	self:iPull(e,isReverse) end
+		if(e)then	iPull(player,e,isReverse,self.force,self.rangePow2) end
 	end
 end
 function theGravition:push()
@@ -477,6 +460,7 @@ function theGravition:draw()
 		if(rscale>1)then rscale=0 end
 		local cp=CenterPoint(player)
 		circbc(cp[1],cp[2],self.range*rscale,1)
+		circbc(cp[1],cp[2],self.range*rscale-1,15)
 	end
 end
 -- endregion
@@ -1237,25 +1221,68 @@ end
 
 function Newton(x,y)
 	local nt = mob(x,y,16,16,300,0)
+	nt.dmgStunTresh=100
+	nt.stunTime=3600
 	nt.ms=0.5
 	nt.tiA=0
 	nt.fwd={-1,0}
 	nt.leaveRange=5*8
-	nt.apprRange=10*8
-	nt.meleeRange=(16+8)//2+6
+	nt.apprRange=6*8
+	nt.meleeRange=10*8+4
 	nt.attack=1
-	nt.waitMeleeCalc=false
-	nt.tRMC=60 --random move change
-	nt.randFwd={0,0}
-	nt.tA1=35 --attack calc
-	nt.tA2=90 --keep idle
-	nt.tA3=120 --return move
-	function nt:iMove()
+	nt.waitAttackCalc=false
+	nt.force=1
+	nt.pullMul=0
+	nt.pushMul=0
+	nt.tmMul=0
+	-- nt.tRMC=60 --random move change
+	-- nt.randFwd={0,0}
+	nt.mem=0
+	nt.mem1=0
+	nt.mem2=0
+	nt.tA1={60,90,120,120}
+	nt.tA2={60,70,120,210}
+	nt.tA3={120,150,210,330}
+	function nt:startAttack(index)
+		self.state=index
+		self.tiA=0
+		self.waitAttackCalc=true
+		self.mem=index
+		--starDust(x,y,w,h,num,color,tLife,tGenInter)
+		if(index==2)then 
+			self.mem1=self.mem1+1 starDust(self.x,self.y,16,16,10,1,15,5)
+		elseif(index==3)then 
+			starDust(self.x,self.y,16,16,40,15,15,5)
+		else
+			starDust(self.x,self.y,16,16,10,6,15,5)
+		end
+	end
+	function nt:pull(isReverse)
+		for i=1,#envManager do
+			local e=envManager[i]
+			if(e)then	
+				iPull(self,e,isReverse,self.force) 
+				if(not isReverse)then
+					local vec=CenterDisVec(self,e)
+					if(math.abs(vec[1])+math.abs(vec[2])<=4)then e:remove() end
+				end
+			end
+		end
+	end
+	function nt:emitApple(fwd)
+		local cp=CenterPoint(self)
+		local ax,ay=cp[1]-4+fwd[1]*8,cp[2]-4+fwd[2]*8
+		local ap=apple(ax,ay)
+		table.insert(envManager,ap)
+		dust(ax,ay,5,{5,3,3,3},2)
+	end
+	function nt:iMove(noMove)
 		local dv=CenterDisVec(player,self)
 		local dvn=vecNormFake(dv,1)
 		local _tmMul=self.tmMul
 		if(self.tmMul<=0)then _tmMul=1 end
 		local distance=(math.max(math.abs(dv[1]),math.abs(dv[2])))
+		if(noMove)then return dv,dvn,distance end
 		if(distance<=(self.leaveRange))then
 			self:movec(-dvn[1]*self.ms*_tmMul,-dvn[2]*self.ms*_tmMul)
 		elseif(distance>(self.apprRange))then
@@ -1270,52 +1297,100 @@ function Newton(x,y)
 			-- end
 			-- self:movec(self.randFwd[1]*self.ms*_tmMul,self.randFwd[2]*self.ms*_tmMul)
 		end
-		--self:movec(dvn[1]*self.ms*_tmMul,dvn[2]*self.ms*_tmMul)
 		return dv,dvn,distance
 	end
 	function nt:update()
+		local _t=self.tmMul
+		if(_t==0)then _t=1 end
 		if(not self:defaultUpdate())then return end
 		if(self.state==0)then
 			local dv,dvn,dis=self:iMove()
-			-- if(dis<=self.meleeRange)then
-			-- 	self.fwd=dvn
-			-- 	self:startAttack()
-			-- end
-		elseif(self.state==1)then
-			if(self.tiA>=self.tA1 and self.tiA<self.tA2)then
-				local ox,oy=self.x,self.y
-				self:movec(self.fwd[1]*ce.chargeMs,self.fwd[2]*ce.chargeMs)
-				dust(self.x+8,self.y+8)
-				if(self.waitMeleeHit)then
-					self:meleeCalc()
+			if(dis<=self.meleeRange)then
+				if(self.mem1>=3 and math.random()*10<self.mem1)then
+					self:startAttack(3)
+					self.mem1=0
+					self.mem2=0
+				elseif(self.mem==1)then	
+					self:startAttack(2)
+				else
+					self:startAttack(1)
 				end
-				if(math.abs(self.x-ox)<=1 and math.abs(self.y-oy)<=1)then 
-					self:forceStop()
-				end					
 			end
-			self.tiA=self.tiA+self.tmMul
-			if(self.tiA>=self.tA3)then self:defaultMove() end
-			--if(self.tiA>=90)then end
-			if(self.tiA>=self.tA4)then self.state=0 end
+		elseif(self.state==1)then
+			if(self.tiA>=self.tA1[1] and self.waitAttackCalc)then
+				self.waitAttackCalc=false
+				local dv,dvn,dis=self:iMove()
+				self:emitApple(dvn)
+			end
+			self.tiA=self.tiA+_t
+			if(self.tiA>=self.tA1[3])then self:iMove() end
+			if(self.tiA>=self.tA1[4])then self.state=0 end
+		elseif(self.state==2)then
+			self.tiA=self.tiA+_t
+			if(self.tiA>=self.tA2[2] and self.tiA<self.tA2[3])then self:pull(true) end
+			if(self.tiA>=self.tA2[3])then self:iMove() end
+			if(self.tiA>=self.tA2[4])then self.state=0 end
+		elseif(self.state==3)then
+			self.tiA=self.tiA+_t
+			if(self.tiA>=self.tA3[2] and self.tiA<self.tA3[3])then self:pull() end
+			if(self.tiA>=self.tA3[3])then 
+				if(self.mem2<2)then
+					self.tiA=self.tA3[1]
+					self.mem2=self.mem2+1
+					starDust(self.x,self.y,16,16,10,15,15,5)
+				else
+					self:iMove() 
+				end
+			end
+			if(self.tiA>=self.tA3[4])then self.state=0 end
 		end
 	end
 	function nt:draw()
+		local _t=self.tmMul
+		if(_t==0)then _t=1 end
+		local sprite=448+t//(20/_t)%2 * 2
 		if(self.tiStun>0)then
 			sprc(448,self.x,self.y,14,1,0,0,2,2)
 			self:drawStun()
 		elseif(self.state==0)then
-			sprc(448+t//(20/self.tmMul)%2 * 2,self.x,self.y,14,1,0,0,2,2)
+			sprc(sprite,self.x,self.y,14,1,0,0,2,2)
 		elseif(self.state==1) then
-			if(self.tiA<self.tA1)then
+			if(self.tiA<self.tA1[1])then
 				sprc(452,self.x,self.y,14,1,0,0,2,2)
-			elseif(self.tiA<self.tA2)then
-				sprc(448,self.x,self.y-8*((self.tiA-self.tA1)/(self.tA2-self.tA1)),14,1,0,0,2,2)
-			elseif(self.tiA<self.tA3)then
-				sprc(448,self.x,self.y-8*(1-(self.tiA-self.tA2)/(self.tA3-self.tA2)),14,1,0,0,2,2)
-			elseif(self.tiA<self.tA4)then
+			else
+				sprc(sprite,self.x,self.y,14,1,0,0,2,2)
+			end
+		elseif(self.state==2) then
+			local scale=(self.tiA-self.tA2[2])/(self.tA2[3]-self.tA2[2])
+			if(self.tiA<self.tA2[1])then
+				sprc(452,self.x,self.y-16*((self.tiA)/(self.tA2[1])),14,1,0,0,2,2)
+			elseif(self.tiA<self.tA2[2])then
+				sprc(452,self.x,self.y-16*(1-scale),14,1,0,0,2,2)
+			elseif(self.tiA<self.tA2[3])then
 				sprc(448,self.x,self.y,14,1,0,0,2,2)
 			else
-				sprc(448+t//(20/self.tmMul)%2 * 2,self.x,self.y,14,1,0,0,2,2)
+				sprc(sprite,self.x,self.y,14,1,0,0,2,2)
+			end
+			if(self.tiA>self.tA2[2] and self.tiA<self.tA2[3])then
+				circbc(self.x+8,self.y+8,240*scale,1)
+				circbc(self.x+8,self.y+8,240*scale-1,14)
+				circbc(self.x+8,self.y+8,240*scale-2,15)
+			end
+		elseif(self.state==3) then
+			local scale=(self.tiA-self.tA3[2])/(self.tA3[3]-self.tA3[2])
+			if(self.tiA<self.tA3[1])then
+				sprc(452,self.x,self.y,14,1,0,0,2,2)
+			elseif(self.tiA<self.tA3[2])then
+				sprc(452,self.x,self.y,14,1,0,0,2,2)
+			elseif(self.tiA<self.tA3[3])then
+				sprc(448,self.x,self.y,14,1,0,0,2,2)
+			else
+				sprc(sprite,self.x,self.y,14,1,0,0,2,2)
+			end
+			if(self.tiA>self.tA3[2] and self.tiA<self.tA3[3])then
+				circbc(self.x+8,self.y+8,240*(1-scale),1)
+				circbc(self.x+8,self.y+8,240*(1-scale)+1,14)
+				circbc(self.x+8,self.y+8,240*(1-scale)+2,15)
 			end
 		end
 		self:drawElem()
@@ -1766,11 +1841,14 @@ function explode(x,y)
 	return ep
 end
 
-function dust(x,y,num)
+function dust(x,y,num,colors,size,tLife)
 	local ds=effect(x,y,0,0)
 	ds.ti=0
 	ds.fwds={}
 	ds.num=num or 2
+	ds.c=colors or {12,10,2,0}
+	ds.size=size or 3
+	ds.tLife=tLife or 30
 	for i=1,ds.num do
 		local fx=-1+2*math.random()
 		local fy=-1+2*math.random()
@@ -1779,20 +1857,20 @@ function dust(x,y,num)
 
 	function ds:update()
 		self.ti=self.ti+1
-		if(self.ti>=30)then self:remove()end
+		if(self.ti>=self.tLife)then self:remove()end
 	end
 	function ds:draw()
-		local color=12
+		local color=self.c[1]
 		if(self.ti>5)then
-			color=10
+			color=self.c[2]
 		elseif(self.ti>10)then
-			color=2
+			color=self.c[3]
 		elseif(self.ti>15)then
-			color=0
+			color=self.c[4]
 		end
 		for i=1,#self.fwds do
 			local fwd=self.fwds[i]
-			circc(self.x+fwd[1]*self.ti,self.y+fwd[2]*self.ti,3*(1-self.ti/30),color)
+			circc(self.x+fwd[1]*self.ti,self.y+fwd[2]*self.ti,self.size*(1-self.ti/self.tLife),color)
 		end
 	end
 	table.insert(envManager,ds)
@@ -1808,7 +1886,7 @@ function star(x,y,color,tLife,maxDis)
 	st.after=true
 	function st:update()
 		self.ti=self.ti+1
-		if(self.ti>=tLife)then self:remove() end
+		if(self.ti>=self.tLife)then self:remove() end
 	end
 	function st:draw()
 		local scale=self.ti/self.tLife
@@ -2071,6 +2149,22 @@ function triggerMapTiles(ety)
 	end
 	return true
 end
+
+function iPull(src,m,isReverse,force,maxRange)
+	local scale=m.pullMul
+	if(isReverse)then scale=m.pushMul end
+	if(scale<=0)then return end
+	local ir=1
+	if(isReverse)then ir=-1 end
+	local dv=CenterDisVec(src,m)
+	if(maxRange)then
+		local mdis=dv[1]*dv[1]+dv[2]*dv[2]
+		if(mdis>=maxRange)then return end
+	end
+	dv={dv[1]*ir,dv[2]*ir}
+	dv=vecNormFake(dv,1)
+	m:movec(force*dv[1]*scale,force*dv[2]*scale,true)
+end
 -- endregion
 
 -- region DIALOG
@@ -2176,7 +2270,7 @@ end
 
 uiManager={uiStatusBar}
 
-curLevel=1
+curLevel=5
 function loadLevel(levelId)
 	curLevel=levelId
 	local lOff = {{0,0},{0,17*2+2},{0,17*4-3},{0,17*5},{30*7-5,17*2-4}}
