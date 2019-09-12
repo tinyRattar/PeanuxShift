@@ -185,7 +185,6 @@ end
 -- region PLAYER
 -- _player
 player=entity(32,60,16,16)
---player.canHit=true
 player.fwd = {1,0}
 player.hp = 50
 player.attack = 5
@@ -200,7 +199,6 @@ player.onButter=false
 player.lastMove={0,0}
 player.onFireTile=false
 player.onFireTic=0
---player.atkRect = {{player.x+player.w,player.y,10,16},{player.x-10,player.y,10,16}}
 function player:atkRect()
 	local p=self
 	local ar=10
@@ -230,7 +228,6 @@ function player:meleeCalc()
 	for i=1,#hitList do
 		local tar=hitList[i]
 		if(tar~=self and tar.canHit) then
-			-- todo: element attack
 			local knockback=self.fwd
 			-- todo: knockback check
 			if(tar.canHit)then
@@ -249,14 +246,11 @@ function player:onHit(dmg)
 		self.hp=self.hp-dmg.value
 		if(self.hp<0)then self.hp=0 end
 	end
-	--trace("player hp:"..self.hp)
 end
 function player:hpUp(value)
 	self.hp=self.hp+value
 	if(self.hp>100)then self.hp=100 end
 	starDust(self.x+4,self.y,12,16,6,6,15,5)
-	--trace("player hp:"..self.hp)
-	--todo: hp check
 end
 function player:getKey()
 	self.key1=self.key1+1
@@ -348,7 +342,6 @@ end
 function player:draw()
 	local sprFlip=(1-self.fwd[1])//2
 	local sprite=260
-	--if(player.fwd[1]==-1) then  end
 	if(player.fwd[2]==1) then sprite=256 elseif(player.fwd[2]==-1) then sprite=264 end
 	if(self.tiStun>0)then
 		sprc(sprite,self.x,self.y,6,1,sprFlip,0,2,2)
@@ -1882,11 +1875,14 @@ function apple(x,y)
 	return app
 end
 
-function keyItem(x,y)
+function keyItem(x,y,tx,ty)
 	local k=item(x,y,8,8)
+	k.tx=tx
+	k.ty=ty
 
 	function k:onTaken()
 		player:getKey()
+		mset(self.tx,self.ty,255)
 		-- todo:play something
 		self:remove()
 	end
@@ -2553,7 +2549,6 @@ uiManager={uiStatusBar}
 curLevel=1
 function loadLevel(levelId)
 	curLevel=levelId
-	player.key1=0
 	local lOff = {{0,0},{0,17*2+2},{0,17*4-3},{0,17*5},{30*7-5,17*2-4}}
 	local MapSize = {{30*3,17*2+2},{30*3,17*2-2-3},{30*3,17+3},{30*3,17*3},{30*1+2,17*3+10}}
 	local playerPos = {{120,80},{30+0,120},{56,96},{64,120},{112,120}}
@@ -2594,7 +2589,7 @@ function loadLevel(levelId)
 			elseif(mtId==224)then
 				table.insert(envManager,apple(i*8,j*8))
 			elseif(mtId==208)then
-				table.insert(envManager,keyItem(i*8,j*8))
+				table.insert(envManager,keyItem(i*8,j*8,i+iMapManager.offx,j+iMapManager.offy))
 			elseif(mtId==209)then
 				table.insert(mobManager,fence(i*8,j*8))
 			elseif(mtId==144)then
@@ -2607,6 +2602,14 @@ function loadLevel(levelId)
 				Trinity:init(i*8,j*8)
 			end
 		end
+	end
+end
+
+function gameOver()
+	if(curLevel<=3)then
+		loadLevel(curLevel)
+	elseif(curLevel>=4)then
+		loadLevel(4)
 	end
 end
 
