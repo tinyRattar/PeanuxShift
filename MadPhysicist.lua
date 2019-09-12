@@ -2512,7 +2512,7 @@ end
 uiStatusBar={hp=player.hp}
 function uiStatusBar:draw()
 	local tmp_=0
-	rect(7,7+tmp_,100+2,7,15)
+	rect(7,7+tmp_,100+4,7,15)
 	if self.hp>player.hp then 
 		rect(9, 9+tmp_, self.hp, 3, 4)
 		self.hp = self.hp-1/60*10  
