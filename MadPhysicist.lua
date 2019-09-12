@@ -23,7 +23,7 @@ function set(ls)
 	end
 	return s
 end
-MAP_COLLIDE=set({0,4,20,23,26,27,38,39,40,41,42,44,54,55,58,60,61,62,63,75,76,77,78,79,93,94,95,110,111,131,132,163})
+MAP_COLLIDE=set({0,4,20,23,26,27,38,39,40,41,42,44,54,55,58,60,61,62,63,75,76,77,78,79,93,94,95,110,111,131,132,144,163})
 MAP_ENTER_DANGER=set({16,178,179,182,166,164,180})
 MAP_ENTER_FREE=set({231,238,171,80,238})
 MAP_REMAP_BLANK=set({208,224,225,226,227,228,240,241,242,243,244,245,144})
@@ -638,9 +638,11 @@ function mob(x,y,w,h,hp,alertR)
 		return false
 		-- todo: element attack
 	end
+	function m:onDeath()
+	end
 	function m:death()
+		self:onDeath()
 		-- todo: do something like score change
-		-- or maybe dead mob is a mob as well?
 		if(m.isDead)then return false end
 		for i=1,#mobManager do
 			if(mobManager[i]==self)then table.remove(mobManager,i) end
@@ -648,7 +650,6 @@ function mob(x,y,w,h,hp,alertR)
 		m.isDead=true
 		shine(self.x,self.y,self.w//8)
 		return true
-		-- table.remove(mobManager,self)
 	end
 	function m:tryAwake()
 		local d=MDistance(self,player)
@@ -757,30 +758,16 @@ function slime(x,y)
 
 	function s:update()
 		if(not self:defaultUpdate())then return end
-		-- self:defaultTileCalc()
-		-- if(not self:defaultElem())then return end
-		-- if(self.tiStun>0)then
-		-- 	self.state=0
-		-- 	self.tiStun=self.tiStun-self.tmMul
-		-- 	return
-		-- end
-		-- if(self.sleep)then
-		-- 	self:tryAwake()
-		-- 	return
-		-- end
 		if(self.state==0)then
 			local dv,dvn=self:defaultMove()
 			if((math.max(math.abs(dv[1]),math.abs(dv[2])))<=self.meleeRange)then
 				self.fwd=dvn
-				--if(dv[1]<(self.w//2))then self.fwd[1]=0 end
-				--if(dv[2]<(self.h//2))then self.fwd[2]=0 end
 				self:startAttack()
 			end
 		elseif(self.state==1)then
 			if(self.waitMeleeCalc and self.tiA>=self.tA1)then self:meleeCalc() self.waitMeleeCalc=false end
 			self.tiA=self.tiA+self.tmMul
 			if(self.tiA>=self.tA2)then self:defaultMove() end
-			--if(self.tiA>=90)then end
 			if(self.tiA>=self.tA3)then self.state=0 end
 		end
 	end
@@ -1254,6 +1241,9 @@ function weakRock(x,y)
 	wr.pushMul=0
 	wr.tmMul=0
 
+	function wr:onDeath()
+		mset(iMapManager.offx+self.x//8,iMapManager.offy+self.y//8,255)
+	end
 	function wr:update()
 	end
 	function wr:draw()
