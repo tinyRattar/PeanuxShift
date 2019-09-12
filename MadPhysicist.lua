@@ -1320,10 +1320,11 @@ function Newton(x,y)
 		end
 	end
 	function nt:pull(isReverse)
+		iPull(self,player,isReverse,self.force*0.5)
 		for i=1,#envManager do
 			local e=envManager[i]
 			if(e)then	
-				iPull(self,e,isReverse,self.force) 
+				iPull(self,e,isReverse,self.force)
 				if(not isReverse)then
 					local vec=CenterDisVec(self,e)
 					if(math.abs(vec[1])+math.abs(vec[2])<=4)then e:remove() end
