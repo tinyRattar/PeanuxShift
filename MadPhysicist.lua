@@ -2,7 +2,7 @@
 -- author: PEANUX Studio
 -- desc:   I don't know. Maybe a Zelda-like game.
 -- script: lua
-
+-- delete tab for running
 -- predefine
 CAMERA_OFF={15*8-4,8*8-4}
 NEARBY4 = {{-1,0},{1,0},{0,-1},{0,1}}
