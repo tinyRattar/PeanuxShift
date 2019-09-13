@@ -48,7 +48,7 @@ MAP_LAVA=set({3,16,19,32,33,34,35,36,48,49,50,51,52,53,64,65,66,67})
 
 -- region TXT
 TEXTS={gameover={{"YOU DEID!"}},
-{{"What the fck, you are a fantasy physical boy. ","Welcome to Super.Hyper.Incredible.Fhysical.Tower. "},
+{{"Welcome to Super.Hyper.Incredible.Fhysical.Tower. "},
 {"REMEMBER to use physical artifact and your ","physical caliber."}},
 {{"wtf!"}}
 }
@@ -215,6 +215,7 @@ player.onButter=false
 player.lastMove={0,0}
 player.onFireTile=false
 player.onFireTic=0
+player.cleared={}
 function player:atkRect()
 	local p=self
 	local ar=10
@@ -416,12 +417,8 @@ function player:enter(tile)
 	elseif(MAP_LAVA:contains(tileId))then
 		self:onHit(damage(1))
 	elseif(tileId==231)then
+		self.cleared[curLevel]=true
 		loadLevel(NEXTLEVEL[curLevel])
-		-- if(curLevel<5)then
-		--   loadLevel(curLevel+1)
-		-- else
-		-- 	loadLevel(4)
-		-- end
 	elseif(tileId==238)then
 		self.onButter=true
 	elseif(tileId==80)then
@@ -1918,17 +1915,27 @@ function keyItem(x,y,tx,ty)
 	return k
 end
 
-function portal(x,y,code)
+function portal(x,y,code,tx,ty)
 	local p=item(x,y,16,16)
 	p.code=code
+	if(player.cleared[code+5])then
+		p.closed=true
+	end
 
 	function p:onTaken()
 		loadLevel(self.code+5)
 	end
+	function p:update()
+		if(not self.closed and (iEntityTrigger(player,self)))then self:onTaken() end
+	end
 	function p:draw()
-		local s=460+t//10%3 * 2
-		if(t//10%3==2)then s=428 end
-		sprc(s,self.x,self.y-t//30%2 * 2,14,1,0,0,2,2)
+		if(self.closed)then 
+			sprc(430,self.x,self.y,14,1,0,0,2,2) 
+		else
+			local s=460+t//10%3 * 2
+			if(t//10%3==2)then s=428 end
+			sprc(s,self.x,self.y-t//30%2 * 2,14,1,0,0,2,2)
+		end
 	end
 
 	return p
@@ -2690,7 +2697,7 @@ function loadLevel(levelId)
 			elseif(mtId==132)then
 				table.insert(mobManager,iceTentacle(i*8,j*8))
 			elseif(mtId==197)then
-				table.insert(envManager,portal(i*8,j*8,LoadMapCode(tx,ty)))
+				table.insert(envManager,portal(i*8,j*8,LoadMapCode(tx,ty),tx,ty))
 			elseif(mtId==213)then
 				table.insert(envManager,talker(i*8,j*8,LoadMapCode(tx,ty)))
 			elseif(mtId==229)then
@@ -3165,6 +3172,8 @@ end
 -- 171:eeeeeeeee4eeeeee5eee4eee5555eeeeff555eee44f55eee44f55eee44f555ee
 -- 172:eeeeeeeeeeeeeeeeeeeeeee9eeeeee99eee9e999eeeee998eeeee998eee9e998
 -- 173:eeeeeeeeeeeeeeee9ee9eeee999eeeee899e9eee899e9eee8899e9ee8899e9ee
+-- 174:ededededfffffffeefefefe3fefefe33efefe335fefe3355ccec35cccefc35c5
+-- 175:ededededfffffffeefefefed3efefefe33efefed533efefe5ccceccd5c3cfcfc
 -- 176:11f3ecce111fe33e11fffeee1f00ffeef33000dd1f33000011ff000011f00000
 -- 177:e3edf111eeedff11edff0f11dff000f1000033f100033f110000f11100000f11
 -- 178:11f3ecce111fe33e1111feee1fff00eeff0000ddf33000001f33000011f00000
@@ -3179,6 +3188,8 @@ end
 -- 187:ff555cee5555ccee555555eec5c55eee5ee55eee5e55eeeee4eeeeeeeeeeeeee
 -- 188:eee9e998eee99998eeee9998eeeee999eee9e999eee99e99eeeeeee9eeeee9ee
 -- 189:8899ee9e8899e9ee8899eeee8899e9ee899eeeee999e9eee9ee9eeeeeeeeeeee
+-- 190:cdec35cccffc35c5ccecc5ccfefe3355efefe335fefefe33efefefe3fefefefe
+-- 191:5ccceccd5c3cfcfc5c3cecec533efefe33efefed3efefefeefefefedfefefefe
 -- 192:eeeeeffeeeeef55feeef5555eeef5533eef55533eef553c3ef55c333ef5cc333
 -- 193:effeeeeef55feeee5555feee35555fee33555feec33555fe335c55fe333cc5fe
 -- 194:eeeeeffeeeeef55feeef5555eeef5533eef55533eef553c3ef55c333ef5cc333
