@@ -33,7 +33,7 @@ for i=1,10 do
 		table.insert(listTmp,(i-1)*16+j-1)
 	end
 end
-local tmpAdd={4,20,68,69,131,132,148,144,17,83}
+local tmpAdd={4,20,68,69,131,132,148,144,17,83,145}
 for i=1,#tmpAdd do
 	table.insert(listTmp,tmpAdd[i])
 end
