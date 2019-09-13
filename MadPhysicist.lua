@@ -2629,6 +2629,8 @@ end
 function gameOver()
 	player.hp=50
 	player.dead=false
+	gs=0
+	drawMenu()
 	if(curLevel<=3)then
 		loadLevel(curLevel)
 	elseif(curLevel>=4)then
@@ -2642,6 +2644,19 @@ function atfManager:shiftAtf(index)
 end
 function atfManager:useAtf(index)
 	self[index]:use()
+end
+-- menu
+function drawMenu()
+	cls(0)
+	-- print("o", 75+math.sin(time()/100),84+cs*10,6)
+	print("o", 75,83+cs*10+math.abs(3*math.sin(time()/500)),6)
+	if cs==0 then
+	 print("start game",84,84,6)
+	 print("about", 84, 94)
+	else
+	 print("start game",84,84)
+	 print("about", 84, 94,6)
+	end
 end
 mobManager={}
 envManager={}
@@ -2657,28 +2672,36 @@ mainManager = {mobManager,atfManager,envManager,aEnvManager}
 drawManager = {{iMapManager},envManager,{player},mobManager,aEnvManager,atfManager,uiManager,{Trinity}}
 
 loadLevel(curLevel)
-
+gs=0
+cs=0
 function TIC()
-	if(#uiManager<2)then
-		-- update
-		for i=1,#mainManager do
-			for j=1,#mainManager[i] do
-				local obj=mainManager[i][j]
-				if(obj)then obj:update() end
+	if gs==0 then
+		drawMenu()
+		if btn(0) then cs=0 end
+		if btn(1) then cs=1 end
+		if btn(5) then gs=1-cs end
+	else
+		if(#uiManager<2)then
+			-- update
+			for i=1,#mainManager do
+				for j=1,#mainManager[i] do
+					local obj=mainManager[i][j]
+					if(obj)then obj:update() end
+				end
 			end
 		end
-	end
 
-  -- draw
-  cls(0)
-  for i=1,#drawManager do
-		for j=1,#drawManager[i] do
-			local obj=drawManager[i][j]
-			if(obj)then	drawManager[i][j]:draw() end
+		-- draw
+		cls(0)
+		for i=1,#drawManager do
+			for j=1,#drawManager[i] do
+				local obj=drawManager[i][j]
+				if(obj)then	drawManager[i][j]:draw() end
+			end
 		end
+		
+		t=t+1
 	end
-	
-	t=t+1
 	--trace("test"..a)
 end
 
