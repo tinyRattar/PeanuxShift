@@ -26,13 +26,14 @@ end
 MAP_COLLIDE=set({0,4,20,23,26,27,38,39,40,41,42,44,54,55,58,60,61,62,63,68,69,75,76,77,78,79,93,94,95,110,111,131,132,144,152,163})
 MAP_ENTER_DANGER=set({16,178,179,182,166,164,180})
 MAP_ENTER_FREE=set({231,238,171,80,238})
-MAP_REMAP_BLANK=set({208,224,225,226,227,228,240,241,242,243,244,245,144})
+MAP_REMAP_BLANK=set({208,224,225,226,227,228,240,241,242,243,244,245,144,197,213})
 MAP_TOUCH=set({17,113,128,165,181})
 MAP_WATER=set({171})
 MAP_BUTTER=set({238})
 
 -- region TXT
-TEXTS={{"What the fck, you are a fantasy physical boy. ",
+TEXTS={gameover={"YOU DEID!"},
+	{"What the fck, you are a fantasy physical boy. ",
 "Welcome to Super.Hyper.Incredible.Fhysical.Tower. ",
 "REMEMBER to use physical artifact and your ",
 "physical caliber."}
@@ -185,9 +186,9 @@ end
 -- region PLAYER
 -- _player
 player=entity(32,60,16,16)
---player.canHit=true
 player.fwd = {1,0}
-player.hp = 50
+player.hp=50
+player.maxHp=100
 player.attack = 5
 player.state = 0
 player.ti1 = 0
@@ -200,7 +201,6 @@ player.onButter=false
 player.lastMove={0,0}
 player.onFireTile=false
 player.onFireTic=0
---player.atkRect = {{player.x+player.w,player.y,10,16},{player.x-10,player.y,10,16}}
 function player:atkRect()
 	local p=self
 	local ar=10
@@ -230,7 +230,6 @@ function player:meleeCalc()
 	for i=1,#hitList do
 		local tar=hitList[i]
 		if(tar~=self and tar.canHit) then
-			-- todo: element attack
 			local knockback=self.fwd
 			-- todo: knockback check
 			if(tar.canHit)then
@@ -243,16 +242,18 @@ function player:meleeCalc()
 	end
 end
 function player:onHit(dmg)
-	self.hp=self.hp-dmg.value
-	if(self.hp<0)then self.hp=0 end
-	--trace("player hp:"..self.hp)
-	--todo: on hit
+	if(dmg.value<0)then 
+		self:hpUp(-dmg.value)
+	else
+		self.hp=self.hp-dmg.value
+		if(self.hp<0)then self.hp=0 player.dead=true GameOverDialog() end
+	end
 end
 function player:hpUp(value)
 	self.hp=self.hp+value
 	if(self.hp>100)then self.hp=100 end
-	--trace("player hp:"..self.hp)
-	--todo: hp check
+	starDust(self.x+4,self.y,12,16,6,6,15,5)
+	if(inbossBattle and self.hp>=self.maxHp) then player.dead=true GameOverDialog() end
 end
 function player:getKey()
 	self.key1=self.key1+1
@@ -342,9 +343,9 @@ function player:update()
 	end
 end
 function player:draw()
+	if(player.dead)then sprc(268,self.x,self.y,6,1,sprFlip,0,2,2) return end
 	local sprFlip=(1-self.fwd[1])//2
 	local sprite=260
-	--if(player.fwd[1]==-1) then  end
 	if(player.fwd[2]==1) then sprite=256 elseif(player.fwd[2]==-1) then sprite=264 end
 	if(self.tiStun>0)then
 		sprc(sprite,self.x,self.y,6,1,sprFlip,0,2,2)
@@ -400,7 +401,11 @@ function player:enter(tile)
 	elseif(tileId==16)then
 		self:onHit(damage(1))
 	elseif(tileId==231)then
-		loadLevel(curLevel+1)
+		if(curLevel<5)then
+		  loadLevel(curLevel+1)
+		else
+			loadLevel(4)
+		end
 	elseif(tileId==238)then
 		self.onButter=true
 	elseif(tileId==80)then
@@ -425,34 +430,17 @@ function theGravition:use()
 		trace("the Gravition ON!")
 	end
 end
-function theGravition:iPull(m,isReverse)
-	local scale=m.pullMul
-	if(isReverse)then scale=m.pushMul end
-	if(scale<=0)then return end
-	local ir=1
-	if(isReverse)then ir=-1 end
-	local dv=CenterDisVec(player,m)
-	local mdis=dv[1]*dv[1]+dv[2]*dv[2]
-	if(mdis>=self.rangePow2)then return end
-	dv={dv[1]*ir,dv[2]*ir}
-	dv=vecNormFake(dv,1)
-	-- if(dv)
-	-- local dvm=math.abs(dv[1])
-	-- local dvmt=math.abs(dv[2])
-	-- if(dvm<dvmt)then dvm=dvmt end
-	-- if(dvm<1)then return end
-	m:movec(theGravition.force*dv[1]*scale,theGravition.force*dv[2]*scale,true)
-end
 function theGravition:pull(isReverse)
 	for i=1,#mobManager do
 		local m=mobManager[i]
 		if(m and m~=player)then
-			self:iPull(m,isReverse)
+			--self:iPull(m,isReverse)
+			iPull(player,m,isReverse,self.force,self.rangePow2)
 		end
 	end
 	for i=1,#envManager do
 		local e=envManager[i]
-		if(e)then	self:iPull(e,isReverse) end
+		if(e)then	iPull(player,e,isReverse,self.force,self.rangePow2) end
 	end
 end
 function theGravition:push()
@@ -476,6 +464,7 @@ function theGravition:draw()
 		if(rscale>1)then rscale=0 end
 		local cp=CenterPoint(player)
 		circbc(cp[1],cp[2],self.range*rscale,1)
+		circbc(cp[1],cp[2],self.range*rscale-1,15)
 	end
 end
 -- endregion
@@ -676,13 +665,15 @@ function mob(x,y,w,h,hp,alertR)
 			self:death()
 		end
 	end
-	function m:defaultMove()
+	function m:defaultMove(needDis)
 		local dv=CenterDisVec(player,self)
 		local dvn=vecNormFake(dv,1)
 		local _tmMul=self.tmMul
-		if(self.tmMul>0)then _tmMul=1 end
+		local distance=0
+		if(self.tmMul<=0)then _tmMul=1 end
 		self:movec(dvn[1]*self.ms*_tmMul,dvn[2]*self.ms*_tmMul)
-		return dv,dvn
+		if(needDis)then distance=(math.max(math.abs(dv[1]),math.abs(dv[2]))) end
+		return dv,dvn,distance
 	end
 	function m:defaultElem()
 		if(self.tiFire>0)then
@@ -734,7 +725,7 @@ function mob(x,y,w,h,hp,alertR)
 
 	return m
 end
-
+-- region _NORMAL MOB
 function slime(x,y)
 	local s = mob(x,y,8,8,15,5*8)
 	s.ms=0.5
@@ -766,6 +757,7 @@ function slime(x,y)
 			end
 		elseif(self.state==1)then
 			if(self.waitMeleeCalc and self.tiA>=self.tA1)then self:meleeCalc() self.waitMeleeCalc=false end
+			if(self.tmMul<=0)then self.tiA=self.tiA+1 end
 			self.tiA=self.tiA+self.tmMul
 			if(self.tiA>=self.tA2)then self:defaultMove() end
 			if(self.tiA>=self.tA3)then self.state=0 end
@@ -987,7 +979,9 @@ function bomb(x,y)
 
 	return bb
 end
+-- endregion
 
+-- region _ELITE
 function chargeElite(x,y)
 	local ce = mob(x,y,16,16,200,10*8)
 	ce.ms=0.5
@@ -1137,7 +1131,7 @@ function laserElite(x,y)
 		local dv=CenterDisVec(player,self)
 		local dvn=vecNormFake(dv,1)
 		local _tmMul=self.tmMul
-		if(self.tmMul>0)then _tmMul=1 end
+		if(self.tmMul<=0)then _tmMul=1 end
 		local distance=(math.max(math.abs(dv[1]),math.abs(dv[2])))
 		if(distance<=(self.meleeRange))then
 			self:movec(-dvn[1]*self.ms*_tmMul,-dvn[2]*self.ms*_tmMul)
@@ -1218,6 +1212,476 @@ function laserElite(x,y)
 	end
 	return le
 end
+-- endregion
+
+-- region _BOSS
+-- region Trinity
+Trinity={}
+function Trinity:init(x,y)
+	self.hp=1000
+	self.uiHp=1000
+	self.maxHp=1000
+	self.stackDmg=0
+	self.tarDmg=100
+	self.x=x
+	self.y=y
+	self.nt=Newton(x-40,y)
+	self.gl=Galileo(x+40,y)
+	self.kl=Kelvin(x,y+60)
+	table.insert(mobManager,self.nt)
+	table.insert(mobManager,self.gl)
+	table.insert(mobManager,self.kl)
+	self.nt.sleep=false
+	self.gl.sleep=false
+	self.kl.sleep=false
+	inbossBattle=true
+
+	self.active=true
+end
+function Trinity:onHit(dmg)
+	self.hp=self.hp-dmg.value
+	self.stackDmg=self.stackDmg+dmg.value
+	if(self.stackDmg>=self.tarDmg)then self.stackDmg=self.stackDmg-self.tarDmg player:onHit(damage(25)) end
+	if(self.hp<=0)then self:death() end
+end
+function Trinity:death()
+	self.nt.death()
+	self.gl.death()
+	self.kl.death()
+	self.active=false
+end
+function Trinity:draw()
+	if(self.active)then
+		local tmp_=120
+		local tmp_x=72
+		rect(7+tmp_x,7+tmp_,150+4,7,15)
+		rect(9+tmp_x,9+tmp_,120,3,0)
+		if self.uiHp>self.hp then 
+			rect(9+tmp_x, 9+tmp_, self.uihp/self.maxHp * 120, 3, 4)
+			self.uiHp = self.uiHp-0.5
+		else
+			self.uihp = self.hp
+		end
+		rect(9+tmp_x,9+tmp_,self.hp/self.maxHp * 120,3,6)
+		local count=self.maxHp/self.tarDmg
+		for i=1,count-1 do
+			line(8+tmp_x+i*120/count,9+tmp_,8+tmp_x+i*120/count,9+tmp_+3,15)
+		end
+		print("Trinity",11+tmp_x+120,8+tmp_,0,0,1,true)
+		
+	end
+end
+--Trinity:init()
+-- endregion
+
+
+function Newton(x,y)
+	local nt=mob(x,y,16,16,300,0)
+	nt.maxHp=nt.hp
+	nt.dmgStunTresh=150
+	nt.stunTime=900
+	nt.ms=0.75
+	nt.tiA=0
+	nt.fwd={-1,0}
+	nt.leaveRange=5*8
+	nt.apprRange=6*8
+	nt.meleeRange=10*8+4
+	nt.attack=1
+	nt.waitAttackCalc=false
+	nt.force=1
+	nt.pullMul=0
+	nt.pushMul=0
+	-- nt.tmMul=0
+	-- nt.tRMC=60 --random move change
+	-- nt.randFwd={0,0}
+	nt.mem=0
+	nt.mem1=0
+	nt.mem2=0
+	nt.tA1={60,90,120,120}
+	nt.tA2={60,70,120,210}
+	nt.tA3={120,150,210,330}
+
+	function nt:onHit(dmg,noStun)
+		Trinity:onHit(dmg)
+		if(self.canHit)then
+			self.sleep=false
+			self.hp=self.hp-dmg.value
+			if(self.maxHp-self.hp>self.dmgStunTresh)then self.tiStun=self.stunTime end
+			if(self.tiStun>0)then self.maxHp=self.hp end
+			if(dmg.elem==1)then self.tiFire=150 elseif(dmg.elem==2)then self.tiIce=30 end
+			--if(self.hp<=0)then self:death() end
+			return true
+		end
+		return false
+	end
+	function nt:startAttack(index)
+		self.state=index
+		self.tiA=0
+		self.waitAttackCalc=true
+		self.mem=index
+		--starDust(x,y,w,h,num,color,tLife,tGenInter)
+		if(index==2)then 
+			self.mem1=self.mem1+1 starDust(self.x,self.y,16,16,10,1,15,5)
+		elseif(index==3)then 
+			starDust(self.x,self.y,16,16,40,15,15,5)
+		else
+			starDust(self.x,self.y,16,16,10,6,15,5)
+		end
+	end
+	function nt:pull(isReverse)
+		iPull(self,player,isReverse,self.force*0.5)
+		for i=1,#envManager do
+			local e=envManager[i]
+			if(e)then	
+				iPull(self,e,isReverse,self.force)
+				if(not isReverse)then
+					local vec=CenterDisVec(self,e)
+					if(math.abs(vec[1])+math.abs(vec[2])<=4)then e:remove() end
+				end
+			end
+		end
+	end
+	function nt:emitApple(fwd)
+		local cp=CenterPoint(self)
+		local ax,ay=cp[1]-4+fwd[1]*8,cp[2]-4+fwd[2]*8
+		local ap=apple(ax,ay)
+		table.insert(envManager,ap)
+		dust(ax,ay,5,{5,3,3,3},2)
+	end
+	function nt:iMove(noMove)
+		local dv=CenterDisVec(player,self)
+		local dvn=vecNormFake(dv,1)
+		local _tmMul=self.tmMul
+		if(self.tmMul<=0)then _tmMul=1 end
+		local distance=(math.max(math.abs(dv[1]),math.abs(dv[2])))
+		if(noMove)then return dv,dvn,distance end
+		if(distance<=(self.leaveRange))then
+			self:movec(-dvn[1]*self.ms*_tmMul,-dvn[2]*self.ms*_tmMul)
+		elseif(distance>(self.apprRange))then
+			self:movec(dvn[1]*self.ms*_tmMul,dvn[2]*self.ms*_tmMul)
+		else
+			-- if(t%self.tRMC==0)then
+			-- 	local fx=-1+2*math.random()
+			-- 	local fy=-1+2*math.random()
+			-- 	self.randFwd=vecNormFake({fx*2,fy*2},1)
+			-- 	trace(self.randFwd[1])
+			-- 	trace(self.randFwd[2])
+			-- end
+			-- self:movec(self.randFwd[1]*self.ms*_tmMul,self.randFwd[2]*self.ms*_tmMul)
+		end
+		return dv,dvn,distance
+	end
+	function nt:update()
+		local _t=self.tmMul
+		if(_t==0)then _t=1 end
+		if(not self:defaultUpdate())then return end
+		if(self.state==0)then
+			local dv,dvn,dis=self:iMove()
+			if(dis<=self.meleeRange)then
+				if(self.mem1>=3 and math.random()*10<self.mem1)then
+					self:startAttack(3)
+					self.mem1=0
+					self.mem2=0
+				elseif(self.mem==1)then	
+					self:startAttack(2)
+				else
+					self:startAttack(1)
+				end
+			end
+		elseif(self.state==1)then
+			if(self.tiA>=self.tA1[1] and self.waitAttackCalc)then
+				self.waitAttackCalc=false
+				local dv,dvn,dis=self:iMove()
+				self:emitApple(dvn)
+			end
+			self.tiA=self.tiA+_t
+			if(self.tiA>=self.tA1[3])then self:iMove() end
+			if(self.tiA>=self.tA1[4])then self.state=0 end
+		elseif(self.state==2)then
+			self.tiA=self.tiA+_t
+			if(self.tiA>=self.tA2[2] and self.tiA<self.tA2[3])then self:pull(true) end
+			if(self.tiA>=self.tA2[3])then self:iMove() end
+			if(self.tiA>=self.tA2[4])then self.state=0 end
+		elseif(self.state==3)then
+			self.tiA=self.tiA+_t
+			if(self.tiA>=self.tA3[2] and self.tiA<self.tA3[3])then self:pull() end
+			if(self.tiA>=self.tA3[3])then 
+				if(self.mem2<2)then
+					self.tiA=self.tA3[1]
+					self.mem2=self.mem2+1
+					starDust(self.x,self.y,16,16,10,15,15,5)
+				else
+					self:iMove() 
+				end
+			end
+			if(self.tiA>=self.tA3[4])then self.state=0 end
+		end
+	end
+	function nt:draw()
+		local _t=self.tmMul
+		if(_t==0)then _t=1 end
+		local sprite=448+t//(20/_t)%2 * 2
+		if(self.tiStun>0)then
+			sprc(448,self.x,self.y,14,1,0,0,2,2)
+			self:drawStun()
+		elseif(self.state==0)then
+			sprc(sprite,self.x,self.y,14,1,0,0,2,2)
+		elseif(self.state==1) then
+			if(self.tiA<self.tA1[1])then
+				sprc(452,self.x,self.y,14,1,0,0,2,2)
+			else
+				sprc(sprite,self.x,self.y,14,1,0,0,2,2)
+			end
+		elseif(self.state==2) then
+			local scale=(self.tiA-self.tA2[2])/(self.tA2[3]-self.tA2[2])
+			if(self.tiA<self.tA2[1])then
+				sprc(452,self.x,self.y-16*((self.tiA)/(self.tA2[1])),14,1,0,0,2,2)
+			elseif(self.tiA<self.tA2[2])then
+				sprc(452,self.x,self.y-16*(1-scale),14,1,0,0,2,2)
+			elseif(self.tiA<self.tA2[3])then
+				sprc(448,self.x,self.y,14,1,0,0,2,2)
+			else
+				sprc(sprite,self.x,self.y,14,1,0,0,2,2)
+			end
+			if(self.tiA>self.tA2[2] and self.tiA<self.tA2[3])then
+				circbc(self.x+8,self.y+8,240*scale,1)
+				circbc(self.x+8,self.y+8,240*scale-1,14)
+				circbc(self.x+8,self.y+8,240*scale-2,15)
+			end
+		elseif(self.state==3) then
+			local scale=(self.tiA-self.tA3[2])/(self.tA3[3]-self.tA3[2])
+			if(self.tiA<self.tA3[1])then
+				sprc(452,self.x,self.y,14,1,0,0,2,2)
+			elseif(self.tiA<self.tA3[2])then
+				sprc(452,self.x,self.y,14,1,0,0,2,2)
+			elseif(self.tiA<self.tA3[3])then
+				sprc(448,self.x,self.y,14,1,0,0,2,2)
+			else
+				sprc(sprite,self.x,self.y,14,1,0,0,2,2)
+			end
+			if(self.tiA>self.tA3[2] and self.tiA<self.tA3[3])then
+				circbc(self.x+8,self.y+8,240*(1-scale),1)
+				circbc(self.x+8,self.y+8,240*(1-scale)+1,14)
+				circbc(self.x+8,self.y+8,240*(1-scale)+2,15)
+			end
+		end
+		self:drawElem()
+	end
+
+	return nt
+end
+
+function Galileo(x,y)
+	local gl=Newton(x,y)
+	gl.hp=400
+	gl.maxHp=400
+	gl.dmgStunTresh=200
+	gl.stunTime=900
+	gl.ms=1
+	gl.meleeAttack=-10
+	gl.meleeRange=4*8
+	gl.pullMul=0.5
+	gl.pushMul=0.5
+	gl.tmMul=0
+	gl.tA1={60,90,150,210}
+
+	function gl:startAttack(index)
+		self.state=index
+		self.tiA=0
+		self.waitAttackCalc=true
+		self.mem=index
+		--starDust(x,y,w,h,num,color,tLife,tGenInter)
+		starDust(self.x,self.y,16,16,15,2,15,5)
+	end
+	function gl:ballCalc()
+		local atkBox={x=self.x+16*self.fwd[1],y=self.y+16*self.fwd[2],w=24,h=24}
+		hitList = boxOverlapCast(atkBox)
+		for i=1,#hitList do
+			local tar=hitList[i]
+			if(tar==player) then
+				tar:onHit(damage(self.meleeAttack,0))
+			end
+		end
+		for i=1,3 do
+			for j=1,3 do
+				dust(atkBox.x+(i-1)*8+4,atkBox.y+(j-1)*8+4)
+			end
+		end
+		shockScreen(2,3)
+	end
+	function gl:update()
+		local _t=1
+		if(not self:defaultUpdate())then return end
+		if(self.state==0)then
+			local dv,dvn,dis=self:defaultMove(true)
+			if(dis<=self.meleeRange)then
+				self:startAttack(1)
+				self.fwd=dvn
+			end
+		elseif(self.state==1)then
+			if(self.tiA>=self.tA1[1] and self.waitAttackCalc)then
+				self.waitAttackCalc=false
+				self:ballCalc()
+			end
+			--if(self.tiA<self.tA1[1])then _t=self.tmMul end
+			self.tiA=self.tiA+_t
+			if(self.tiA>=self.tA1[3])then self:defaultMove() end
+			if(self.tiA>=self.tA1[4])then self.state=0 end
+		end
+	end
+	function gl:draw()
+		local _t=1
+		local sprite=416+t//(20/_t)%2 * 2
+		if(self.tiStun>0)then
+			sprc(416,self.x,self.y,1,1,0,0,2,2)
+			self:drawStun()
+		elseif(self.state==0)then
+			sprc(sprite,self.x,self.y,1,1,0,0,2,2)
+		elseif(self.state==1) then
+			if(self.tiA<self.tA1[1])then
+				rectbc(self.x+16*self.fwd[1],self.y+16*self.fwd[2],24,24,3+t//2%3)
+				sprc(368,self.x+16*self.fwd[1],self.y+16*self.fwd[2]-(1-(self.tiA/self.tA1[1]))*80,0,3,0,0,1,1)
+				sprc(420,self.x,self.y,1,1,0,0,2,2)
+			else
+				sprc(sprite,self.x,self.y,1,1,0,0,2,2)
+			end
+		end
+		self:drawElem()
+	end
+	return gl
+end
+
+function Kelvin(x,y)
+	local kl=Newton(x,y)
+	kl.hp=200
+	kl.maxHp=200
+	kl.dmgStunTresh=100
+	kl.stunTime=900
+	kl.leaveRange=3*8
+	kl.apprRange=6*8
+	kl.ms=0.5
+	kl.meleeAttack=10
+	kl.pullMul=0.5
+	kl.pushMul=0.5
+	kl.tmMul=0
+	kl.tA1={60,90,150,450}
+
+	function kl:startAttack(index)
+		self.state=index
+		self.tiA=0
+		self.waitAttackCalc=true
+		self.mem=index
+		starDust(self.x,self.y,16,16,10,8,15,5)
+	end
+	function kl:castIceBall()
+		table.insert(mobManager,KelvinIceBall(self.x,self.y))
+	end
+	function kl:update()
+		local _t=1
+		self.tiIce=0
+		self.tiFire=0
+		if(not self:defaultUpdate())then return end
+		if(self.state==0)then
+			local dv,dvn,dis=self:iMove()
+			if(dis<=self.apprRange)then
+				self:startAttack(1)
+				--self.fwd=dvn
+			end
+		elseif(self.state==1)then
+			if(self.tiA>=self.tA1[1] and self.waitAttackCalc)then
+				self.waitAttackCalc=false
+				self:castIceBall()
+			end
+			--if(self.tiA<self.tA1[1])then _t=self.tmMul end
+			self.tiA=self.tiA+_t
+			if(self.tiA>=self.tA1[3])then self:iMove() end
+			if(self.tiA>=self.tA1[4])then self.state=0 end
+		end
+	end
+	function kl:draw()
+		local _t=1
+		local sprite=486+t//(20/_t)%2 * 2
+		if(self.tiStun>0)then
+			sprc(486,self.x,self.y,1,1,0,0,2,2)
+			self:drawStun()
+		elseif(self.state==0)then
+			sprc(sprite,self.x,self.y,1,1,0,0,2,2)
+		elseif(self.state==1) then
+			if(self.tiA<self.tA1[1])then
+				--rectbc(self.x+16*self.fwd[1],self.y+16*self.fwd[2],24,24,3+t//2%3)
+				--sprc(368,self.x+16*self.fwd[1],self.y+16*self.fwd[2]-(1-(self.tiA/self.tA1[1]))*80,0,3,0,0,1,1)
+				sprc(490,self.x,self.y,1,1,0,0,2,2)
+			else
+				sprc(sprite,self.x,self.y,1,1,0,0,2,2)
+			end
+		end
+		self:drawElem()
+	end
+	return kl
+end
+
+function KelvinIceBall(x,y)
+	local km=bombMan(x,y)
+	km.hp=2
+	km.h=16
+	km.w=16
+	km.tiLife=300
+	km.noEntityCollide=true
+	km.noMapCollide=true
+	km.ms=0.25
+	km.meleeRange=12
+	km.attack=-10
+	km.pullMul=0.5
+	km.pushMul=0.5
+	km.tmMul=0
+	km.sleep=false
+
+	function km:meleeCalc()
+		local atkBox={x=self.x-8,y=self.y-8,w=32,h=32}
+		hitList = boxOverlapCast(atkBox)
+		for i=1,#hitList do
+			local tar=hitList[i]
+			if(tar==player)then
+				tar:onHit(damage(self.attack,0))
+			end
+		end
+		for i=1,2 do
+			for j=1,2 do
+				dust(self.x+(i-1)*8+4,self.y+(j-1)*8+4,4,{9,8,8,0},4,30)
+			end
+		end
+		shockScreen(2,1,true)
+		self:death()
+	end
+	function km:death()
+		for i=1,#mobManager do
+			if(mobManager[i]==self)then table.remove(mobManager,i) end
+		end
+		return true
+	end
+	function km:onHit(dmg,noStun)
+		if(dmg.elem==1)then 
+			self.hp=self.hp-1
+			dust(self.x+8,self.y+8,4,{16,15,14,14},2,30)
+			if(self.hp<=0)then self:meleeCalc() end
+		end
+	end
+	function km:draw()
+		-- warning update in draw
+		if(self.tiLife<=0)then self:meleeCalc() end
+		self.tiLife=self.tiLife-1
+		--
+		sprc(371,self.x,self.y,0,2,0,0,1,1)
+		if(self.state==1 and self.tiA<self.tA1)then
+			rectbc(self.x-8,self.y-8,32,32,8)
+		end
+		self:drawElem()
+	end
+
+	return km
+end
+
+-- endregion
 
 -- region FakeMob
 function fence(x,y)
@@ -1419,11 +1883,14 @@ function apple(x,y)
 	return app
 end
 
-function keyItem(x,y)
+function keyItem(x,y,tx,ty)
 	local k=item(x,y,8,8)
+	k.tx=tx
+	k.ty=ty
 
 	function k:onTaken()
 		player:getKey()
+		mset(self.tx,self.ty,255)
 		-- todo:play something
 		self:remove()
 	end
@@ -1495,7 +1962,7 @@ end
 function tinyBullet(x,y,fwd)
 	local tb=bullet(x,y,1,1,5,0)
 	tb.hitPlayer=true
-	tb.lifetime=60
+	tb.lifetime=180
 	tb.fwd=fwd or {1,0}
 
 	function tb:update()
@@ -1538,16 +2005,20 @@ function KelvinBullet(x,y,fwd,iDmg,iElem)
 		local tileId,tx,ty=tile[1],tile[2],tile[3]
 		if(self.elem==1)then
 			if(MAP_BUTTER:contains(tileId))then
-				mset_4ca_set(tx,ty,80,MAP_BUTTER)
+				--if(inbossBattle)then mset_4ca_set(tx,ty,255,MAP_BUTTER) else
+				mset_4ca_set(tx,ty,80,MAP_BUTTER) 
+				--end
 				self:remove()
 			end
 		elseif(self.elem==2)then
 			if(MAP_WATER:contains(tileId))then
-				--mset(tx,ty,17)
-				mset_4ca_set(tx,ty,17,MAP_WATER)
+				--if(inbossBattle)then mset_4ca_set(tx,ty,255,MAP_WATER) else
+				mset_4ca_set(tx,ty,17,MAP_WATER) 
+				--end
 				self:remove()
 			elseif(tileId==80)then
-				mset_4ca(tx,ty,238,80)
+				if(inbossBattle)then mset_4ca(tx,ty,255,80) else
+				mset_4ca(tx,ty,238,80) end
 				self:remove()
 			end
 		end
@@ -1556,7 +2027,8 @@ function KelvinBullet(x,y,fwd,iDmg,iElem)
 		local tileId,tx,ty=tile[1],tile[2],tile[3]
 		if(self.elem==1)then
 			if(tileId==17)then
-				mset_4ca(tx,ty,171,17)
+				if(inbossBattle)then mset_4ca(tx,ty,255,17) else
+				mset_4ca(tx,ty,171,17) end
 			end
 		end
 	end
@@ -1572,10 +2044,17 @@ function effect(x,y,w,h)
 	ef.noMapCollide=true
 	ef.pullMul=0
 	ef.pushMul=0
+	ef.after=false
 
 	function ef:remove()
-		for i=1,#envManager do
-			if(envManager[i]==self)then table.remove(envManager,i) end
+		if(self.after)then
+			for i=1,#aEnvManager do
+				if(aEnvManager[i]==self)then table.remove(aEnvManager,i) end
+			end
+		else
+			for i=1,#envManager do
+				if(envManager[i]==self)then table.remove(envManager,i) end
+			end
 		end
 	end
 	return ef
@@ -1652,11 +2131,14 @@ function explode(x,y)
 	return ep
 end
 
-function dust(x,y,num)
+function dust(x,y,num,colors,size,tLife)
 	local ds=effect(x,y,0,0)
 	ds.ti=0
 	ds.fwds={}
 	ds.num=num or 2
+	ds.c=colors or {12,10,2,0}
+	ds.size=size or 3
+	ds.tLife=tLife or 30
 	for i=1,ds.num do
 		local fx=-1+2*math.random()
 		local fy=-1+2*math.random()
@@ -1665,21 +2147,65 @@ function dust(x,y,num)
 
 	function ds:update()
 		self.ti=self.ti+1
-		if(self.ti>=30)then self:remove()end
+		if(self.ti>=self.tLife)then self:remove()end
 	end
 	function ds:draw()
-		local color=12
+		local color=self.c[1]
 		if(self.ti>5)then
-			color=10
+			color=self.c[2]
 		elseif(self.ti>10)then
-			color=2
+			color=self.c[3]
 		elseif(self.ti>15)then
-			color=0
+			color=self.c[4]
 		end
 		for i=1,#self.fwds do
 			local fwd=self.fwds[i]
-			circc(self.x+fwd[1]*self.ti,self.y+fwd[2]*self.ti,3*(1-self.ti/30),color)
+			circc(self.x+fwd[1]*self.ti,self.y+fwd[2]*self.ti,self.size*(1-self.ti/self.tLife),color)
 		end
+	end
+	table.insert(envManager,ds)
+	return ds
+end
+
+function star(x,y,color,tLife,maxDis)
+	local st=effect(x,y,0,0)
+	st.ti=0
+	st.color=color
+	st.tLife=tLife
+	st.maxDis=maxDis
+	st.after=true
+	function st:update()
+		self.ti=self.ti+1
+		if(self.ti>=self.tLife)then self:remove() end
+	end
+	function st:draw()
+		local scale=self.ti/self.tLife
+		circc(self.x,self.y-self.maxDis*scale,1,color)
+	end
+
+	table.insert(aEnvManager,st)
+	return st
+end
+function starDust(x,y,w,h,num,color,tLife,tGenInter)
+	local ds=effect(x,y,w,h)
+	ds.ti=0
+	ds.num=num or 4
+	ds.color=color or 6
+	ds.tLife=tLife or h
+	ds.tGenInter=tGenInter or 1
+	--ds.maxTime=ds.num*ds.tGenInter
+
+	function ds:update()
+		self.ti=self.ti+1
+		if(self.ti%self.tGenInter==0)then
+			local fx=self.w*math.random()
+			local fy=self.h-self.h//4*math.random()
+			star(self.x+fx,self.y+fy,self.color,self.tLife,self.h)
+			self.num=self.num-1
+			if(self.num==0)then self:remove() end
+		end
+	end
+	function ds:draw()
 	end
 	table.insert(envManager,ds)
 	return ds
@@ -1913,17 +2439,36 @@ function triggerMapTiles(ety)
 	end
 	return true
 end
+
+function iPull(src,m,isReverse,force,maxRange)
+	local scale=m.pullMul
+	if(isReverse)then scale=m.pushMul end
+	if(scale<=0)then return end
+	local ir=1
+	if(isReverse)then ir=-1 end
+	local dv=CenterDisVec(src,m)
+	if(maxRange)then
+		local mdis=dv[1]*dv[1]+dv[2]*dv[2]
+		if(mdis>=maxRange)then return end
+	end
+	dv={dv[1]*ir,dv[2]*ir}
+	dv=vecNormFake(dv,1)
+	m:movec(force*dv[1]*scale,force*dv[2]*scale,true)
+end
 -- endregion
 
 -- region DIALOG
-function dialog(index)
+function dialog(index,noAutoActive)
 	local dl={}
-	dl.txts=TEXTS[index]
+	if(not noAutoActive)then dl.txts=TEXTS[index] end
 	
+	function dl:afterRemove()
+	end
 	function dl:remove()
 		for i=1,#uiManager do
 			if(uiManager[i]==self)then table.remove(uiManager,i) end
 		end
+		self:afterRemove()
 	end
 	-- function dl:update()
 	-- 	if(btn(4))then trace("btn") self:remove() end
@@ -1937,8 +2482,18 @@ function dialog(index)
 		end
 	end
 
-	table.insert(uiManager,dl)
+	if(not noAutoActive)then table.insert(uiManager,dl) end
 	return dl
+end
+
+function GameOverDialog()
+	local gd=dialog(0)
+	gd.txts=TEXTS.gameover
+
+	function gd:afterRemove()
+		gameOver()
+	end
+	table.insert(uiManager,gd)
 end
 -- endregion
 
@@ -1955,31 +2510,33 @@ function redraw(tile,x,y)
 		outTile=113+16*(t//15%2)
 	elseif(tile==128)then
 		outTile=128-16*(t//15%2)
+	elseif(tile==229)then
+		outTile=232
 	end
 	return outTile,flip,rotate
 end
 
-iMapManager = {offx=0,offy=0}
+iMapManager={offx=0,offy=0}
 -- function iMapManager:update() end
 function iMapManager:draw()
 	--map(cell_x,cell_y,cell_w,cell_h,x,y,alpha_color,scale,remap)
-	map(5*30,7*17,31,18,-30*8+(t)%(60*8),0,1,1)
-	map(5*30,7*17,31,18,-30*8+(t-30*8)%(60*8),0,1,1)
+	map(5*30,7*17,31,18,-30*8+(3*t)%(60*8),0,1,1)
+	map(5*30,7*17,31,18,-30*8+(3*t-30*8)%(60*8),0,1,1)
 	--map(5*30+60*(t//2%60),7*17,31,18,0,0,1,1)
 	map(0+self.offx+camera.x//8,0+self.offy+camera.y//8,31,18,8*(camera.x//8)-camera.x,8*(camera.y//8)-camera.y,1,1,redraw)
 end
 
-uiStatusBar={hp=player.hp*2}
+uiStatusBar={hp=player.hp}
 function uiStatusBar:draw()
 	local tmp_=0
-	rect(7,7+tmp_,200,7,15)
-	if self.hp>player.hp*2 then 
+	rect(7,7+tmp_,100+4,7,15)
+	if self.hp>player.hp then 
 		rect(9, 9+tmp_, self.hp, 3, 4)
 		self.hp = self.hp-1/60*10  
 	else
-		self.hp=player.hp*2
+		self.hp=player.hp
 	end
-	rect(9,9+tmp_,player.hp*2,3,6)
+	rect(9,9+tmp_,player.hp,3,6)
 
 	local key1=player.key1
 	for i=1,key1 do
@@ -1998,12 +2555,6 @@ function uiStatusBar:draw()
 	print("X",7,15*8+8,15)
 	print("Y",7+16+4,15*8+8,15)
 	print("B",7+20*2,15*8+8,15)
-	
-	
-	-- spr(atfManager[2].sprite+2*atfManager[2].mode,7+16+4,14*8,1,1,0,0,2,2)
-	-- rect(7+16+4,15*8-6,16*(atfManager[2].tiCD/atfManager[2].cdTime),5,2)
-	-- print("Y",7+16+4,15*8+8,15)
-	
 end
 
 uiKeyBar={}
@@ -2019,9 +2570,9 @@ uiManager={uiStatusBar}
 curLevel=1
 function loadLevel(levelId)
 	curLevel=levelId
-	local lOff = {{0,0},{0,17*2+2}}
-	local MapSize = {{30*3,17*2+2},{30*3,17*2}}
-	local playerPos = {{120,80},{30+0,120}}
+	local lOff = {{0,0},{0,17*2+2},{0,17*4-3},{0,17*5},{30*7-5,17*2-4}}
+	local MapSize = {{30*3,17*2+2},{30*3,17*2-2-3},{30*3,17+3},{30*3,17*3},{30*1+2,17*3+10}}
+	local playerPos = {{120,80},{30+0,120},{56,96},{64,120},{112,120}}
 	--local playerPos = {{20,80},{30+0,120}}
 	iMapManager.offx = lOff[levelId][1]
 	iMapManager.offy = lOff[levelId][2]
@@ -2059,7 +2610,7 @@ function loadLevel(levelId)
 			elseif(mtId==224)then
 				table.insert(envManager,apple(i*8,j*8))
 			elseif(mtId==208)then
-				table.insert(envManager,keyItem(i*8,j*8))
+				table.insert(envManager,keyItem(i*8,j*8,i+iMapManager.offx,j+iMapManager.offy))
 			elseif(mtId==209)then
 				table.insert(mobManager,fence(i*8,j*8))
 			elseif(mtId==144)then
@@ -2068,8 +2619,20 @@ function loadLevel(levelId)
 				table.insert(mobManager,fireTentacle(i*8,j*8))
 			elseif(mtId==132)then
 				table.insert(mobManager,iceTentacle(i*8,j*8))
+			elseif(mtId==229)then
+				Trinity:init(i*8,j*8)
 			end
 		end
+	end
+end
+
+function gameOver()
+	player.hp=50
+	player.dead=false
+	if(curLevel<=3)then
+		loadLevel(curLevel)
+	elseif(curLevel>=4)then
+		loadLevel(5)
 	end
 end
 
@@ -2082,6 +2645,7 @@ function atfManager:useAtf(index)
 end
 mobManager={}
 envManager={}
+aEnvManager={} --after
 -- endregion
 
 
@@ -2089,8 +2653,8 @@ t=0
 camera={x=0,y=0}
 cameraOffset={0,0}
 
-mainManager = {mobManager,atfManager,envManager}
-drawManager = {{iMapManager},envManager,{player},mobManager,atfManager,uiManager}
+mainManager = {mobManager,atfManager,envManager,aEnvManager}
+drawManager = {{iMapManager},envManager,{player},mobManager,aEnvManager,atfManager,uiManager,{Trinity}}
 
 loadLevel(curLevel)
 
@@ -2108,8 +2672,9 @@ function TIC()
   -- draw
   cls(0)
   for i=1,#drawManager do
-    for j=1,#drawManager[i] do
-			drawManager[i][j]:draw()
+		for j=1,#drawManager[i] do
+			local obj=drawManager[i][j]
+			if(obj)then	drawManager[i][j]:draw() end
 		end
 	end
 	
@@ -2302,8 +2867,9 @@ end
 -- 192:0000000000000000003300000f33ff000f000330033ff3300330000000000000
 -- 193:00000000000000000000330033ff330033000f000ff33f000003300000000000
 -- 194:0000000000000000000000000004400000044000000000000000000000000000
--- 195:000000000000000000c0c00000c00c000000000000c0cc000000000000000000
--- 196:000000000a00a000000000a00a00000000000000000000000a00a0a000000000
+-- 195:000000000000000000c0c0000c000c000000000000c00c000000c00000000000
+-- 196:000000000a00a000000000a0b000000000000000000000000a0000a00000b000
+-- 197:009990000988f90009f8890009f98111099881010998f1110099910000000100
 -- 198:bfffffeebddddfeebddddfeebddddeddbddddebbbddddebbbddddebbbddddebb
 -- 199:eeeeeeeeeeeeeeefeeeeeeefdddeeeefbbdeeeefbbdeeeefbbdddddfbbdbbbdf
 -- 203:7777777777777777777777777777777777777777777777775555555577777777
@@ -2316,6 +2882,7 @@ end
 -- 210:0000000000000000000000000040004004540454453545355300530000000000
 -- 211:0000000000000000000000000400040045404540535453543005303500000000
 -- 212:00000000000000000000f0f0f0f08f808f8f989f989899989999999900000000
+-- 213:ffffffff0000000f0f0f0f0f0000000ff00fffff0ff000000f00000000000000
 -- 214:bbbbbebbaaaaaabbaaaaaabbaaaaaabbaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 -- 215:bbdbbbdfbbdbbbdfbbdbbbdfbbdbbbdfaaabbbdfaaabbbdfaaaaaaafaaaaaaaf
 -- 219:44ededed4ffffffeefefefedfefefefeefefefedfefefefeefefefedfefefefe
@@ -2327,6 +2894,7 @@ end
 -- 226:eeeeeeeeeeea0eeeee3333eee3ff335ee3f3355ee333535ee335355eee5555ee
 -- 227:eeeeeeeeee5555eee55775cee5577111e555515ee555c111e5c5e15eeeeee111
 -- 228:eeeeeeeeee4444eee44774cee4477111e444415ee444c111e4c4e15eeeeee111
+-- 229:0000000000033000000330000006600000600600055664400550044000000000
 -- 230:aaaaaaaaabbbbbbbaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaadbaaaaaadd
 -- 231:aaaaaaaabbbbbbbaaaaaaabaaaeeeebaaaedddbaaaedddbadaedddbabaedddba
 -- 232:dddddddddbababaadabababadbababaadabababadbababaadabababaaaaaaaaa
@@ -2363,6 +2931,8 @@ end
 -- 009:ffff6666ccccf666cccccf66ccccccf6c5ccccf6ccccccf6ccccc55fcccccc5f
 -- 010:6666666666666cff666cffcc666fcccc666fcccc66fccccc666fcccc66f55ccc
 -- 011:ff666666ccfff666cccccf66cccccf66ccccccf6c5ccccf6ccccccf6ccccc55f
+-- 012:6666666666622222662bbbbb662bbbbb662000b06620b0b0662000b066200bb0
+-- 013:6666666622222666bbbb2266bbbb2266b0002266b0b02266b0002266b0bb2266
 -- 016:66ce55cc666f7d556ff7ef7bf55bff7bf5ef777b6f77722266ff00ff6666ff66
 -- 017:555af6665dffaf667f55fa667f5aaff6b7feaadf277feaad2ae7feaaf00f6fea
 -- 018:666f555c66f77f556f55ff7b6f55ef7b66f7f7bb6f7ff22266f77aaf666f00f6
@@ -2375,6 +2945,8 @@ end
 -- 025:cccccff6fccfdf66ffddef66eed7eef6ffedd55f7777775fbff00ff60f6f6666
 -- 026:66f5cccc6666faaa666fdeaa66feaaba6f55abff6f55f7776aff600f66666ff6
 -- 027:cccccc5fccccff66ccfdf666fd775f66ffdde7f677777e7fffbbb7f66f00ff66
+-- 028:6620b0b0662bbbbb662bbbbb6d2bbbbb6ddddddd622222226666666666666666
+-- 029:b0bb2266bbbb2266bbbb2266bbbb22d6ddddddd6222222266666666666666666
 -- 032:66666ffc66cffccc6ffcccccfccccc5c6fcc7755fcc7bf7a6fa7fb7566f57755
 -- 033:ff66666fccffc6faccccffdac5cccdaac775daab7bf7aabf7fb550f6577a5f66
 -- 034:6666666666666ffc66cffccc6ffcccccfccccc5c6fcc77c5fcc7bf7afca7fb75
@@ -2448,10 +3020,9 @@ end
 -- 106:555575665555cf66d55ce5fff77ed5a1e7bedfaa7abdf61add777f61ffff00ff
 -- 107:6666fe1f66f1be1f6f1de1f6fddf1f66ddd11f66f11ff66611f66666ff666666
 -- 112:00000000000ff00000fddf000fdfbbf00fdbbaf000fbaf00000ff00000000000
--- 113:eeeeffffeeeffb3feeffb333eefb3333eefbcc3ceefe3c33eefe3333eefe3eee
--- 114:ffffeeeef3bffeee3fbbffee333bbfeecc3bbfeecc3b3fee33333fee333effee
--- 115:eeeeffffeeeffb3feeffb333eefb3333eefbc33ceefe3c33eefe3333eefe3eee
--- 116:ffffeeeef3bffeee3fbbffee333bbfee333bbfeecc3b3fee33333fee333effee
+-- 113:000000f00000ffef000feedf00feedf000fedf000fdff0000df0000000000000
+-- 114:0000000000f6f0000f644f00f54434f0fc5544f0fcc44cf00fccff0000ff0000
+-- 115:00000000000ff00000f88f000f8f99f00f8997f000f97f00000ff00000000000
 -- 128:11aaaaaa1a00f77fa0000ff0a0000000a0000000a0000000a0000ff0a000f55f
 -- 129:abbbba110f7f7fa100f0f7fa0000f7fa00ffff7a0f77f0faf7777f0af7777f0a
 -- 130:11aaaaaa1a000000a0000fffa000f5ffa00fff00a00f0000a0f5f000a00f0000
@@ -2476,59 +3047,95 @@ end
 -- 153:ccc3ccfa33c3ccfaccc3ccfacc3cccfa33ccccfaccccccfaffffffa1aaaaaa11
 -- 154:af778778af778778af778777af777877af777788af7777771affffff11aaaaaa
 -- 155:777877fa887877fa777877fa778777fa887777fa777777faffffffa1aaaaaa11
--- 160:0004440000440044040004440400cc4c004044ff0444cf0044cc4f004c004f00
--- 161:000000004004000044444400444cc440f4c4c4400fc4c4000f4444000f444400
--- 162:000000000004444000400044000004000000444f00044cf0044c44f0040c44f0
--- 163:00000000444000004040000044444400ff40040000f0004000f4044000f44000
+-- 160:1111ffff111ffb3f11ffb33311fb333311fbcc3c11fe3c3311fe333311fe3eee
+-- 161:ffff1111f3bff1113fbbff11333bbf11cc3bbf11cc3b3f1133333f11333eff11
+-- 162:1111ffff111ffb3f11ffb33311fb333311fbcc3c11fe3c3311fe333311fe3eee
+-- 163:ffff1111f3bff1113fbbff11333bbf11cc3bbf11cc3b3f1133333f11333eff11
+-- 164:1111ffff111ffb3f11ffb33311fb333311fbc33c11fe3c3311fe333311fe3eee
+-- 165:ffff1111f3bff1113fbbff11333bbf11333bbf11cc3b3f1133333f11333eff11
 -- 166:eeeeeeeeeeeeeeeeee5eeeeeeeeee555eeee555feee555f7eee555f7ee5555f7
 -- 167:eeeeeeeee5eeeeee5eee5eee5555eeeeff555eee77f55eee77f55eee77f555ee
 -- 168:eeeeeeeeeeeeeeeeeee3eeeeeeeeeeeeeeeee555eeee555feee555f7eee555f7
 -- 169:eeeeeeeeeeeeeeeee5eeeeee5eeee3ee5555eeeeff555eee77f55eee77f55eee
 -- 170:eeeeeeeeeeeeeeeeee4eeeeeeeeee555eeee555feee555f4eee555f4ee5555f4
 -- 171:eeeeeeeee4eeeeee5eee4eee5555eeeeff555eee44f55eee44f55eee44f555ee
--- 176:44c044ff044c044400040c4c000400c400440000440000000000000000000000
--- 177:fc4c4440444c4404c44444004c00040400404044044000000000000000000000
--- 178:0444444f0044c4440004cc440000444400400440004400000004000000044000
--- 179:ffc44440444cc444444c0004cc4c04400c040400000040000000400000000000
+-- 172:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee9eeeeee99eeeeee98eeeee9e8
+-- 173:eeeeeeeeeeeeeeeee9eeeeee9eeeeeee99eeeeee899eeeeeee9eeeee8e9eeeee
+-- 176:11f3ecce111fe33e11fffeee1f00ffeef33000dd1f33000011ff000011f00000
+-- 177:e3edf111eeedff11edff0f11dff000f1000033f100033f110000f11100000f11
+-- 178:11f3ecce111fe33e1111feee1fff00eeff0000ddf33000001f33000011f00000
+-- 179:e3edf111eeedf111edff1111d00fff11000000f1000033f100033f1100000f11
+-- 180:11f3eccef11fe33e3ffffeeef300ffee330000ddfff00000111f0000111f0000
+-- 181:e3edf111eeedff11edffff11dff00ff1000000f100000f1100003f11000000f1
 -- 182:ee55555feee55555eee5e555ee55e555ee5e55c5eeee55e5eeeee5eeeeeeeeee
 -- 183:ff555cee5555ccee555555eec5c55eee5ee55eee5e55eeeee5eeeeeeeeeeeeee
 -- 184:ee5555f7ee55555feee55555ee55e555ee3e55c5eeee55e5eeeee5eeeeeeeeee
 -- 185:77f555eeff555cee5555cceec5c55eee5ee55eee5e55eeeee3eeeeeeeeeeeeee
 -- 186:ee55555feee55555eee5e555ee55e555ee4e55c5eeee55e5eeeee5eeeeeeeeee
 -- 187:ff555cee5555ccee555555eec5c55eee5ee55eee5e55eeeee4eeeeeeeeeeeeee
--- 192:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee9eeeeee99eeeeee98eeeee9e8
--- 193:eeeeeeeeeeeeeeeee9eeeeee9eeeeeee99eeeeee899eeeeeee9eeeee8e9eeeee
--- 194:eeeeeee9eeeee9eeeeeeeee9eeeeee99eeeeee99eeeee999eeeee998eeeee998
--- 195:9eeeeeee999eeeee9999eeee999e9eee999eeeee8999eeee8899eeee8899eeee
--- 196:eeeeeee9eeeeee99eeeee9e9eeeee999eeee9999eeeee999eee9e998eee99998
--- 197:eeeeeeeee99eeeee9ee9eeee999e9eee999eeeee899eeeee8899eeee8899eeee
--- 198:eeeeeeeeeeeeeeeeee4eeeeeeeeee444eeee444feee444f7eee444f7ee4444f7
--- 199:eeeeeeeee4eeeeee4eee4eee4444eeeeff444eee77f44eee77f44eee77f444ee
--- 200:eeeeeeeeeeeeeee4eee4eeeeeeeee444eeee444feee444f7eee444f7ee4444f7
--- 201:eeeeeeeeeeeeeeee4eeeee4e4444eeeeff444eee77f44eee77f44eee77f444ee
--- 202:eeeeeeeeeeeeeeeeeee4eeeeeeeeeeeeeeeee444eeee444feee444f7eee444f7
--- 203:eeeeeeeeeeeeeeeee4eeeeee4eeee4ee4444eeeeff444eee77f44eee77f44eee
--- 208:eeeee9e8eeeee9e8eeeee9e8eeeee9eeeeeee9eeeeeeee9eeeeeeee9eeeeeeee
--- 209:8eeeeeee8e9eeeee8e9eeeee889eeeee99eeeeeeeeeeeeee99eeeeeeeeeeeeee
--- 210:eeeee998eeeee998eee9e998eee9e999eeee9999eeee9e99eeee9ee9eeeee9ee
--- 211:8899eeee8899eeee8899eeee8899eeee999eeeee99eeeeee99eeeeeeeeeeeeee
--- 212:eeeee998eeeee998eeeee998eeeee998eeeee998eeeeee99eeeeeee9eeeee9e9
--- 213:8899eeee8899eeee8899eeee8899eeee899eeeee89e9eeee999eeeee99e9eeee
--- 214:ee44444feee44444eee4e444ee44e444ee4e44c4eeee44e4eeeee4eeeeeeeeee
--- 215:ff444cee4444ccee444444eec4c44eee4ee44eee4e44eeeee4eeeeeeeeeeeeee
--- 216:ee44444feee44444eee4e444eee44444eeee44c4eeeee4e4eeeee4eeeeeeee4e
--- 217:ff444cee4444ccee444444eec4c44eee44e44eee4e4e44eeee4eeeeeeeeeeeee
--- 218:ee4444f7ee44444feee44444ee44e444ee4e44c4eeee44e4eeeee4eeeeeeeeee
--- 219:77f444eeff444cee4444cceec4c44eee4ee44eee4e44eeeee4eeeeeeeeeeeeee
+-- 188:eeeee9e8eeeee9e8eeeee9e8eeeee9eeeeeee9eeeeeeee9eeeeeeee9eeeeeeee
+-- 189:8eeeeeee8e9eeeee8e9eeeee889eeeee99eeeeeeeeeeeeee99eeeeeeeeeeeeee
+-- 192:eeeeeffeeeeef55feeef5555eeef5533eef55533eef553c3ef55c333ef5cc333
+-- 193:effeeeeef55feeee5555feee35555fee33555feec33555fe335c55fe333cc5fe
+-- 194:eeeeeffeeeeef55feeef5555eeef5533eef55533eef553c3ef55c333ef5cc333
+-- 195:effeeeeef55feeee5555feee35555fee33555feec33555fe335c55fe333cc5fe
+-- 196:eeeeeffeeeeef55feeef5555eeef5533eef55533eef553c3ef55c3c3ef5cc333
+-- 197:effeeeeef55feeee5555feee35555fee33555feec3355feec35555fe3335cfee
+-- 198:eee4eeeeee4e4eeeeeee44eeeee44e44eee44444e444c44f4ecc44f7eeec44f7
+-- 199:eeeeeeeeeeeee4eee4ee4eee444ee4ee4444eeeeff444ee477f44e4e77f4444e
+-- 200:eeeeeeeeee4eeeeeeee4ee4eee4ee444eeee44444ee4444fe4e444f7e44444f7
+-- 201:eeee4eeeeee4e4eeee44eeee44e44eee44444eeeff4c444e77f4cce477f4ceee
+-- 202:eee4eeeeee4e4eeeeeee44eeeee44e44eee44444e444c44f4ecc44f7eeec44f7
+-- 203:eeeeeeeeeeeee4eee4ee4eee444ee4ee4444eeeeff444ee477f44e4e77f4444e
+-- 204:eeeeeee9eeeee9eeeeeeeee9eeeeee99eeeeee99eeeee999eeeee998eeeee998
+-- 205:9eeeeeee999eeeee9999eeee999e9eee999eeeee8999eeee8899eeee8899eeee
+-- 206:eeeeeee9eeeeee99eeeee9e9eeeee999eeee9999eeeee999eee9e998eee99998
+-- 207:eeeeeeeee99eeeee9ee9eeee999e9eee999eeeee899eeeee8899eeee8899eeee
+-- 208:ef55c3cceef55533ef55c7ffef3f777ff3377c77efffcccceeeefccceeeeef00
+-- 209:333c555f335755cff7777cfe77777fee77c777fecccc73fefffccfeefeef00fe
+-- 210:ef55c3cceef55533eeff557fef3f7777f3377c77efffcccceefccfffef00feef
+-- 211:333c555f335755cfff77c55ff7777ccf77c77ffecccc3feecccffeee00feeeee
+-- 212:ef5553cceef5c333ef5cc7ffef3f777ff3377c77efffcccceeeefccceeeee00f
+-- 213:335555fe35575c5ff775ccfe777c7fee77c77ffecccc3ffefccfffeef00feeee
+-- 214:ee4444f7e444444f4ee444444e44e444e44e44c4eeee44e4eeeee4eeeeeeeeee
+-- 215:77f4c4eeff44ccee4444cceec4c44eee4ee44eee4e44eeeee4eeeeeeeeeeeeee
+-- 216:ee4c44f7eecc444feecc4444eee44c4ceee44ee4eeee44e4eeeeee4eeeeeeeee
+-- 217:77f444eeff44444e44444ee4444e44e44c44e44e4e44eeeeee4eeeeeeeeeeeee
+-- 218:ee4444f7e444444f4ee444444e44e444e44e44c4eeee44e4eeeee4eeeeeeeeee
+-- 219:77f4c4eeff44ccee4444cceec4c44eee4ee44eee4e44eeeee4eeeeeeeeeeeeee
+-- 220:eeeee998eeeee998eee9e998eee9e999eeee9999eeee9e99eeee9ee9eeeee9ee
+-- 221:8899eeee8899eeee8899eeee8899eeee999eeeee99eeeeee99eeeeeeeeeeeeee
+-- 222:eeeee998eeeee998eeeee998eeeee998eeeee998eeeeee99eeeeeee9eeeee9e9
+-- 223:8899eeee8899eeee8899eeee8899eeee899eeeee89e9eeee999eeeee99e9eeee
 -- 224:eeeeeeeeeeffffeeef4444fef044440ff404404ff444444ff444444ff4f4f4fe
 -- 225:eeeeeeeeeeffffeeef4444fef044440ff404404ff444444ff444444fef4f4f4f
 -- 226:eeeeeeeeeeeeeeeeeeffffeeef4444fef044440ff404404ff444444ff4f4ff4f
 -- 227:eeeeeeeeeeea0eeeee3333eee3ff335ee373375ee373575ee335355eee5555ee
 -- 228:eeeeeeeeeeeeeeeeeeea0eeeee3333eee3ff335ee373375ee335355eee5555ee
 -- 229:eeeeeeeeeeeeeeeeeeea0eeeee4444eee4ff44cee47447cee444c4ceeeccccee
+-- 230:11111fff1111f33e111f3333111f3c3c111f3333111fd333111fdeee11feedce
+-- 231:fff11111e3ef11113e3ef111c3eef111333eaf113ee3af11ee33af11eeeaf111
+-- 232:11111fff1111f33e111f3333111f3c3c111f3333111fd333111fdeee11feedce
+-- 233:fff11111e3ef11113e3ef111c3eef111333eaf113ee3af11ee33af11eeeaf111
+-- 234:11111fff1111f33e111f3333111f3c3c111f3c33111fd333111fdeee11feedce
+-- 235:fff11111e3ef11113e3ef111c3eef111c33eaf113ee3af11ee33af11eeeafff1
+-- 236:000000000004444000400044000004000000444f00044cf0044c44f0040c44f0
+-- 237:00000000444000004040000044444400ff40040000f0004000f4044000f44000
+-- 238:0004440000440044040004440400cc4c004044ff0444cf0044cc4f004c004f00
+-- 239:000000004004000044444400444cc440f4c4c4400fc4c4000f4444000f444400
 -- 240:00fffff00f555c3f0f575c3ff55755cff5c55ccff3cf5c3f0f3c53f000ffff00
 -- 241:0000000000fffff00f555c3f0f57553ff5555cf0f5c55ccff33c533f0fff0ff0
 -- 242:00fffff00f555c4f0f545c4ff55455cff5c55ccff4cf5c4f0f4c54f000ffff00
+-- 246:11fbeeee11f7eeee1f777eb71f77777711f37777111f77771111f777111f000f
+-- 247:eeeb7f11ebb777f1bb7777f177777f1177773f117777f111f777f1110000f111
+-- 248:11fbeeee11ffdeee1ff77de71f77777711777777111377771111f777111f000f
+-- 249:eeebff11eeb77ff1eb7777f17777771177777f1177773111f777f1110000f111
+-- 250:11fbeeee1f3bbeee1f777bb711f77777111f7777111f77771111f777111f000f
+-- 251:eeeb73f1ebb777f1bb777ff17777ff117777f1117777f111f777f1110000f111
+-- 252:0444444f0044c4440004cc440000444400400440004400000004000000044000
+-- 253:ffc44440444cc444444c0004cc4c04400c040400000040000000400000000000
+-- 254:44c044ff044c044400040c4c000400c400440000440000000000000000000000
+-- 255:fc4c4440444c4404c44444004c00040400404044044000000000000000000000
 -- </SPRITES>
 
 -- <MAP>
@@ -2540,8 +3147,8 @@ end
 -- 005:0000a1d373737273d3a100000055a1e3b000c0e3d3d3e3b00000000000000000c0e3e3a5e3f4f4f4f4f4f471a10000a1e3e3e300000000000000000000e3c1d1e3e3f3e3e3e3e3e3e3e3f3f3e32ae300000000e3a10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 -- 006:0000a1ffffffffffffa100000056a1e3b4d4c4e3d3d3e300000000000000000000c1d0a5a2e3f3e3e3e3e3e3a10000a1e3e3e3b4d4d4d4d4d4d4d4d4c4e3e3e3e3e3f3e3e3e3e3e3e3e3f3f3e3e3e3b4d4d4c4e3a10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 -- 007:0000c3ffffffffffffc300000056a17362737373d33ae3b4d4d4d4d4d4d4d4d4c4e3e3a5a2e3f3b00000c0e3a10055a1fefefefefefe6308080808080808080808080808080808080808080863fefefefefefefea10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 008:0000c3ff06ffff06ffc300000056a1fefefefefefe5afefefe890dfeff89fefefefefefed3e3f300000000e3a10067a1ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffa65b5b5ba6a10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 009:0000c3ffffffffffffc300000067a1ffffffffffff5affffff8989ffff89ffffffffffffd3e3f3b4d4d4c4e3a10067a1ff0effff0effffffffffffffffffffffffffffffffffffffffffffffffffff5affffffffa10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 008:0000c3ff06ffff06ffc300000056a101febafefefe5afefefe890dfeff89fefefefefefed3e3f300000000e3a10067a1ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffa65b5b5ba6a10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 009:0000c3ffffffffffffc300000067a1ffffffff0eff5affffff8989ffff89ffffffffffffd3e3f3b4d4d4c4e3a10067a1ff0effff0effffffffffffffffffffffffffffffffffffffffffffffffffff5affffffffa10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 -- 010:000084e4e4e4e4e4e49400000056a1ffffffffffff5affffffffffffff89ffffffffffff1dfefefefefefefea10056a1ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff5aff6e7effa10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 -- 011:000000d5b9b9e5e5f50000000077a1ffffffffffff63ffffffffffffffffffffffffffff1dffffffff0effffa10067a1ffffff0dffffffffffffffffffffffffffffffffffffffffffffffffffffff5aff6f7fffc30000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 -- 012:0000000067560000000000000077c3ffffffffffffffffffffffffffffffffffffffffff1dffffffffffffffa10056c3ff0effff0effffffffffffffffffffffffffffffffffffffffffffffffffff5affffffffc30000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -2569,32 +3176,32 @@ end
 -- 034:d5e585ffffffffffffffff95d9d96767d9d985ffffffffffffffffff1dffffffffc356000000c3031313131313131313131313131323ffffffffffffffffffffffc3ffffff0dffffc30000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000056a1726273737373a156000000000000000000000000000000
 -- 035:0000e6e4e4e4e4e4e4e4e4e4000000000000e4e4e4e4e4e4e4e4e4e4e4e4e4e4f6c3a9000000c3e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4c3e4e4e4e4e4e4c30000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000056a1ffffffffffffa156000000000000000000000000000000
 -- 036:0000d5e5e5e5e5e5e5e5e5f5000000000000d5e5e5e5e5e5e5e5e5e5e5e5e5e5e5f500000000d5e5e5b9e5e5e5e5b9e5e5b9b9b9e5e5e5e5e5e5e5e5b9e5e5e5e5e5e5e5e5e5e5e5e50000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000077a1ffffffffffffa156000000000000000000000000000000
--- 037:000000000000000000000000000000000000000000000000000000000000000000000000000000000056000000005600005656569fa4a4a4af000000560040c2c2c2c2c2c2410000000000000040c2c2c2c2c2c2410000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000057a1ffff6e7effffa199d9d9d9d9d9d9d96400000000000000
+-- 037:000000000000000000000000000000000000000000000000000000000000000000000000000000000056000000005600005656569fa4a4a4af000000560040c2c2c2c2c2c2410000000000000040c2c2c2c2c2c2410000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000057a1ffff5c7effffa199d9d9d9d9d9d9d96400000000000000
 -- 038:000000000000000000000000000000000000000000000000000000000000000000000000000000004074c2c2c24157d9d97799a9856363639500004074c2a1f4f4f4f4f4f4a1c2c2410040c2c2a1f4f4f4f4f4f4a1c2c24100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000040c2c2c2c2c2c2c2c2c2c2a1ffff6f7fffffa174c2c2c2c2c2c2c274c2410000000000
 -- 039:00000000000000000000000000000000000000000000000000000000000000000000000000000000a1f4f4f4f4a100006577c9d985636363950055a1f4f4f4d3e3e3e3e3d3f4f4f4a100a1f4f4f4d3e3e3e3e3d3f4f4f4a1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a1d3e3e3e3e3e3e3e3e3e3d3ffffdddcffffd3e3e3e3e3e3e3e3a5f3e3a10000000000
 -- 040:0000000000000000000000000000000000000000000000000000000000000040c2c2c2c2c2c2c2c2a1d3e3e3d3a1c2c241560000e6e4e4e4f60056a1e3e3d3d3e3e3e3e3d3d3e3e3a100a1e3e3d3d3e3e3e3e3d3d3e3e3a1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a1d3b00000000000c0e3e3d3ffffdddcffffd3b000000000c0e3a5f3e3a10000000000
--- 041:0000000000000000000000000000000040c2c2c2c2c2c24100000000000000a1f4f4f4f4f4f4f4f4f4d3e3e3d3f4f4f4a1770000d5e5e5b9f50057a1e3e3d3fe0f0f0f0ffed3e3e3a100a1e3e3d3fe0f0f0f0ffed3e3e3a1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a1d300000000000000e3e3d3ffffdddcffffd3000000000000e3a5f3e3a10000000000
+-- 041:0000000000000000000000000000000040c2c2c2c2c2c24100000000000000a1f4f4f4f4f4f4f4f4f4d3e3e3d3f4f4f4a1770000d5e5e5b9f50057a1e3e3d3feff0f0ffffed3e3e3a100a1e3e3d3feff0f0ffffed3e3e3a1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a1d300000000000000e3e3d3ffffdddcffffd3000000000000e3a5f3e3a10000000000
 -- 042:00000000000040c2c2c2c2c2c2c2c2c2a1f4f4f4f4f4f4a1c2c2c2c2c2c2c2a1d3e3c8e3c8e3e3e3d3d3b8b8d3d3e3e3a199d9d9d9d9d999640040a1ffffffffffffffffffffffffa1c2a1ffffffffffffffffffffffffa1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a1d3b4d4d4d4d4d4c4e3e3d3ffffdddcffffd3b4d4d4d4d4c4e3a5f3e3a10000000000
 -- 043:000000000000a1f4f4f4f4f4f4f4f4f4d3d3e3e3e3e3d3d3f4f4f4f4f4f4f4f4d3e3c8e3c8e3e3e3d30fffff0fd3e3e3a174c2c2c2c2c27474c2a1d3ffffffffffffffffffffffffd3a1d3ffffffffffffffffffffffffa1c20000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a1ffff63737373627363ffffffffdddcffff6373727373727363ffffffa10000000000
 -- 044:000000000000a1d3f3e3e3e3e3e3e3e3d3d3e3e3e3e3d3d3c8b0000000c0e3d3d3e3c82ac83ab8b8d3ff0f0fffd3b8b8d3f4f4f4f4f4f4f4f4f4d3d3ffffff021212121222ffffffd3d3d3ffffff021212121222ffffffd3a14100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a1ffffffffffffffffffffffffffdddcffffffffffffffffffffffffffa10000000000
--- 045:40c2c2c2c2c2a1d3f3e3e3e3c1e1e3e3d3d3b8b8b8b8d3d3c80000000000e3d3ffffffffff5affffffffffffffffffffd3d3d3e3e3e3e3e3e3e3d3d3ffffff031314041323ffffffd3d3d3ffffff031314041323ffffffd3d3a100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c3ffff6e7eccccccccccccccccccdddccccccccccccccccccc6e7effffc30000000000
+-- 045:40c2c2c2c2c2a1d3f3e3e3e3c1e1e3e3d3d3b8b8b8b8d3d3c80000000000e3d3ffffffffff5affffffffffffffffffffd3d3d3e3e3e3e3e3e3e3d3d3ffffff031314041323ffffffd3d3d3ffffff031314041323ffffffd3d3a100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c3ffff5c7eccccccccccccccccccdddccccccccccccccccccc5c7effffc30000000000
 -- 046:a1f4f4f4f4f4f4d3a8b854b8b8b854b8d3ffffffffffffd3c8b4d4d4d4c4e3d3ffffffffff5affffffffffffffffffffd3d3d3e3e3e3e3c1f1e3d3ffffffffffff3242ffffffffffffd3ffffffffffff3242ffffffffffd3d3a100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c3ffff6f7fbcbcbcbcbcbcbcbcbcdddcbcbcbcbcbcbcbcbcbc6f7fffffc30000000000
--- 047:a1e3e3e3e3e3c8ffff32540f0f0f5442ffffffff0212121222ffffffffffffffffffffffff5affffffffffffffffffffd3d3d3e32ae33ae3e3e3d3ffffffffffff0323ffffffffffff1fffffffffffff0323ffffffffffffd3a100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c3ffffffffffffffffffffffffffdddcffffffffffffffffffffffffffc30000000000
--- 048:a1e3e3e3e3e3c8ffff0392ffffff9223ffffffff3254929242ffffffffffffffffffffff70a2a2a2a202121222ffffffffffff0fffff5affffffffffffffffffff0f0fffffffffff1f1f1fffffffffff0f0fffffffffffffffa100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c3e4e4e4e4e4e4e4e496ffffffffdddcffffffff86e4e4e4e4e4e4e4e4c30000000000
--- 049:a1b8b8b8b8b8c8ffffffffffffffffffffffffff32540eff42ffffffffffffffffffffffd3a2a2d3d332ffff42ffffffffffff0fffff5affffffffffffffffff0f0f0f0fffffffffff1fffffffffff0f0f0f0fffffffffffffa100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000d5b9e5b9e5e5b9e5e585ffffffffdddcffffffff95e5e5b9e5e5e5b9e5f50000000000
--- 050:a1ffffffffffffffffffffffffffffffffffffff3254ff0d42ffffffffff021222ffffffd3a2a2d3d3033333303122ffffffff0fffff5affffffffffffffffff0f0f0f0fffffffff021222ffffffffff0f0fffffffffffffa1a10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c9d967d9d999d9d985ffffa2ffdddcffa2ffff95d9d999d9d9d9a900000000000000
--- 051:a1ffffffffffffffffffffffffffffffffffffff32540eff42ffffffffff32ff42ffffff0fa2a20ffeffffffff3242ffffff86e4e4e4e4e4e4e496ffffffffffff0f0fffffffff0224013422ffffff86e4e496a65b5b5ba6c3c30000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000077009f45af0085ffff35ffdddcff35ffff95009f45af00000000000000000000
--- 052:a1ffffffffffffffffffffffffffffffffffffff3292929242ffffffffff32ff42ffffff0fa2a2ff0effffffff3242ffffff95b9e5e5e5e5e5e5e6e4e4e4e4e4e4e4e4e496ffff3201010142ffff86f6b9e5e696ffffff86c3c30000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000077008563950085ffff35ffdddcff35ffff950085639500000000000000000000
--- 053:a1ffffffffffffffff0212121212121222ffffff03333333133333333333133323ffffff0fa2a2ff0dffffffff3242ffffff9556000000000000d5e5e5e5e5e5e5e5b9e585ffff0314010423ffff95f55600d585ffffff95e5f500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c9d9e6e4f60085fffa35ffdddcff35faff9500e6e4f600000000000000000000
--- 054:a1ffffffffffffffff32bdffffffffcd42ffffffffffffffffffffffffffffffffffffff0fa2a2ff0effffffff0323ffffff95770000000000000000000000000000560085ffffff031323ffffff950056000085ffffff950000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000d5b9f50085e8f8a646464646a6e8f89500d5b9f500000000000000000000
--- 055:c3ffffffffffffffff32beff0effffce42ffffffffffffffffffffffffffffffffffffff0fa2a20fffffffffffffffffffff957700000000000000000000000000005666e7fffffffffffffffffff77656000085ffffff95000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c9d9d985e9f935ffdddcff35e9f995d9d9a90000000000000000000000
--- 056:c3ffffffffffffffff0353333333334323ffffffffffffffffffffffffffffffffffffff70a2a2a2ffffffffffffffffffff95560000000000000000000000000000c985ffffffffffffffffffffff95a9000085ffffff9500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000085ffffffffdddcffffffff950000000000000000000000000000
+-- 047:a1e3e3e3e3e3c8ffff32540f0f0f5442ffffffff0212121222ffffffffffffffffffffffff5affffffffffffffffffffd3d3d3e32ae33ae3e3e3d3ffffffffffff0323ffffffffffffffffffffffffff0323ffffffffffffd3a100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c3ffffffffffffffffffffffffffdddcffffffffffffffffffffffffffc30000000000
+-- 048:a1e3e3e3e3e3c8ffff0392ffffff9223ffffffff3254929242ffffffffffffffffffffff70a2a2a2a202121222ffffffffffff0fffff5affffffffffffffffffffffffffffffffffff3effffffffffffffffffffffffffffffa100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c3e4e4e4e4e4e4e4e496ffffffffdddcffffffff86e4e4e4e4e4e4e4e4c30000000000
+-- 049:a1b8b8b8b8b8c8ffffffffffffffffffffffffff32540eff42ffffffffffffffffffffffd3a2a2d3d332010142ffffffffffff0fffff5affffffffffffffffffffff4effffffffffffffffffffffffffff4effffffffffffffa100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000d5b9e5b9e5e5b9e5e585ffffffffdddcffffffff95e5e5b9e5e5e5b9e5f50000000000
+-- 050:a1ffffffffffffffffffffffffffffffffffffff3254ff0d42ffffffffff021222ffffffd3a2a2d3d303131323ffffffffffff0fffff5affffffffffffffffffffffffffffffffff021222ffffffffffffffffffffffffffa1a10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c9d967d9d999d9d985ffffa2ffdddcffa2ffff95d9d999d9d9d9a900000000000000
+-- 051:a1ffffffffffffffffffffffffffffffffffffff32540eff42ffffffffff320142ffffff0fa2a20ffeffffffff0222ffffff86e4e4e4e4e4e4e496ffffffffffffffffffffffff0224013422ffffff86e4e496a65b5b5ba6c3c30000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000077009f45af0085ffff35ffdddcff35ffff95009f45af00000000000000000000
+-- 052:a1ffffffffffffffffffffffffffffffffffffff32929292341212121212240142ffffff0fa2a2ff0effffffff3242ffffff95b9e5e5e5e5e5e5e6e4e4e4e4e4e4e4e4e496ffff3201010142ffff86f6b9e5e696ffffff86c3c30000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000077008563950085ffff35ffdddcff35ffff950085639500000000000000000000
+-- 053:a1ffffffffffffffff0212121212121222ffffff03333333131313131313131323ffffff0fa2a2ff0dffffffff3242ffffff9556000000000000d5e5e5e5e5e5e5e5b9e585ffff0314010423ffff95f55600d585ffffff95e5f500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c9d9e6e4f60085fffa35ffdddcff35faff9500e6e4f600000000000000000000
+-- 054:a1ffffffffffffffff3201010101010142ffffffffffffffffffffffffffffffffffffff0fa2a2ff0effffffff0323ffffff95770000000000000000000000000000560085ffffff031323ffffff950056000085ffffff950000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000d5b9f50085e8f8a646464646a6e8f89500d5b9f500000000000000000000
+-- 055:c36e7effffffffffff3201ff0effff0142ffffffffffffffffffffffffffffffffffffff0fa2a20fffffffffffffffffffff957700000000000000000000000000005666e7fffffffffffffffffff77656000085ffffff95000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c9d9d985e9f935ffdddcff35e9f995d9d9a90000000000000000000000
+-- 056:c36f7fffffffffffff0313333333331323ffffffffffffffffffffffffffffffffffffff70a2a2a2ffffffffffffffffffff95560000000000000000000000000000c985ffffffffffffffffffffff95a9000085ffffff9500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000085ffffffffdddcffffffff950000000000000000000000000000
 -- 057:c3e4e4e4e4e4e4e4e4e496ffffffffffffffffff44ffffffffff44ffffffffff708282828282828282828282828282828282a256000000000000000000000000000000e6e4e4e496ff0eff86e4e4e4f600000085ffffff9500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000085ffffffffdddcffffffff950000000000000000000000000000
 -- 058:d5e5e5e5e5e5e5b9e5e585ffffffffffffffffff54ff0fff0fff54ffffffffffa2f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4d356000000000000000000000000000000d5e5e5e5850e0d0e95e5e5e5f500000085ffffff9500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000085ffffa2ffdddcffa2ffff950000000000000000000000000000
 -- 059:00000000000000c9d9d985ffffffffffffffffff920fff0fff0f92ffffff0effa2b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8d3a900000000000000000000000000000000000000e6e4e4e4f60000000000000085ffffff9500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000085ffff35ffdddcff35ffff950000000000000000000000000000
 -- 060:00000000000000000000e6e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e496ffffffc3ffffff0eff0effffffffffffffffffffffd3a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a475ffffff9500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000085fffa35ffdddcff35faff950000000000000000000000000000
--- 061:00000000000000000000d5e5e5e5e5e5e5e5e5e5b9e5e5e5e5b9b9e5e6e4e4e4c36e7effff0effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff9500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000085e8f835ffdddcff35e8f8950000000000000000000000000000
--- 062:00000000000000000000000000000000000000005600000000565600d5e5e5e5c36f7fff0eff0effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff9500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000085e9f9a646464646a6e9f9950000000000000000000000000000
+-- 061:00000000000000000000d5e5e5e5e5e5e5e5e5e5b9e5e5e5e5b9b9e5e6e4e4e4c36e7effff0effffffffffffffffffffffffeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffffff9500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000085e8f835ffdddcff35e8f8950000000000000000000000000000
+-- 062:00000000000000000000000000000000000000005600000000565600d5e5e5e5c36f7fff0eff0effffffffffffffffffffffeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffffff9500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000085e9f9a646464646a6e9f9950000000000000000000000000000
 -- 063:0000000000000000000000000000000000000000c9d9d9d9d97767d9d9d9d9d9b1e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4f600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000085ffffffffdddcffffffff950000000000000000000000000000
 -- 064:0000000000000000000000000000000000000000000000000000000000000000d5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5f500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000085fffaa2ffdddcffa2faff950000000000000000000000000000
 -- 065:0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000040c2c2c2c24100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000085e8f835ffdddcff35e8f8950000000000000000000000000000
@@ -2610,8 +3217,8 @@ end
 -- 075:0000a162737373b4d4d4d4c4b8b8b8b83ab83ab83ab83ab8f3b8b8b8b8b8ffffffffffcacacaca1fffffffffffffffee1feeffffffffffffffffffffffffffffffffffffffffffffeeffffffffffffffffffffffffff5a6e7ea100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000858f8fecfc8f8f8f8f8e8e8f8f8f8f8f8f8f8e8e8f8f8f8f8fecfc8f8f950000000000
 -- 076:0000a1fefefefefefefefefefefefefe6bfe4afe6bfe4afefefe06fefefeffffffffffcacacaca1fffffffffffffffee1feeffffffeeeeeeff78e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e498ffffffffffffffffff5a6f7fa100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000858f8f8f8f8f8f8e8e8f8f8f8f8e8e8e8e8f8f8f8e8e8f8f8f8f8f8f8f950000000000
 -- 077:0000a1ffffffffffffffffffffffffff6bff4aff6bff4affffff06ffffffffffffffffcacacaca1fffffffffffffffee1feeffffffeeeeeeff79a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a488ffffffffffffffffff5affffa100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000858f8f8f8f8f8e8f8f8f8f8f8e8f8f8f8f8e8f8f8f8f8e8f8f8f8f8f8f950000000000
--- 078:0000a1ffffffffffffffffffffffffff6bff4aff6bff4affffff06ffffffffffffffffcacacaca1fffffffffffffffee1feeffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff47ffa1a1a1a1a100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000858f8f8f8f8e8f8f8f8f8f8e8f8e8e8e8e8f8e8f8f8f8f8e8f8f8f8f8f950000000000
--- 079:0000c3ffffffffffffffffffffffffff6bff4aff6bff4affffff06ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff06ffffffffffffffffffffffffffffffffffffffffffffffa1b1b1b1b100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000858f8f8f8e8f8f8f8f8f8f8e8f8e8e8e8e8f8e8f8f8f8f8f8e8f8f8f8f950000000000
+-- 078:0000a16e7effffffffffffffffffffff6bff4aff6bff4affffff06ffffffffffffffffcacacaca1fffffffffffffffee1feeffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff47ffa1a1a1a1a100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000858f8f8f8f8e8f8f8f8f8f8e8f8e8e8e8e8f8e8f8f8f8f8e8f8f8f8f8f950000000000
+-- 079:0000c36f7fffffffffffffffffffffff6bff4aff6bff4affffff06ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff06ffffffffffffffffffffffffffffffffffffffffffffffa1b1b1b1b100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000858f8f8f8e8f8f8f8f8f8f8e8f8e5e8e8e8f8e8f8f8f8f8f8e8f8f8f8f950000000000
 -- 080:0000c3e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e496ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff06ffffffff1f1fffffffffffffffffffffffffffffffffffa1b1b1b1b100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000858f8f8e8f8f8f8f8f8f8f8e8f8e8e8e8e8f8e8f8f8f8f8f8f8e8f8f8f950000000000
 -- 081:0000d5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5b9e5e5e5e5e5e5e5e5b9e5e5e6e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e496ffffffffffffffffffffffffffffffffffffffffff47ffffffffffc3b1b1b1b100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000858f8f8f8e8f8f8f8f8f8f8e8f8e8e8e8e8f8e8f8f8f8f8f8e8f8f8f8f950000000000
 -- 082:000000000000000000000000000000000000c9d9d9d9d9d9d9d9d9a90000d5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e585ffffffff0e1fffffffffffff47ffffffffff1fffffffffffffffffc3b1b1b1b100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000858f8f8f8f8e8f8f8f8f8f8f8e8f8f8f8f8e8f8f8f8f8f8e8f8f8f8f8f950000000000
@@ -2622,47 +3229,47 @@ end
 -- 087:00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e6968f8f8f8f8f8f8f8f8e8f8f8e8f8f8e8f8e8f8f8f8f8f8f8f8f8f86f60000000000
 -- 088:00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000d5e6968f8f8febfb8f8e8f8f8f8e8f8f8e8f8f8f8e8febfb8f8f8f86f6f50000000000
 -- 089:0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000d5e6968f8fecfc8f8f8f8f8e8f8f8f8f8e8f8f8f8fecfc8f8f86f6f5000000000000
--- 090:00000000000000000000000000000000000000000000000000000000000000000000000000000040c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000d5e6e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4f6f500000000000000
--- 091:000000000000000000000000000000000000000000000000000000000000000000000000000000a1e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3a100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000d5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5f50000000000000000
--- 092:000000000000000000000000000000000000000000000000000000000000000000000000000000a1e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3a1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 093:000000000000000000000000000000000000000000000000000000000000000000000000000000a1e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3a1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 094:00000040c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2000000a1e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3d3000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 095:000000a1e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3a1000000a11f1fbaffffffffffffffffffff6e7effffffffffffffffffffba1f1fd3000066e4e4e4e4e4e4e4e4e4e4e4e4e4e476000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 096:000000a1e3e3e3e3b0000000c0e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3a1000000a11f1fbaffffffffffffffffffff6f7fffffffffffffffffffffba1f1fd3000085630707070707070707070707076395000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 097:000000a1e3e3e3e30000000000e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3a1000000a1babababababababaffffffffffffffffffffffffffffffffffbababad3e4e4f6ff0fff0fff0fff0fff0fff0fffffe6e4e476000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 098:000000a1e3e3e3e3b4d4d4d4c4e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3a1000000a1ffffffffffffffbaffffffffffffffffffffffffffffffffffbaffffba09ff09ffffffffffffffffffffffffffffffffff95000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 099:000000a1ffffffffffffffffffffffff630789ffffffffffffffffffffffffcaee0f0fc3000000a1ffffffffffffffbabababaffffffffffffffbabaffffffffffbaffffba09ff09ffffffffffffffffffffffffffffffffff95000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 100:000000c3ff6e7effffffffffffff0fff17ff89ffffffffffffffffffffffffcaee0f28c3000000a1ffffffffffffffffffffbababababababababaffffffbabababaffffba09ff09ffffffffffffffffffffffffffffffffff95000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 101:000000c3ff6f7fffffffffffffffffff170e89ffff0222ffffffffffffffffcaee0f0fc3000000a1ffffffffffffffffffffffffffffffffffffffffffffbaffffffffffa1e4e4e4e4e4e4e4e4e4e4e4e4e4e49609090986e4f6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 102:000000c3ffffffffffffffffffff0fff17ff89ff0e3242ffffff86e496ffff86e4e4e4c3000000c3ffffffffffffbababababababababababababababababaffffffffffc3e5e5e5e5e5e5e5e5e5e5e5e5e5e585bababa95e5f5000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 103:000000c3e4e4e4e4e4e4e4e496ffffff63078902122442ffffff95e585ffff95e5e5e5f5000000c3ffffffffffffffffffffffffffffffffffffffffffffffffffffffffc30066e4e4e4e4e4e4e4e4e4e4e4e4f6bababae6e476000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 104:000000d5e5e5e5e5e5e5e5e585ffffff89898903131323ffffff950085ffff9500000000000000c3ffffffffffffffffffffffffffffffffffffffffffffffffffffffffc30085ffffffffffba0fff0fbaee0fff0feebaff1f95000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 105:00000000000000000000000085ffffffffffffffffffffffffff950085ffff9500000000000000c3e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4c30085ffffffffffbaffffffbaeeffffffeebaff1f95000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 106:000066e4e4e4e4e4e4e4760085ffffffffffffffffffffffffff950085ffff9500000000000000e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5f50085ffffffffffba0fff0fbaee0fff0feebaff1f95000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 107:000085ff0f1d1f1d0fff950085ffffffffffffffffffffffffff950085ffff9500000000000040c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c20085ffffff89ffbababababaeeeeeeeeeebaba1f95000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 108:0000850fff1d1d1dff0f9500e6e4e4e4960f0f0f0f0f86e4e4e4f60085ffff95000000000000a1e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3a10085ffffff89ffeeeeeeeeeebababababaffba1f95000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 109:000085eeeeeeeeeeeeee9500d5e5e5e5e6e4e4e4e4e4f6e5e5e5f50085ffff95c2c2c2c2c2c2a1ff63070707070707070707070763ff891fff022263070707630222ff1fa10085ffffff89ffee0fff0feeba0fff0fbaffba1f95000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 110:000085babababaffffee65e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4f6ffff95e33ae3e33ae3e3ff890f0f0f0f0f0f0f0f0f0f0f89ff89ff1f32420fff0dff0f32421fffc30085ffffff89ffeeffffffeebaffffffbaffba1f95000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 111:000085ffffffbaffffeeffffffffffffffffffff89ffffffffffffffffffffffff5affff5affffffffffffffffffffffffffffffffff8912122442ff0fff0fff32341222c30085ffffff89ffee0fff0feeba0fff0fbaffba1f95000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 112:000085ffffffbaffffeeffffffffffffffffffff89ffffffffffffffffffffffff5affff5affffffffffffffffffffffffffffffffff8913131323ffffffffff03131323c3e4f6ffffff898986e4e4e4e4e4e4e4e4e4e4e4e4f6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 113:000085ffffffbaffffeeffffffffffffffffffff89ffffffffffffffffffffffff5affff5affffffffffffffffffffffffffffffffff89bababababababababababababa3affffffffff898995e5e5e5e5e5e5e5e5e5e5e5e5f5000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 114:000085ffffffbaffffeeeeeeeeeeeeeeee86e4e4e4e4e496ffffffffffffffffff5affff5affffffffffffffffffffffffffffffffff63babababaffffffffffbabababa5affffffffff89899500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 115:000085ffffffbababababababaffffffff95e5e5e5e5e585ffffff78e4e4e4e4e4e4e4e4e4e4e4e4e4e49602121212121222ffffff0f17ffffff86e496ffffffffffffff5affffffffff8989e6e4e4e4e4760000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 116:c2c285ffffffffffffffffffbaff0f0fff95000000000085ffffff79a4a4a4a4a4a4a4a4a4a4a4a468008503131313140142ffffff0f17ffffff95e585ffffffffffffff5affffffffffffffff0222ffff950000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 117:a1e385ffffffffffffffffffba0fffff0f95000000000085ffffff898989890f0f0f0f0f898989899500856389ffff320d42ffffff0f17ffffff950085ffffffffffffff5affffffffffffffff3242ffff950000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 118:a1e385ffffffffffffffffffba0e0f0f0d95000000000085ffffffffffffffffffffffffffffba8995008517ffffff32ff42ffffff0f17ffffff950085ffffffffffff86e4e4e4e496ffffffff3242ffff950000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 119:a1e389898989ffffffffffffba0fffff0f95000000000085ffffffffffffffffffffffffffffba89950085170fffff033323ffffff0f17ffffff950085ffffffffffff95e5e5e5e585ffffffff3242ffff950000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 120:a1e389898989ffffffffffffbaff0f0fff95000000000085ffffffffffffffffffffffffffffba0f95008517ffffffffffffffffff0f17ffffff950085ffffffffffff950000000085ffffffff0323ffff9500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000bf000000000000000000000000000000000000000000000000000000000000000000bf0000000000000000000000000000000000000000000000000000000000000000000000
--- 121:a1ffffffffeebaffffffffffbababababa950000000000e4e4e4e4e4e4e4e4e496ffffffffffba0f95008517ffffffffffffffffffff63ffffff950085ffffffffffff950000000085ffffffffffffffff9500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000cf000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 122:a1ffffffffeebaffffffffffffffffffba950000000000d5e5e5e5e5e5e5e5e585ffffffffffba0f950085170fffffffffffffffffffffffffff950085ffffffffffffe6e4e4e4e4f6ffffffffffffffff9500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000bf000000000000000000000000000000000000000000000000000000cf0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 123:c328ffffffeebaffffffffffffffffffbae6e4e4e4e4e4e4e4e4e4e4e4e4e4e4f6ffffffffffba0f95008517ffffffffffffffffffffffffffffe6e4f6ffffffffffff1d1d1d1d1d1dffffffffffffffff95000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000bf0000000000000000cf00000000000000000000000000000000000000000000000000000000000000000000000000
--- 124:c336ffffffeebaffffffffffffffffffbababababababababababaffffffffffeeffffffffffba0f95008517ffffffffffffffffffffffffffffbababababaffffffff1dffffffff1dffffffff0222ffff950000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 125:c3ffffffffeebaffffffffffffffffffffffffffffffffffffffbaffffffffffeeffffffffffba89950085170fffffffffffffffffffffffffffba0fff0fbaffffffff1dffffffff1dffffffff3242ffff95000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000cf00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 126:c3ffffffffeebaffffffffffffffffffffffffffffffffffffffbaffffffffffeeffffffffffba8995008517ffffffffffffffffffffffffffffbaff0fffbaffffffff1dffffffff1dffffffff3242ffff950000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000bf0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 127:c3e4e4e4e496baffffffffffffffffffffffffffffffffffffffba0f0f0f0f0fbababababababa899500856389ffffffffffffffffffffffffffba0fff0fbaffffffff1dffffffff1dffffffff32420eff950000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000cf000000000000000000000000000000bf00000000000000000000000000bf00000000000000000000000000cf000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 128:d5e5e5e5e585babababababababababababababababababababababababababa86e4e4e4e4e4e4e4f600e6e4e496ffffffffffffffffffffffffbababababaffffffff1d1d1d1d1d1dffffffff0323ffff950000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000bf0000000000000000000000000000000000000000000000000000000000000000000000
--- 129:0000000000e6e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4f6e5e5e5e5e5e5e5f500d5e5e5e6e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4f6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000bf00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 130:0000000000d5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5f5000000000000000000000000d5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5f50000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000cf0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 090:00000000000000000000000000000000000000000000000000000000000000000000000000000040c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c241000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000d5e6e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4f6f500000000000000
+-- 091:000000000000000000000000000000000000000000000000000000000000000000000000000000a1e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3a100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000d5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5f50000000000000000
+-- 092:000000000000000000000000000000000000000000000000000000000000000000000000000000a1e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3a1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 093:00000000000000000000000000000000000000000000000000000000000000000000000081a1a1a1e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3a1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 094:00000040c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2a1e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3c3000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 095:000000a1e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3a1a1e3e3e3e3e3e3ee3effee0dba0effffeeeeeeeeffffffffbabaff0e0effffffffeeeebababababababababababababaeeffff4eeec3000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 096:000000a1e3e3e3e3b0000000c0e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3a1a1e3e3e3e3e3e3eeeeeeeeeeba0effeeeeeeeeeeeeeeffffbaffffffffeeffffeeeeffba3eff0dffffff0eff0eeeeebaeeffffeeeec3000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 097:000000a1e3e3e3e30000000000e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3a1a1e3e3e33a3a3aeebababababaffeeeeeeffffeeeeeeeebaba3eff0deeeeeeeeeeffffbaeeeeffffffffffeeeeeeffbaeeeeeeeeeec3000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 098:000000a1e3e3e3e3b4d4d4d4c4e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3a1a1ffffff5a5a5aeeeeffffbabaffeeeebabababaeeeeeebaeeeeeeeeeebaeeeeeebababaeeeeeeeeeeeeeeeeeeeeffbababababaeec3000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 099:000000a1ffffffffffffffffffffffff630789ffffffffffffffffffffffffbaeeffffc3a16e7eff5a5a5affeeeeeeffffffeeeeffffffbaeeeeeebababababababaeeeeeeeeffbabababababababaffffeeeeeeeeeeeeeeeec3000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 100:000000c3ff6e7effffffffffffffffff0f1789ffffffffffffffffffffffffbaee1f0ec3a16f7fff5a5a5affffeeeeeeeeffeeffffeeffbaffeeeeeeffffbaffffffffffeeeeeeffffffffbaffffffffffffffeeeeeeeeeeeec3000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 101:000000c3ff6f7fffffffffffffffffff0e1789ffffff0222ffffffffffffffbaeeffffc3a1ffffff5a5a5affffffffffeeeeee4eeeeeffbaffffeeffffffbabababaffffeeeeeeeeffffffbaffffffffffffffffffeeeeeeeec3000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 102:000000c3ffffffffffffffffffffffff0f1789ff0eff3242ffff8696ffffff86e4e4e4c3c3e4e4e4e4e4e496ffffffffeebaeeeeeeeebabaffffffffffffffffffbaffffffffffffbabababaffffffffffffffffffeeeeeeeec3000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 103:000000c3e4e4e4e4e4e4e4e496ffffff6307890212122442ffff9585ffffff95e5e5e5f5e5e5e5e5e5e5e585ffffffffeebabababababaffffffffffffffffffffbaffffffffffffbaffffffffffffffffffffffffffffeeeec3000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 104:000000d5e5e5e5e5e5e5e5e585ffffff8989890313131323ffff9585ffffff95000000000000000000000085ffffffffffffffffffffbaffffffffffffffffffffbaffffffffffffbaffffffffffffffffffffffffffffffeec3000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 105:00000000000000000000000085ffffffffffffffffffffffffff9585ffffff950000000000000000000000e6e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e43a5b5b5b3ae4c3000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 106:00000000000000000000000085ffffffffffffffffffffffffff9585ffffff950000000000000000000000d5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e585ffffff95e5f5000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 107:00000000000000000000000085ffffffffffffffffffffffffff9585ffffff9500000000000040c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2410000000000000000000000000000000000000000000000000000000085ffffff950000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 108:000000000000000000000000e6e4e4e4960fff0fff0f86e4e4e4f685ffffff95000000000000a1e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3a10000000000000000000000000000000000000000000000000000000085ff0eff950000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 109:000000000000000000000000d5e5e5e5e6e4e4e4e4e4f6e5e5e5f585ffffff95c2c2c2c2c2c2a1e36308080808080808080808080863a1c2c2c2c2c2c2c2c2c2c241000000000000000000000000000000000085ffffff950000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 110:00000066e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4f6ffffff953ae33ae3e3e3e3e3ffffffffffff4effffffffffffffe3e3e3e3e3e3e3e3e3e3e3a1000000000000000000000000000000000085ff0eff950000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 111:00000085ffffffffffffff4effffbaffffffffff090909ffffffffffffffffff5aff5affffffffffffffffffffffffffffffffffffff891f1dffff0e0effff1d1fa1000000000000000000000000000000000085ffffff950000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 112:00000085ffffffffffffffffffffbaffffffffff090909ffffffffffffffffff5aff5affffffffffffffffffffffffffffffffffffff891d1dffff0dffffff1d1dc3000000000000000000000000000000000085ff0eff950000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 113:000000850e0d0effffffffffffffbaffffffffff090909ffffffffffffffffff5aff5affffffffffffffffffffffffffffffffffffff89ffffffffffffffffffff3ae4e4e4e4e4e4e47600000000000000000085ffffff950000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 114:00000085bababababababababababaee86e4e4e4e4e4e496ffffffffffffffff5aff5affffffffffffffffffffffffffffffffffffff63babababababababababa5affffffffffffff9500000000000000000085ffffff950000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 115:00000085ffffeeeeeeeeeebaeeeeeeee95e5e5e5e5e5e585ffffff78e4e4e4e4e4e4e4e4e4e4e4e4e4e4966308080808080863ffffff17ffffff86e496ffffffff5affffffffffffffe6e4e4e476000000000085ffffff950000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 116:c2c2c285ffffffeeeeeeeebaeeeeeeee9500000000000085ffffff79a4a4a4a4a4a4a4a4a4a4a4a4760085ffffffffffffff17ffffff17ffffff95e585ffffffff5affffffffffffff89ff0dff95000000000085ffffff950000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 117:a1e3e385ffffffffeeeeeebaeeff0eee9500000000000085ffffff898989890fff0fff0f89898989950085ffffffffffffff17ffffff17ffffff950085ffffffff5affffffffffffff89ffffff95000000000085ffffff950000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 118:a1e3e385ffffffffffeeeebaff4effee9500000000000085ffffffffffffffffffffffffffffba89950085ffffffffffffff17ffffff17ffffff950085ffffff86e4e4e4e496ffffff89ffffff95000000000085ffffff950000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 119:a1e389898989eeeeeeeeeebaeeff0eee9500000000000085ffffffffffffffffffffffffffffba89950085ffff63ff0e0eff17ffffff17ffffff950085ffffff95e5e5e5e585ffffff89ffffff95000000000085ffffff950000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 120:a1e389898989eeeeffeeeebaeeeeeeee9500000000000085ffffffffffffffffffffffffffffbaff950085ffff17ffffffff17ffffff17ffffff950085ffffff950000000085ffffff89ffffffe6e4e4e4e4e4f6ffffffe6e4760000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000bf000000000000000000000000000000000000000000000000000000000000000000bf0000000000000000000000000000000000000000000000000000000000000000000000
+-- 121:a1ffffffffeeeeffffffeebaeeeeeeee95000000000000e4e4e4e4e4e4e4e4e496ffffffffffba1f950085ffff17ffffffff17ffffff63ffffff950085ffffff950000000085ffffffffffffff89babababababababababa1f950000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000cf000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 122:a1ffffffeeeebaffffffeebabababaee95000000000000d5e5e5e5e5e5e5e5e585ffffffffffbaff950085ffff630808080863ffffffffffffff950085ffffffe6e4e4e4e4f6ffffffffffffff89ff0f0fffffffffffffbaff950000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000bf000000000000000000000000000000000000000000000000000000cf0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 123:c3ffff0eeeeebaffffffeeeeeeeeeeeee6e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4f6ffffffffffba1f950085ffffffffffffffffffffffffffffffe6e4f6ffffff1d1d1d1d1d1dffffffffffffff89ffffffffffffffffffba1f9500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000bf0000000000000000cf00000000000000000000000000000000000000000000000000000000000000000000000000
+-- 124:c33eff0deeeebaffffffffffffffffffffffffffffffffffffffbaffffffffffffffffffffffbaff950085ffffffffffffffffffffffffffffffffbaffffffff1dffffffff1dffffff89ffffff89ffffffffffffffffffbaff95000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 125:c3ffff0eeeeebaffffffffffffffffffffffffffffffffffffffbaffffffffffffffffffffffba899500e6e4e4e4e4e4e4e4e4e4e4e496ffffffffbaffffffff1dffffffff1dffffff89ffffffffffffffbaffffffffbaff1f9500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000cf00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 126:c3ffffffffeebaffffffffffffffffffffffffffffffffffffffbaffffffffffffffffffffffba899500d5e5e5e5e5e5e5e5e5e5e5e585ffffffffbaffffffff1dffff3eff1dffffff89ffffffffffffffbaffffffffbaffff95000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000bf0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 127:c3e4e4e4e496baffffffffffffffffffffffffffffffffffffffbaffffffffbabababababababa89950000000000000000000000000085ffffffffbaffffffff1dffffffff1dffffff89ff0f0fffffffffbaff0f0fffbaff1f95000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000cf000000000000000000000000000000bf00000000000000000000000000bf00000000000000000000000000cf000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 128:d5e5e5e5e585babababababababababababababababababababababababababa86e4e4e4e4e4e4e4f60000000000000000000000000085ffffffffbaffffffff1d1d1d1d1d1dffffff89bababababababababababababaffff95000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000bf0000000000000000000000000000000000000000000000000000000000000000000000
+-- 129:0000000000e6e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4f6e5e5e5e5e5e5e5f500000000000000000000000000e6e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4f600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000bf00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 130:0000000000d5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5f5000000000000000000000000000000000000000000d5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5f5000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000cf0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 -- 131:00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000bf000000000000000000000000000000000000000000000000cf000000000000000000000000000000bf0000000000000000000000000000000000000000000000000000000000000000000000000000000000
 -- 132:0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000bf000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 -- 133:0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000cf00000000000000000000000000bf0000000000000000000000000000000000000000000000000000000000000000cf00000000000000000000000000000000000000000000000000000000000000000000
