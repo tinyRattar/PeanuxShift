@@ -968,7 +968,7 @@ function bomb(x,y)
 	end
 	function bb:draw()
 		if(self.state==0)then
-			sprc(226,self.x,self.y,14,1,0,0,1,1)
+			sprc(161,self.x,self.y,14,1,0,0,1,1)
 		elseif(self.state==1) then
 			if(self.tiA<60)then 
 				sprc(116,self.x,self.y,14,1,0,0,1,1)
@@ -2876,6 +2876,7 @@ end
 -- 158:dedbbbbbefefbbbbfefefbbaefefefaafefefebbefefefbbfefefeabefefebba
 -- 159:bbbbbbedbbbbbefebbabefedaaaefefebbbfefedbbbbfefeababefedbababefe
 -- 160:effffffef444444ff5ffff5ff555555feff3fffeeef666feeef8ffeeeeef88fe
+-- 161:eeeeeeeeeeea0eeeee4444eee4ff44cee4f44ccee444c4cee44c4cceeeccccee
 -- 162:fffffffdfeeeeeedfeeeaeedfeeeaeedfeeaaaedfeeaaaedfeeeeeeddddddddd
 -- 163:eeeeeeeeedaaaadbeabbbbabeab00babeabbbbabedaaaadbeddddddbbbbbbbbb
 -- 164:e9eff99ee99ffe9ee9eff99ee99ffe9ee9eff99ee99ffe9ee9eff99ee99ffe9e
