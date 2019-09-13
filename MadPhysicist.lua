@@ -1040,7 +1040,7 @@ function chargeElite(x,y)
 		elseif(self.state==1)then
 			if(self.tiA>=self.tA1 and self.tiA<self.tA2)then
 				local ox,oy=self.x,self.y
-				self:movec(self.fwd[1]*ce.chargeMs,self.fwd[2]*ce.chargeMs)
+				self:movec(self.fwd[1]*ce.chargeMs,self.fwd[2]*ce.chargeMs,true)
 				dust(self.x+8,self.y+8)
 				if(self.waitMeleeHit)then
 					self:meleeCalc()
