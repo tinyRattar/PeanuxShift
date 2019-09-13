@@ -2629,8 +2629,6 @@ end
 function gameOver()
 	player.hp=50
 	player.dead=false
-	gs=0
-	drawMenu()
 	if(curLevel<=3)then
 		loadLevel(curLevel)
 	elseif(curLevel>=4)then
