@@ -1,14 +1,10 @@
--- title:  MadPhysicist
--- author: PEANUX Studio
--- desc:   I don't know. Maybe a Zelda-like game.
--- script: lua
-
 -- predefine
 CAMERA_OFF={15*8-4,8*8-4}
 NEARBY4 = {{-1,0},{1,0},{0,-1},{0,1}}
 FAKERANDOM8={4,2,7,5,1,8,3,6}
 NEXTLEVEL={2,3,4,nil,4,4,4}
 
+-- predefine set
 function set(ls)
 	local s={}
 	for _,l in ipairs(ls) do s[l]=true end
@@ -42,22 +38,38 @@ MAP_WATER=set({171})
 MAP_BUTTER=set({238})
 MAP_LAVA=set({3,16,19,32,33,34,35,36,48,49,50,51,52,53,64,65,66,67})
 
+-- region TXT
 TEXTS={gameover={"YOU DEID!"},
 	{"What the fck, you are a fantasy physical boy. ",
 "Welcome to Super.Hyper.Incredible.Fhysical.Tower. ",
 "REMEMBER to use physical artifact and your ",
 "physical caliber."}
 }
- 
+-- endregion
+
+-- region base class
 function damage(iValue, iElem)
-	dmg={value=iValue,elem=iElem or 0}
+	dmg={
+		value=iValue,
+		elem=iElem or 0
+	}
 	return dmg
 end
 
 function entity(x,y,w,h)
-	local ety={
-		x=x,y=y,w=w,h=h,noEntityCollide=false,
-		noMapCollide=false,pullMul=1,pushMul=1,tmMul=1,tCollided=false,tMoved=false
+	local ety = {
+		x=x,
+		y=y,
+		w=w,
+		h=h,
+		noEntityCollide=false,
+		noMapCollide=false,
+		pullMul=1,
+		pushMul=1,
+		tmMul=1, --time machine multi
+
+		tCollided=false,
+		tMoved=false
 	}
 	function ety:move(dx,dy,forced)
 		self.tCollided=false
@@ -80,13 +92,16 @@ function entity(x,y,w,h)
 					local tile=enteredDangerTiles[i]
 					self:enter(tile)
 				end
-			else self.x=self.x-dx end
+			else
+				self.x=self.x-dx
+			end
 		elseif(#enteredFreeTiles)then
 			for i=1,#enteredFreeTiles do
 				local tile=enteredFreeTiles[i]
 				self:enter(tile)
 			end
 		end
+
 		self.y=self.y+dy
 		collidedTiles,enteredDangerTiles,enteredFreeTiles=mapCollision(self,forced)
 		if(#collidedTiles>0)then
@@ -112,9 +127,11 @@ function entity(x,y,w,h)
 				self:enter(tile)
 			end
 		end
+
 		if(dx~=0 and ox==self.x)then self.tCollided=true end
 		if(dy~=0 and oy==self.y)then self.tCollided=true end
 		if(ox~=self.x or oy~=self.y)then self.tMoved=true end
+		--todo: calc touch
 	end
 	function ety:movec(dx,dy,forced) -- continuous move
 		local ix,iy=1,1
@@ -128,11 +145,14 @@ function entity(x,y,w,h)
 			self:move(ix,iy,forced)
 		end
 	end
-	function ety:touch() end
-	function ety:enter() end
+	function ety:touch()
+	end
+	function ety:enter()
+	end
 	function ety:drawStun()
 		sprc(192+t//30%2,self.x+self.w//2-4,self.y-4,0,1,0,0,1,1)
 	end
+
 	return ety
 end
 
@@ -145,10 +165,10 @@ function artifact(cd,dur)
 		durTime=dur or 0,
 		tiDur=0
 	}
+	
 	function atf:shift()
 		if(self.inWorking)then return false end
 		self.mode=1-self.mode
-		sfx(4)
 		return true
 	end
 	function atf:switchOn()
@@ -164,21 +184,44 @@ function artifact(cd,dur)
 	function atf:switchOff()
 		self.inWorking=false
 	end
-	return atf
-	 
-end
 
-player=entity(32,60,16,16) player.fwd = {1,0} player.hp=50 player.maxHp=100 
-player.attack = 5 player.state = 0 player.ti1 = 0 player.key1=0 player.tiStun=0 
-player.lastBtn5=0 player.lastBtn6=0 player.lastBtn7=0 player.onButter=false 
-player.lastMove={0,0} player.onFireTile=false player.onFireTic=0
+	return atf
+	-- NOTICE: remember calc timer in update()
+end
+-- endregion
+
+-- region PLAYER
+-- _player
+player=entity(32,60,16,16)
+player.fwd = {1,0}
+player.hp=50
+player.maxHp=100
+player.attack = 5
+player.state = 0
+player.ti1 = 0
+player.key1=0
+player.tiStun=0
+player.lastBtn5=0
+player.lastBtn6=0
+player.lastBtn7=0
+player.onButter=false
+player.lastMove={0,0}
+player.onFireTile=false
+player.onFireTic=0
 function player:atkRect()
-	local p=self local ar=10
-	local ox=0 local oy=0
-	if(p.fwd[1]==1)then res={p.x+p.w,p.y,10,16}
-	elseif(self.fwd[1]==-1)then res={p.x-ar,p.y,10,16}
-	elseif(self.fwd[2]==1)then res={p.x,p.y+p.h,16,10}
-	elseif(self.fwd[2]==-1)then res={p.x,p.y-ar,16,10} end
+	local p=self
+	local ar=10
+	local ox=0
+	local oy=0
+	if(p.fwd[1]==1)then
+		res={p.x+p.w,p.y,10,16}
+	elseif(self.fwd[1]==-1)then
+		res={p.x-ar,p.y,10,16}
+	elseif(self.fwd[2]==1)then
+		res={p.x,p.y+p.h,16,10}
+	elseif(self.fwd[2]==-1)then
+		res={p.x,p.y-ar,16,10}
+	end
 	return res
 end
 function player:startAttack()
@@ -189,13 +232,13 @@ function player:startAttack()
 	end
 end
 function player:meleeCalc()
-	sfx(0)
 	local ar = self:atkRect()
 	hitList = boxOverlapCast(ar)
 	for i=1,#hitList do
 		local tar=hitList[i]
 		if(tar~=self and tar.canHit) then
 			local knockback=self.fwd
+			-- todo: knockback check
 			if(tar.canHit)then
 				tar:onHit(damage(self.attack,0))
 				if(tar.tiStun>0 or tar.canKnockBack)then
@@ -223,6 +266,7 @@ function player:getKey()
 	self.key1=self.key1+1
 end
 function player:control()
+	-- controller
 	local dx,dy=0,0
 	if(self.state~=-1) then
 		if btn(0) then dy=-1 player.fwd={0,-1} end
@@ -325,7 +369,10 @@ function player:draw()
 			drawX=2
 			drawY=3
 		elseif(self.fwd[2]==-1)then 
-			sprite=296 drawX=2 drawY=3 offY=-8
+			sprite=296
+			drawX=2
+			drawY=3
+			offY=-8
 		end
 		if self.ti1>=20 then sprc(sprite,self.x+offX,self.y+offY,6,1,sprFlip,0,drawX,drawY)
 		elseif self.ti1>=15 then sprc(sprite+drawX,self.x+offX,self.y+offY,6,1,sprFlip,0,drawX,drawY)
@@ -354,17 +401,33 @@ function player:touch(tile)
 end
 function player:enter(tile)
 	local tileId,tx,ty=tile[1],tile[2],tile[3]
-	if(tileId==178)then mset_4ca(tx,ty,255,178)
-	elseif(tileId==179)then mset_4ca(tx,ty,255,179)
-	elseif(MAP_LAVA:contains(tileId))then self:onHit(damage(1))
-	elseif(tileId==231)then loadLevel(NEXTLEVEL[curLevel])
-	elseif(tileId==238)then self.onButter=true
-	elseif(tileId==80)then self.onFireTile=true
-	elseif(tileId==182 or tileId==166)then self.willKnockWithDmg=true
-	elseif(tileId==180 or tileId==164)then self.willKnockWithDmg=true
+	if(tileId==178)then
+		mset_4ca(tx,ty,255,178)
+	elseif(tileId==179)then
+		mset_4ca(tx,ty,255,179)
+	elseif(MAP_LAVA:contains(tileId))then
+		self:onHit(damage(1))
+	elseif(tileId==231)then
+		loadLevel(NEXTLEVEL[curLevel])
+		-- if(curLevel<5)then
+		--   loadLevel(curLevel+1)
+		-- else
+		-- 	loadLevel(4)
+		-- end
+	elseif(tileId==238)then
+		self.onButter=true
+	elseif(tileId==80)then
+		self.onFireTile=true
+	elseif(tileId==182 or tileId==166)then
+		self.willKnockWithDmg=true
+	elseif(tileId==180 or tileId==164)then
+		self.willKnockWithDmg=true
 	end
 end
+-- endregion
 
+-- region ARTIFACT
+-- region the Gravation
 theGravition=artifact(60,15)
 theGravition.range=10*8
 theGravition.rangePow2=theGravition.range*theGravition.range
@@ -376,10 +439,10 @@ function theGravition:use()
 	end
 end
 function theGravition:pull(isReverse)
-	if(isReverse)then sfx(6) else sfx(5) end
 	for i=1,#mobManager do
 		local m=mobManager[i]
 		if(m and m~=player)then
+			--self:iPull(m,isReverse)
 			iPull(player,m,isReverse,self.force,self.rangePow2)
 		end
 	end
@@ -412,16 +475,22 @@ function theGravition:draw()
 		circbc(cp[1],cp[2],self.range*rscale-1,15)
 	end
 end
- 
+-- endregion
+
 theTimeMachine=artifact(180,150)
 function theTimeMachine:init()
 	self.range=10*8
 	self.rangePow2=theTimeMachine.range*theTimeMachine.range
-	self.speedUpMul=2 self.speedDownMul=2
-	self.effectedObject={} self.rClock={} self.hHandPos={} self.mHandPos={}
+	self.speedUpMul=2
+	self.speedDownMul=2
+	self.effectedObject={}
+	self.rClock={}
+	self.hHandPos={}
+	self.mHandPos={}
 	self.sprite=392
 
 	for i=1,48 do
+		--local r=
 		local cos=math.cos(i*3.14/24)
 		local sin=math.sin(i*3.14/24)
 		self.hHandPos[i]={sin*3*8,-cos*3*8}
@@ -433,11 +502,9 @@ function theTimeMachine:use()
 	if(self:switchOn())then
 		trace("the TimeMachine ON!")
 		if(self.mode==0)then
-			sfx(7)
 			player.tmMul=2
 			table.insert(self.effectedObject,player)
 		else
-			sfx(8)
 			for i=1,#mobManager do
 				local m=mobManager[i]
 				if(m and m~=player and m.tmMul~=0)then
@@ -502,9 +569,11 @@ function theTimeMachine:draw()
 			for j=1,5 do
 				pt=(pt+1)%l
 				if(pt<obj.w)then
-					pixc(obj.x+pt,obj.y,c1) pixc(obj.x+obj.w-pt,obj.y+obj.h-1,c1)
+					pixc(obj.x+pt,obj.y,c1) 
+					pixc(obj.x+obj.w-pt,obj.y+obj.h-1,c1)
 				else 
-					pixc(obj.x+obj.w-1,obj.y+pt-obj.w,c1) pixc(obj.x,obj.y+obj.h-pt+obj.w,c1) 
+					pixc(obj.x+obj.w-1,obj.y+pt-obj.w,c1)
+					pixc(obj.x,obj.y+obj.h-pt+obj.w,c1) 
 				end
 			end
 		end
@@ -517,7 +586,6 @@ function theKelvinWand:use()
 	self:switchOn()
 end
 function theKelvinWand:cast()
-	sfx(9)
 	local elem=1
 	if(self.mode==1)then elem=2 end
 	local cp=CenterPoint(player)
@@ -533,16 +601,30 @@ function theKelvinWand:update()
 end
 function theKelvinWand:draw()
 end
+-- endregion
 
+-- region MOB
+-- _mob
 function mob(x,y,w,h,hp,alertR)
 	local m=entity(x,y,w,h)
-	m.hp=hp m.maxHp=hp m.state=0 m.sleep=true m.alertRange=alertR or 0 
-	m.ms=1 m.rawMs=m.ms m.dmgStunTresh=0 m.stunTime=30 m.stunTime_shockTile=120 
-	m.tiStun=0 m.canHit=true m.isDead=false m.tiFire=0 m.tiIce=0
+	m.hp=hp
+	m.maxHp=hp
+	m.state=0
+	m.sleep=true
+	m.alertRange=alertR or 0
+	m.ms=1
+	m.rawMs=m.ms
+	m.dmgStunTresh=0
+	m.stunTime=30
+	m.stunTime_shockTile=120
+	m.tiStun=0
+	m.canHit=true
+	m.isDead=false
+	m.tiFire=0
+	m.tiIce=0
 	function m:onHit(dmg,noStun)
 		if(self.canHit)then 
 			self.sleep=false
-			if not noStun then sfx(1) end
 			self.hp=self.hp-dmg.value
 			trace("mob hp"..self.hp)
 			if(not noStun and dmg.value>self.dmgStunTresh)then self.tiStun=self.stunTime end
@@ -551,10 +633,13 @@ function mob(x,y,w,h,hp,alertR)
 			return true
 		end
 		return false
+		-- todo: element attack
 	end
-	function m:onDeath() end
+	function m:onDeath()
+	end
 	function m:death()
 		self:onDeath()
+		-- todo: do something like score change
 		if(m.isDead)then return false end
 		for i=1,#mobManager do
 			if(mobManager[i]==self)then table.remove(mobManager,i) end
@@ -578,9 +663,15 @@ function mob(x,y,w,h,hp,alertR)
 	end
 	function m:enter(tile)
 		local tileId,tx,ty=tile[1],tile[2],tile[3]
-		if(MAP_LAVA:contains(tileId))then self:death()
-		elseif(tileId==80)then self.onFireTile=true
-		elseif(tileId==182 or tileId==166)then self:death() end
+		if(MAP_LAVA:contains(tileId))then
+			self:death()
+		elseif(tileId==80)then
+			self.onFireTile=true
+			--if(t%20==0)then self:onHit(damage(1))end
+			--todo: default buff calc to avoid multi tile hit per tic
+		elseif(tileId==182 or tileId==166)then
+			self:death()
+		end
 	end
 	function m:defaultMove(needDis)
 		local dv=CenterDisVec(player,self)
@@ -632,19 +723,28 @@ function mob(x,y,w,h,hp,alertR)
 			self:tryAwake()
 			return false
 		end
+
 		return true
 	end
 	function m:drawHp()
 		linec(self.x,self.y-1,self.x+self.w,self.y-1,4)
 		linec(self.x,self.y-1,self.x+self.w*self.hp/self.maxHp,self.y-1,6)
 	end
+
 	return m
 end
- 
+-- region _NORMAL MOB
 function slime(x,y)
 	local s = mob(x,y,8,8,15,5*8)
-	s.ms=0.5 s.tiA=0 s.fwd={-1,0} s.meleeRange=(16+8)//2+6 s.attack=1 
-	s.waitMeleeCalc=false s.tA1=35 s.tA2=90 s.tA3=120  
+	s.ms=0.5
+	s.tiA=0
+	s.fwd={-1,0}
+	s.meleeRange=(16+8)//2+6
+	s.attack=1
+	s.waitMeleeCalc=false
+	s.tA1=35 --attack calc
+	s.tA2=90 --keep idle
+	s.tA3=120 --return move
 	function s:startAttack()
 		self.state=1
 		self.tiA=0
@@ -660,7 +760,8 @@ function slime(x,y)
 		if(self.state==0)then
 			local dv,dvn=self:defaultMove()
 			if((math.max(math.abs(dv[1]),math.abs(dv[2])))<=self.meleeRange)then
-				self.fwd=dvn self:startAttack()
+				self.fwd=dvn
+				self:startAttack()
 			end
 		elseif(self.state==1)then
 			if(self.waitMeleeCalc and self.tiA>=self.tA1)then self:meleeCalc() self.waitMeleeCalc=false end
@@ -695,8 +796,14 @@ end
 
 function ranger(x,y)
 	local rg=mob(x,y,8,8,10,10*8)
-	rg.ms=0 rg.tiA=0 rg.attack=5 rg.range=10*8 rg.waitShoot=false rg.tA1=30
-	rg.tA2=60 rg.tA3=90  
+	rg.ms=0
+	rg.tiA=0
+	rg.attack=5
+	rg.range=10*8
+	rg.waitShoot=false
+	rg.tA1=30 --attack
+	rg.tA2=60 --keep no anim
+	rg.tA3=90 --idle anim
 	function rg:startAttack()
 		self.state=1
 		self.tiA=0
@@ -707,9 +814,21 @@ function ranger(x,y)
 		local cp=CenterPoint(self)
 		local fwd=vecNormFake(vecDirection)
 		table.insert(envManager,tinyBullet(cp[1],cp[2],fwd))
+		--todo:shoot
 	end
 	function rg:update()
 		if(not self:defaultUpdate())then return end
+		-- self:defaultTileCalc()
+		-- if(not self:defaultElem())then return end
+		-- if(self.tiStun>0)then
+		-- 	self.state=0
+		-- 	self.tiStun=self.tiStun-self.tmMul
+		-- 	return
+		-- end
+		-- if(self.sleep)then
+		-- 	self:tryAwake()
+		-- 	return
+		-- end
 		local sx=self.x+self.w//2
 		local sy=self.y+self.h//2
 		local tx=player.x+player.w//2
@@ -736,18 +855,25 @@ function ranger(x,y)
 			elseif(self.tiA<self.tA2)then 
 				sprc(496,self.x,self.y,0,1,0,0,1,1)
 			else
-				sprc(496+t//(20/self.tmMul)%2*1,self.x,self.y,0,1,0,0,1,1)
+				sprc(496+t//(20/self.tmMul)%2 * 1,self.x,self.y,0,1,0,0,1,1)
 			end
 		end
 		self:drawElem()
 	end
+
 	return rg
 end
 
 function staticRanger(x,y,fwd)
 	local srg=ranger(x,y)
-	srg.fwd=fwd srg.sleep=false srg.pullMul=0 srg.pushMul=0 srg.tA1=5 srg.tA2=15 
-	srg.tA3=15 srg.dmgStunTresh=999
+	srg.fwd=fwd
+	srg.sleep=false
+	srg.pullMul=0
+	srg.pushMul=0
+	srg.tA1=5
+	srg.tA2=15
+	srg.tA3=15
+	srg.dmgStunTresh=999
 	function srg:update()
 		if(not self:defaultUpdate())then return end
 		if(self.state==0)then
@@ -758,17 +884,29 @@ function staticRanger(x,y,fwd)
 			if(self.tiA>=self.tA3)then self.state=0 end
 		end
 	end
+
 	return srg
 end
 
 function bombMan(x,y)
 	local bm=slime(x,y)
-	bm.hp=5 bm.alertRange=8*8 bm.ms=2 bm.tA1=15 bm.tA2=300 
-	bm.tA3=300 bm.fwd={-1,0} bm.meleeRange=(16+8)//2+1 bm.attack=5 
-	bm.stunTime=1 bm.canKnockBack=true
+	bm.hp=5
+	bm.alertRange=8*8
+	bm.ms=2
+	bm.tA1=15 -- explode time
+	bm.tA2=300
+	bm.tA3=300
+	bm.fwd={-1,0}
+	bm.meleeRange=(16+8)//2+1
+	bm.attack=5
+	bm.stunTime=1
+	bm.canKnockBack=true
 
 	function bm:startAttack()
-		self.canKnockBack=false self.state=1 self.tiA=0 self.waitMeleeCalc=true
+		self.canKnockBack=false
+		self.state=1
+		self.tiA=0
+		self.waitMeleeCalc=true
 	end
 	function bm:meleeCalc()
 		local atkBox={x=self.x-8,y=self.y-8,w=24,h=24}
@@ -788,11 +926,15 @@ function bombMan(x,y)
 	function bm:onHit(dmg,noStun)
 		if(self.canHit)then 
 			self.sleep=false
+			--self.hp=self.hp-dmg.value
+			--if(not noStun and dmg.value>self.dmgStunTresh)then self.tiStun=0 end
 			if(dmg.elem==1)then 
 				self.tiFire=150
 				trace("fire")
 				if(self.state==0)then	self:startAttack() end
-			elseif(dmg.elem==2)then self.tiIce=30 end
+			elseif(dmg.elem==2)then 
+				self.tiIce=30
+			end
 			return true
 		end
 		return false
@@ -804,17 +946,22 @@ function bombMan(x,y)
 		elseif(self.state==0)then
 			sprc(483+t//(20/self.tmMul)%2 * 1,self.x,self.y,14,1,0,0,1,1)
 		elseif(self.state==1) then
-			if(self.tiA<60)then sprc(485,self.x,self.y,14,1,0,0,1,1)
-			else sprc(483,self.x,self.y,14,1,0,0,1,1) end
+			if(self.tiA<60)then 
+				sprc(485,self.x,self.y,14,1,0,0,1,1)
+			else
+				sprc(483,self.x,self.y,14,1,0,0,1,1)
+			end
 		end
 		self:drawElem()
 	end
+
 	return bm
 end
 
 function bomb(x,y)
 	local bb=bombMan(x,y)
-	bb.tmMul=0 bb.alertRange=0
+	bb.tmMul=0
+	bb.alertRange=0
 	function bb:defaultMove()
 		return {0,0},{0,0}
 	end
@@ -837,14 +984,26 @@ function bomb(x,y)
 		end
 		self:drawElem()
 	end
+
 	return bb
 end
+-- endregion
 
+-- region _ELITE
 function chargeElite(x,y)
 	local ce = mob(x,y,16,16,50,10*8)
-	ce.ms=0.5 ce.chargeMs=3 ce.tiA=0 ce.fwd={-1,0} ce.meleeRange=(16+16)//2+8*4 
-	ce.attack=10 ce.waitMeleeHit=false ce.dmgStunTresh=10 ce.tA1=20 ce.tA2=20+40 
-	ce.tA3=20+40+90 ce.tA4=20+40+90+60
+	ce.ms=0.5
+	ce.chargeMs=3
+	ce.tiA=0
+	ce.fwd={-1,0}
+	ce.meleeRange=(16+16)//2+8*4
+	ce.attack=10
+	ce.waitMeleeHit=false
+	ce.dmgStunTresh=10
+	ce.tA1=20 --start charge
+	ce.tA2=20+40 --in charging
+	ce.tA3=20+40+90 --charge finish -> rest
+	ce.tA4=20+40+90+60 --return move
 	function ce:startAttack()
 		self.state=1
 		self.tiA=0
@@ -887,6 +1046,7 @@ function chargeElite(x,y)
 			end
 			self.tiA=self.tiA+self.tmMul
 			if(self.tiA>=self.tA3)then self:defaultMove() end
+			--if(self.tiA>=90)then end
 			if(self.tiA>=self.tA4)then self.state=0 end
 		end
 	end
@@ -920,17 +1080,31 @@ end
 
 function laserElite(x,y)
 	local le = mob(x,y,16,16,30,10*8)
-	le.ms=0.5 le.tiA=0 le.fwd={-1,0} le.meleeRange=(16+16)//2+8 
-	le.laserRange=(16+16)//2+120 le.meleeAttack=5 le.laserAttack=10 
-	le.waitAttackCalc=false le.pullMul=0.5 le.pushMul=0.5 le.dmgStunTresh=10
-	le.tA1=40 le.tA2=55 le.tA3=60 le.tA4=90 le.tA5=120 le.tAl1=60 le.tAl2=90 le.tAl3=120  
+	le.ms=0.5
+	le.tiA=0
+	le.fwd={-1,0}
+	le.meleeRange=(16+16)//2+8
+	le.laserRange=(16+16)//2+120
+	le.meleeAttack=5
+	le.laserAttack=10
+	le.waitAttackCalc=false
+	le.pullMul=0.5
+	le.pushMul=0.5
+	le.dmgStunTresh=10
+	le.tA1=40 --hold->up
+	le.tA2=55 --up->down
+	le.tA3=60 --down->calc
+	le.tA4=90 --keep idle
+	le.tA5=120 --return move
+	le.tAl1=60 --hold->emit(calc)
+	le.tAl2=90 --emit->emit finish
+	le.tAl3=120 --return move
 	function le:startMeleeAttack()
 		self.state=1
 		self.tiA=0
 		self.waitAttackCalc=true
 	end
 	function le:startLaserAttack()
-		sfx(11,"A-5",30)
 		self.state=2
 		self.tiA=0
 		self.waitAttackCalc=true
@@ -972,6 +1146,7 @@ function laserElite(x,y)
 		elseif(distance>(self.laserRange-6*8))then
 			self:movec(dvn[1]*self.ms*_tmMul,dvn[2]*self.ms*_tmMul)
 		end
+		--self:movec(dvn[1]*self.ms*_tmMul,dvn[2]*self.ms*_tmMul)
 		return dv,dvn,distance
 	end
 	function le:update()
@@ -979,6 +1154,7 @@ function laserElite(x,y)
 		if(self.state==0)then
 			local dv,dvn,distance=self:leMove()
 			if(distance<=self.meleeRange)then
+				--self.fwd=dvn
 				self:startMeleeAttack()
 			elseif(distance<=self.laserRange)then
 				self.fwd=dvn
@@ -1034,7 +1210,7 @@ function laserElite(x,y)
 				for i=1,240 do
 					circbc(sx+self.fwd[1]*i,sy+self.fwd[2]*i,size,colors[size+1])
 				end
-				 
+				--linec(sx,sy,sx+self.fwd[1]*240,sy+self.fwd[2]*240,8) end
 			else
 				sprc(422+t//(20/self.tmMul)%2 * 2,self.x,self.y,14,1,0,0,2,2)
 			end
@@ -1044,7 +1220,10 @@ function laserElite(x,y)
 	end
 	return le
 end
+-- endregion
 
+-- region _BOSS
+-- region Trinity
 Trinity={}
 function Trinity:init(x,y)
 	self.hp=1000
@@ -1100,13 +1279,34 @@ function Trinity:draw()
 		
 	end
 end
+--Trinity:init()
+-- endregion
+
 
 function Newton(x,y)
 	local nt=mob(x,y,16,16,300,0)
-	nt.maxHp=nt.hp nt.dmgStunTresh=150 nt.stunTime=900 nt.ms=0.75 nt.tiA=0 
-	nt.fwd={-1,0} nt.leaveRange=5*8 nt.apprRange=6*8 nt.meleeRange=10*8+4 
-	nt.attack=1 nt.waitAttackCalc=false nt.force=1 nt.pullMul=0 nt.pushMul=0 
-	nt.mem=0 nt.mem1=0 nt.mem2=0 nt.tA1={60,90,120,120} nt.tA2={60,70,120,210} 
+	nt.maxHp=nt.hp
+	nt.dmgStunTresh=150
+	nt.stunTime=900
+	nt.ms=0.75
+	nt.tiA=0
+	nt.fwd={-1,0}
+	nt.leaveRange=5*8
+	nt.apprRange=6*8
+	nt.meleeRange=10*8+4
+	nt.attack=1
+	nt.waitAttackCalc=false
+	nt.force=1
+	nt.pullMul=0
+	nt.pushMul=0
+	-- nt.tmMul=0
+	-- nt.tRMC=60 --random move change
+	-- nt.randFwd={0,0}
+	nt.mem=0
+	nt.mem1=0
+	nt.mem2=0
+	nt.tA1={60,90,120,120}
+	nt.tA2={60,70,120,210}
 	nt.tA3={120,150,210,330}
 
 	function nt:onHit(dmg,noStun)
@@ -1117,7 +1317,7 @@ function Newton(x,y)
 			if(self.maxHp-self.hp>self.dmgStunTresh)then self.tiStun=self.stunTime end
 			if(self.tiStun>0)then self.maxHp=self.hp end
 			if(dmg.elem==1)then self.tiFire=150 elseif(dmg.elem==2)then self.tiIce=30 end
-			 
+			--if(self.hp<=0)then self:death() end
 			return true
 		end
 		return false
@@ -1127,11 +1327,13 @@ function Newton(x,y)
 		self.tiA=0
 		self.waitAttackCalc=true
 		self.mem=index
-		 
+		--starDust(x,y,w,h,num,color,tLife,tGenInter)
 		if(index==2)then 
 			self.mem1=self.mem1+1 starDust(self.x,self.y,16,16,10,1,15,5)
-		elseif(index==3)then starDust(self.x,self.y,16,16,40,15,15,5)
-		else starDust(self.x,self.y,16,16,10,6,15,5)
+		elseif(index==3)then 
+			starDust(self.x,self.y,16,16,40,15,15,5)
+		else
+			starDust(self.x,self.y,16,16,10,6,15,5)
 		end
 	end
 	function nt:pull(isReverse)
@@ -1165,6 +1367,15 @@ function Newton(x,y)
 			self:movec(-dvn[1]*self.ms*_tmMul,-dvn[2]*self.ms*_tmMul)
 		elseif(distance>(self.apprRange))then
 			self:movec(dvn[1]*self.ms*_tmMul,dvn[2]*self.ms*_tmMul)
+		else
+			-- if(t%self.tRMC==0)then
+			-- 	local fx=-1+2*math.random()
+			-- 	local fy=-1+2*math.random()
+			-- 	self.randFwd=vecNormFake({fx*2,fy*2},1)
+			-- 	trace(self.randFwd[1])
+			-- 	trace(self.randFwd[2])
+			-- end
+			-- self:movec(self.randFwd[1]*self.ms*_tmMul,self.randFwd[2]*self.ms*_tmMul)
 		end
 		return dv,dvn,distance
 	end
@@ -1177,7 +1388,8 @@ function Newton(x,y)
 			if(dis<=self.meleeRange)then
 				if(self.mem1>=3 and math.random()*10<self.mem1)then
 					self:startAttack(3)
-					self.mem1=0 self.mem2=0
+					self.mem1=0
+					self.mem2=0
 				elseif(self.mem==1)then	
 					self:startAttack(2)
 				else
@@ -1269,8 +1481,16 @@ end
 
 function Galileo(x,y)
 	local gl=Newton(x,y)
-	gl.hp=400 gl.maxHp=400 gl.dmgStunTresh=200 gl.stunTime=900 gl.ms=1 
-	gl.meleeAttack=-10 gl.meleeRange=4*8 gl.pullMul=0.5 gl.pushMul=0.5 gl.tmMul=0
+	gl.hp=400
+	gl.maxHp=400
+	gl.dmgStunTresh=200
+	gl.stunTime=900
+	gl.ms=1
+	gl.meleeAttack=-10
+	gl.meleeRange=4*8
+	gl.pullMul=0.5
+	gl.pushMul=0.5
+	gl.tmMul=0
 	gl.tA1={60,90,150,210}
 
 	function gl:startAttack(index)
@@ -1278,6 +1498,7 @@ function Galileo(x,y)
 		self.tiA=0
 		self.waitAttackCalc=true
 		self.mem=index
+		--starDust(x,y,w,h,num,color,tLife,tGenInter)
 		starDust(self.x,self.y,16,16,15,2,15,5)
 	end
 	function gl:ballCalc()
@@ -1310,6 +1531,7 @@ function Galileo(x,y)
 				self.waitAttackCalc=false
 				self:ballCalc()
 			end
+			--if(self.tiA<self.tA1[1])then _t=self.tmMul end
 			self.tiA=self.tiA+_t
 			if(self.tiA>=self.tA1[3])then self:defaultMove() end
 			if(self.tiA>=self.tA1[4])then self.state=0 end
@@ -1339,13 +1561,24 @@ end
 
 function Kelvin(x,y)
 	local kl=Newton(x,y)
-	kl.hp=200 kl.maxHp=200 kl.dmgStunTresh=100 kl.stunTime=900 
-	kl.leaveRange=3*8 kl.apprRange=6*8 kl.ms=0.5 kl.meleeAttack=10 
-	kl.pullMul=0.5 kl.pushMul=0.5 kl.tmMul=0 kl.tA1={60,90,150,450}
+	kl.hp=200
+	kl.maxHp=200
+	kl.dmgStunTresh=100
+	kl.stunTime=900
+	kl.leaveRange=3*8
+	kl.apprRange=6*8
+	kl.ms=0.5
+	kl.meleeAttack=10
+	kl.pullMul=0.5
+	kl.pushMul=0.5
+	kl.tmMul=0
+	kl.tA1={60,90,150,450}
 
 	function kl:startAttack(index)
-		self.state=index self.tiA=0 
-		self.waitAttackCalc=true self.mem=index
+		self.state=index
+		self.tiA=0
+		self.waitAttackCalc=true
+		self.mem=index
 		starDust(self.x,self.y,16,16,10,8,15,5)
 	end
 	function kl:castIceBall()
@@ -1353,30 +1586,41 @@ function Kelvin(x,y)
 	end
 	function kl:update()
 		local _t=1
-		self.tiIce=0 self.tiFire=0
+		self.tiIce=0
+		self.tiFire=0
 		if(not self:defaultUpdate())then return end
 		if(self.state==0)then
 			local dv,dvn,dis=self:iMove()
-			if(dis<=self.apprRange)then self:startAttack(1) end
+			if(dis<=self.apprRange)then
+				self:startAttack(1)
+				--self.fwd=dvn
+			end
 		elseif(self.state==1)then
 			if(self.tiA>=self.tA1[1] and self.waitAttackCalc)then
 				self.waitAttackCalc=false
 				self:castIceBall()
 			end
+			--if(self.tiA<self.tA1[1])then _t=self.tmMul end
 			self.tiA=self.tiA+_t
 			if(self.tiA>=self.tA1[3])then self:iMove() end
 			if(self.tiA>=self.tA1[4])then self.state=0 end
 		end
 	end
 	function kl:draw()
-		local _t=1 local sprite=486+t//(20/_t)%2 * 2
+		local _t=1
+		local sprite=486+t//(20/_t)%2 * 2
 		if(self.tiStun>0)then
 			sprc(486,self.x,self.y,1,1,0,0,2,2)
 			self:drawStun()
-		elseif(self.state==0)then sprc(sprite,self.x,self.y,1,1,0,0,2,2)
-		elseif(self.state==1)then
-			if(self.tiA<self.tA1[1])then sprc(490,self.x,self.y,1,1,0,0,2,2)
-			else sprc(sprite,self.x,self.y,1,1,0,0,2,2)
+		elseif(self.state==0)then
+			sprc(sprite,self.x,self.y,1,1,0,0,2,2)
+		elseif(self.state==1) then
+			if(self.tiA<self.tA1[1])then
+				--rectbc(self.x+16*self.fwd[1],self.y+16*self.fwd[2],24,24,3+t//2%3)
+				--sprc(368,self.x+16*self.fwd[1],self.y+16*self.fwd[2]-(1-(self.tiA/self.tA1[1]))*80,0,3,0,0,1,1)
+				sprc(490,self.x,self.y,1,1,0,0,2,2)
+			else
+				sprc(sprite,self.x,self.y,1,1,0,0,2,2)
 			end
 		end
 		self:drawElem()
@@ -1386,9 +1630,19 @@ end
 
 function KelvinIceBall(x,y)
 	local km=bombMan(x,y)
-	km.hp=2 km.h=16 km.w=16 km.tiLife=300 km.noEntityCollide=true 
-	km.noMapCollide=true km.ms=0.25 km.meleeRange=12 km.attack=-10 
-	km.pullMul=0.5 km.pushMul=0.5 km.tmMul=0 km.sleep=false
+	km.hp=2
+	km.h=16
+	km.w=16
+	km.tiLife=300
+	km.noEntityCollide=true
+	km.noMapCollide=true
+	km.ms=0.25
+	km.meleeRange=12
+	km.attack=-10
+	km.pullMul=0.5
+	km.pushMul=0.5
+	km.tmMul=0
+	km.sleep=false
 
 	function km:meleeCalc()
 		local atkBox={x=self.x-8,y=self.y-8,w=32,h=32}
@@ -1421,27 +1675,43 @@ function KelvinIceBall(x,y)
 		end
 	end
 	function km:draw()
+		-- warning update in draw
 		if(self.tiLife<=0)then self:meleeCalc() end
 		self.tiLife=self.tiLife-1
+		--
 		sprc(371,self.x,self.y,0,2,0,0,1,1)
 		if(self.state==1 and self.tiA<self.tA1)then
 			rectbc(self.x-8,self.y-8,32,32,8)
 		end
 		self:drawElem()
 	end
+
 	return km
 end
 
+-- endregion
+
+-- region FakeMob
 function fence(x,y)
 	local fe=mob(x,y,8,8,-1,-1)
-	fe.pullMul=0 fe.pushMul=0 fe.tmMul=0 fe.canHit=false
-	function fe:update() end
-	function fe:draw() end
+	fe.pullMul=0
+	fe.pushMul=0
+	fe.tmMul=0
+	fe.canHit=false
+
+	function fe:update()
+	end
+	function fe:draw()
+	end
+
 	return fe
 end
+
 function weakRock(x,y)
 	local wr=mob(x,y,8,8,1,-1)
-	wr.pullMul=0 wr.pushMul=0 wr.tmMul=0
+	wr.pullMul=0
+	wr.pushMul=0
+	wr.tmMul=0
 
 	function wr:onDeath()
 		mset(iMapManager.offx+self.x//8,iMapManager.offy+self.y//8,255)
@@ -1451,13 +1721,20 @@ function weakRock(x,y)
 	function wr:draw()
 		sprc(144,self.x,self.y,0,1,0,0,1,1)
 	end
+
 	return wr
 end
 
 function fireTentacle(x,y,noInit)
 	local ft=mob(x,y,8,8,1,-1)
-	ft.noEntityCollide=true ft.pullMul=0 ft.pushMul=0 
-	ft.tmMul=0 ft.rawChangeTime=1 ft.tiC=0 ft.sprite=182 ft.horSprite=166
+	ft.noEntityCollide=true
+	ft.pullMul=0
+	ft.pushMul=0
+	ft.tmMul=0
+	ft.rawChangeTime=1
+	ft.tiC=0
+	ft.sprite=182
+	ft.horSprite=166
 
 	function ft:changeOneTile()
 		local tmp=1
@@ -1539,7 +1816,10 @@ end
 function iceTentacle(x,y)
 	local it=fireTentacle(x,y,true)
 	it.rawChangeTime=10
-	it.tiC=0 it.sprite=164 it.horSprite=180
+	it.tiC=0
+	it.sprite=164
+	it.horSprite=180
+
 	it:init()
 	function it:onHit(dmg)
 		if(dmg.elem==1)then
@@ -1570,9 +1850,15 @@ function iceTentacle(x,y)
 		if(self.tiFire>0)then color=4 end
 		rectbc(self.x,self.y,self.w,self.h,color)
 	end
+
 	return it
 end
 
+-- endregion
+
+-- endregion
+
+-- region ITEM
 function item(x,y,w,h)
 	local it = entity(x,y,w,h)
 	it.noEntityCollide=true
@@ -1582,6 +1868,7 @@ function item(x,y,w,h)
 			if(envManager[i]==self)then table.remove(envManager,i) end
 		end
 	end
+
 	return it
 end
 
@@ -1589,8 +1876,8 @@ function apple(x,y)
 	local app=item(x,y,8,8)
 
 	function app:onTaken()
-		sfx(3)
 		player:hpUp(5)
+		-- todo:play something
 		self:remove()
 	end
 
@@ -1610,9 +1897,9 @@ function keyItem(x,y,tx,ty)
 	k.ty=ty
 
 	function k:onTaken()
-		sfx(3)
 		player:getKey()
 		mset(self.tx,self.ty,255)
+		-- todo:play something
 		self:remove()
 	end
 
@@ -1622,6 +1909,7 @@ function keyItem(x,y,tx,ty)
 	function k:draw()
 		sprc(208,self.x,self.y,14,1,0,0,1,1)
 	end
+
 	return k
 end
 
@@ -1643,7 +1931,9 @@ function portal(x,y,code)
 
 	return p
 end
+-- endregion
 
+-- region BULLET
 function bullet(x,y,w,h,iDmg,iElem)
 	local blt=item(x,y,w,h)
 	blt.dmg=iDmg
@@ -1655,6 +1945,7 @@ function bullet(x,y,w,h,iDmg,iElem)
 	blt.hitMobs=set({})
 	blt.fwd={0,1}
 	blt.speed=1
+
 	function blt:hitCheck()
 		if(self.hitPlayer)then
 			if(iEntityTrigger(player,self))then return self:hit(player) end
@@ -1709,6 +2000,7 @@ function tinyBullet(x,y,fwd)
 		end
 	end
 	function tb:draw()
+		--pixc(self.x,self.y,4)
 		circc(self.x,self.y,1,4)
 		circbc(self.x,self.y,2,15)
 		
@@ -1729,6 +2021,7 @@ function KelvinBullet(x,y,fwd,iDmg,iElem)
 		if(self:hitCheck())then	self:remove()	end
 	end
 	function kb:draw()
+		--pixc(self.x,self.y,4)
 		local color=4
 		local color2=5
 		if(self.elem==2)then color=9 color2=8 end
@@ -1739,12 +2032,16 @@ function KelvinBullet(x,y,fwd,iDmg,iElem)
 		local tileId,tx,ty=tile[1],tile[2],tile[3]
 		if(self.elem==1)then
 			if(MAP_BUTTER:contains(tileId))then
+				--if(inbossBattle)then mset_4ca_set(tx,ty,255,MAP_BUTTER) else
 				mset_4ca_set(tx,ty,80,MAP_BUTTER) 
+				--end
 				self:remove()
 			end
 		elseif(self.elem==2)then
 			if(MAP_WATER:contains(tileId))then
+				--if(inbossBattle)then mset_4ca_set(tx,ty,255,MAP_WATER) else
 				mset_4ca_set(tx,ty,17,MAP_WATER) 
+				--end
 				self:remove()
 			elseif(tileId==80)then
 				if(inbossBattle)then mset_4ca(tx,ty,255,80) else
@@ -1765,11 +2062,16 @@ function KelvinBullet(x,y,fwd,iDmg,iElem)
 
 	return kb
 end
+-- endregion
 
+-- region EFFECT
 function effect(x,y,w,h)
 	local ef = entity(x,y,w,h)
-	ef.noEntityCollide=true ef.noMapCollide=true ef.pullMul=0 
-	ef.pushMul=0 ef.after=false
+	ef.noEntityCollide=true
+	ef.noMapCollide=true
+	ef.pullMul=0
+	ef.pushMul=0
+	ef.after=false
 
 	function ef:remove()
 		if(self.after)then
@@ -1824,7 +2126,6 @@ function shockActive(x,y,w,h,colors,timeInterval)
 end
 
 function explode(x,y)
-	sfx(2)
 	local ep=effect(x+4,y+4,0,0)
 	ep.ti=0
 	ep.fwds={}
@@ -1841,9 +2142,13 @@ function explode(x,y)
 	function ep:draw()
 		if(self.ti<15)then rectbc(self.x-12,self.y-12,24,24,4) end
 		local color=4
-		if(self.ti>5)then color=5
-		elseif(self.ti>10)then color=12
-		elseif(self.ti>15)then color=0 end
+		if(self.ti>5)then
+			color=5
+		elseif(self.ti>10)then
+			color=12
+		elseif(self.ti>15)then
+			color=0
+		end
 		for i=1,#self.fwds do
 			local fwd=self.fwds[i]
 			circc(self.x+fwd[1]*self.ti,self.y+fwd[2]*self.ti,5*(1-self.ti/30),color)
@@ -1873,9 +2178,13 @@ function dust(x,y,num,colors,size,tLife)
 	end
 	function ds:draw()
 		local color=self.c[1]
-		if(self.ti>5)then color=self.c[2]
-		elseif(self.ti>10)then color=self.c[3]
-		elseif(self.ti>15)then color=self.c[4] end
+		if(self.ti>5)then
+			color=self.c[2]
+		elseif(self.ti>10)then
+			color=self.c[3]
+		elseif(self.ti>15)then
+			color=self.c[4]
+		end
 		for i=1,#self.fwds do
 			local fwd=self.fwds[i]
 			circc(self.x+fwd[1]*self.ti,self.y+fwd[2]*self.ti,self.size*(1-self.ti/self.tLife),color)
@@ -1887,7 +2196,11 @@ end
 
 function star(x,y,color,tLife,maxDis)
 	local st=effect(x,y,0,0)
-	st.ti=0 st.color=color st.tLife=tLife st.maxDis=maxDis st.after=true
+	st.ti=0
+	st.color=color
+	st.tLife=tLife
+	st.maxDis=maxDis
+	st.after=true
 	function st:update()
 		self.ti=self.ti+1
 		if(self.ti>=self.tLife)then self:remove() end
@@ -1907,6 +2220,7 @@ function starDust(x,y,w,h,num,color,tLife,tGenInter)
 	ds.color=color or 6
 	ds.tLife=tLife or h
 	ds.tGenInter=tGenInter or 1
+	--ds.maxTime=ds.num*ds.tGenInter
 
 	function ds:update()
 		self.ti=self.ti+1
@@ -1926,8 +2240,12 @@ end
 
 function shockScreen(magnitude,times,changeX)
 	local ss=effect(0,0,0,0)
-	ss.ti=0 ss.mag=magnitude ss.times=times ss.maxTime=times*magnitude*4 
-	ss.increase=true ss.curMag=0
+	ss.ti=0
+	ss.mag=magnitude
+	ss.times=times
+	ss.maxTime=times*magnitude*4
+	ss.increase=true
+	ss.curMag=0
 	if(changeX)then
 		ss.ci=1
 	else
@@ -1957,6 +2275,9 @@ function shockScreen(magnitude,times,changeX)
 	return ss
 end
 		
+-- endregion
+
+-- region TOOL
 function sprc(id,x,y,alpha_color,scale,flip,rotate,cell_width,cell_height)
 	spr(id,x-camera.x,y-camera.y,alpha_color,scale,flip,rotate,cell_width,cell_height)
 end
@@ -1986,7 +2307,7 @@ function pixc(x,y,color)
 end
 
 
-function mset_4ca(x,y,mid,smid) 
+function mset_4ca(x,y,mid,smid) --4-connected area
 	if(smid==nil or mid==smid)then trace("WARNING") end
 	if(mget(x,y)==smid)then
 		mset(x,y,mid)
@@ -2027,6 +2348,8 @@ function CenterDisVecWithThresh(a, b, thresh)
 	end
 end
 
+
+
 function CenterPoint(a)
 	return {a.x+a.w//2,a.y+a.h//2}
 end
@@ -2043,6 +2366,7 @@ end
 function boxOverlapCast(box)
 	local b=box
 	if(b.x==nil) then b={x=b[1],y=b[2],w=b[3],h=b[4]} end
+	-- local b={x=box[1],y=box[2],w=box[3],h=box[4]}
 	finded = {}
 	for i=1,#mobManager do
 		local m=mobManager[i]
@@ -2090,7 +2414,9 @@ function PointInEntity(point,tar,maxDis)
 	end
 end
 
+
 function mapCollision(ety)
+	--trace(ety.noMapCollide)
 	local collidedTileList={}
 	local enteredDangerList={}
 	local enteredFreeList={}
@@ -2156,7 +2482,9 @@ function iPull(src,m,isReverse,force,maxRange)
 	dv=vecNormFake(dv,1)
 	m:movec(force*dv[1]*scale,force*dv[2]*scale,true)
 end
+-- endregion
 
+-- region DIALOG
 function dialog(index,noAutoActive)
 	local dl={}
 	if(not noAutoActive)then dl.txts=TEXTS[index] end
@@ -2169,7 +2497,9 @@ function dialog(index,noAutoActive)
 		end
 		self:afterRemove()
 	end
-	 
+	-- function dl:update()
+	-- 	if(btn(4))then trace("btn") self:remove() end
+	-- end
 	function dl:draw()
 		if(btn(4))then self:remove() end
 		rectb(2*8-1,12*8-1,26*8+2,4*8+4+2,15)
@@ -2184,7 +2514,6 @@ function dialog(index,noAutoActive)
 end
 
 function GameOverDialog()
-	sfx(10)
 	local gd=dialog(0)
 	gd.txts=TEXTS.gameover
 
@@ -2203,6 +2532,9 @@ function LoadMapCode(tx,ty)
 	return code
 end
 	
+-- endregion
+
+-- region MANAGER
 function redraw(tile,x,y)
 	local outTile,flip,rotate=tile,0,0
 	if(MAP_REMAP_BLANK:contains(tile))then
@@ -2222,10 +2554,12 @@ function redraw(tile,x,y)
 end
 
 iMapManager={offx=0,offy=0}
- 
+-- function iMapManager:update() end
 function iMapManager:draw()
+	--map(cell_x,cell_y,cell_w,cell_h,x,y,alpha_color,scale,remap)
 	map(5*30,7*17,31,18,-30*8+(3*t)%(60*8),0,1,1)
 	map(5*30,7*17,31,18,-30*8+(3*t-30*8)%(60*8),0,1,1)
+	--map(5*30+60*(t//2%60),7*17,31,18,0,0,1,1)
 	map(0+self.offx+camera.x//8,0+self.offy+camera.y//8,31,18,8*(camera.x//8)-camera.x,8*(camera.y//8)-camera.y,1,1,redraw)
 end
 
@@ -2255,7 +2589,9 @@ function uiStatusBar:draw()
 			rect(7+(16+4)*(i-1),15*8-6,16*(1-atf.tiCD/(atf.cdTime-atf.durTime)),5,2)
 		end
 	end
-	print("X",7,15*8+8,15) print("Y",7+16+4,15*8+8,15) print("B",7+20*2,15*8+8,15)
+	print("X",7,15*8+8,15)
+	print("Y",7+16+4,15*8+8,15)
+	print("B",7+20*2,15*8+8,15)
 end
 
 uiKeyBar={}
@@ -2275,47 +2611,71 @@ function loadLevel(levelId)
 	local lOff = {{0,0},{0,17*2+2},{0,17*4},{30*6,17*2}, {0,17*5},{30*3-15,0},{30*3,17*2}}
 	local MapSize = {{30*2+15,17*2+2},{30*3,17*2-2},{30*3,17},{30*1,17*3}, {30*3,17*3},{30*5+15,17*2},{30*3,17*2+4}}
 	local playerPos = {{120,80},{30+0,120},{56,80},{112,120}, {64,120},{5*8,23*8},{6*8,-3*8}}
-	 
-	iMapManager.offx = lOff[levelId][1] iMapManager.offy = lOff[levelId][2]
-	 
+	--local playerPos = {{20,80},{30+0,120}}
+	iMapManager.offx = lOff[levelId][1]
+	iMapManager.offy = lOff[levelId][2]
+	-- todo initMap
 	for i=1,#mobManager do mobManager[i]=nil end
 	for i=1,#envManager do envManager[i]=nil end
 	player.x=playerPos[levelId][1]
 	player.y=playerPos[levelId][2]
-	player:update()  
+	player:update() --reset camera
 	table.insert(mobManager,player)
 	if(curLevel==1)then dialog(1) end
 	for i=1,MapSize[levelId][1] do
 		for j=1,MapSize[levelId][2] do
 			local tx,ty=i+iMapManager.offx,j+iMapManager.offy
 			local mtId=mget(tx,ty)
-			if(mtId==240)then table.insert(mobManager,slime(i*8,j*8))
-			elseif(mtId==241)then	table.insert(mobManager,ranger(i*8,j*8))
-			elseif(mtId==242)then	table.insert(mobManager,staticRanger(i*8,j*8,{-1,0}))
-			elseif(mtId==243)then	table.insert(mobManager,staticRanger(i*8,j*8,{1,0}))
-			elseif(mtId==244)then	table.insert(mobManager,staticRanger(i*8,j*8,{0,-1}))
-			elseif(mtId==245)then	table.insert(mobManager,staticRanger(i*8,j*8,{0,1}))
-			elseif(mtId==225)then	table.insert(mobManager,bombMan(i*8,j*8))
-			elseif(mtId==226)then	table.insert(mobManager,bomb(i*8,j*8))
-			elseif(mtId==227)then	table.insert(mobManager,laserElite(i*8,j*8))
-			elseif(mtId==228)then	table.insert(mobManager,chargeElite(i*8,j*8))
-			elseif(mtId==224)then	table.insert(envManager,apple(i*8,j*8))
-			elseif(mtId==208)then	table.insert(envManager,keyItem(i*8,j*8,tx,ty))
-			elseif(mtId==209)then	table.insert(mobManager,fence(i*8,j*8))
-			elseif(mtId==144)then	table.insert(mobManager,weakRock(i*8,j*8))
-			elseif(mtId==131)then	table.insert(mobManager,fireTentacle(i*8,j*8))
-			elseif(mtId==132)then	table.insert(mobManager,iceTentacle(i*8,j*8))
-			elseif(mtId==197)then	table.insert(envManager,portal(i*8,j*8,LoadMapCode(tx,ty)))
-			elseif(mtId==229)then Trinity:init(i*8,j*8)
+			if(mtId==240)then 
+				table.insert(mobManager,slime(i*8,j*8))
+			elseif(mtId==241)then 
+				table.insert(mobManager,ranger(i*8,j*8))
+			elseif(mtId==242)then 
+				table.insert(mobManager,staticRanger(i*8,j*8,{-1,0}))
+			elseif(mtId==243)then 
+				table.insert(mobManager,staticRanger(i*8,j*8,{1,0}))
+			elseif(mtId==244)then 
+				table.insert(mobManager,staticRanger(i*8,j*8,{0,-1}))
+			elseif(mtId==245)then 
+				table.insert(mobManager,staticRanger(i*8,j*8,{0,1}))
+			elseif(mtId==225)then 
+				table.insert(mobManager,bombMan(i*8,j*8))
+			elseif(mtId==226)then 
+				table.insert(mobManager,bomb(i*8,j*8))
+			elseif(mtId==227)then 
+				table.insert(mobManager,laserElite(i*8,j*8))
+			elseif(mtId==228)then 
+				table.insert(mobManager,chargeElite(i*8,j*8))
+			elseif(mtId==224)then
+				table.insert(envManager,apple(i*8,j*8))
+			elseif(mtId==208)then
+				table.insert(envManager,keyItem(i*8,j*8,tx,ty))
+			elseif(mtId==209)then
+				table.insert(mobManager,fence(i*8,j*8))
+			elseif(mtId==144)then
+				table.insert(mobManager,weakRock(i*8,j*8))
+			elseif(mtId==131)then
+				table.insert(mobManager,fireTentacle(i*8,j*8))
+			elseif(mtId==132)then
+				table.insert(mobManager,iceTentacle(i*8,j*8))
+			elseif(mtId==197)then
+				table.insert(envManager,portal(i*8,j*8,LoadMapCode(tx,ty)))
+			elseif(mtId==229)then
+				Trinity:init(i*8,j*8)
 			end
 		end
 	end
 end
 
-function gameOver()	
+function gameOver()
 	player.hp=50
 	player.dead=false
 	loadLevel(curLevel)
+	-- if(curLevel<=3)then
+	-- 	loadLevel(curLevel)
+	-- elseif(curLevel>=4)then
+	-- 	loadLevel(5)
+	-- end
 end
 
 atfManager={theGravition,theTimeMachine,theKelvinWand}
@@ -2325,16 +2685,18 @@ end
 function atfManager:useAtf(index)
 	self[index]:use()
 end
- 
+-- menu
 function drawMenu()
-	cls(0) map(180,102,31,18,0,0,1)
+	cls(0)
+	map(180,102,31,18,0,0,1)
 	print("o",75+math.sin(time()/100),84+(2-cs)*10,6)
 	if cs==2 then print("start game",84,84,6) print("about", 84, 94)
 	else print("start game",84,84) print("about", 84, 94,6)
 	end
 end
 function drawCdt()
-	cls(0) print("Credit",1,1,15,false,2)print("Program\n\n\t\t - RATTAR\n\n\t\t - Playground",1,20)
+	cls(0) print("Credit",1,1,15,false,2)
+	print("Program\n\n\t\t - RATTAR\n\n\t\t - Playground",1,20)
 	print("Visual Art\n\n\t\t - Hustree\n\n\t\t - M!", 1, 60)
 	print("Producer\n\n\t\t - GANAH",1,100)
 	print("Game Design\n\n\t\t - Roku\n\n\t\t - Timechaser\n\n\t\t - GANAH",100,20)
@@ -2342,15 +2704,20 @@ function drawCdt()
 end
 mobManager={}
 envManager={}
-aEnvManager={}  
+aEnvManager={} --after
+-- endregion
 
-t=0 camera={x=0,y=0} cameraOffset={0,0}
 
-mainManager={mobManager,atfManager,envManager,aEnvManager}
-drawManager={{iMapManager},envManager,{player},mobManager,aEnvManager,atfManager,uiManager,{Trinity}}
+t=0
+camera={x=0,y=0}
+cameraOffset={0,0}
+
+mainManager = {mobManager,atfManager,envManager,aEnvManager}
+drawManager = {{iMapManager},envManager,{player},mobManager,aEnvManager,atfManager,uiManager,{Trinity}}
 
 loadLevel(curLevel)
-gs=0 cs=2
+gs=0
+cs=2
 function TIC()
 	if gs==0 then
 		drawMenu()
@@ -2362,6 +2729,7 @@ function TIC()
 		if btnp(4) then gs=0 end
 	else
 		if(#uiManager<2)then
+			-- update
 			for i=1,#mainManager do
 				for j=1,#mainManager[i] do
 					local obj=mainManager[i][j]
@@ -2369,6 +2737,8 @@ function TIC()
 				end
 			end
 		end
+
+		-- draw
 		cls(0)
 		for i=1,#drawManager do
 			for j=1,#drawManager[i] do
@@ -2376,8 +2746,10 @@ function TIC()
 				if(obj)then	drawManager[i][j]:draw() end
 			end
 		end
+		
 		t=t+1
 	end
+	--trace("test"..a)
 end
 
 -- <TILES>
@@ -3025,9 +3397,9 @@ end
 -- 008:b1f0a1f091e081d081d081c071c071b071a081a081a09190a180a170b170b170b160c160c150c150d140d140e130e130e130e120f120f110f100f100407000000000
 -- 009:90f0a0e0b0d0c0c0c0b0d0a0d090e080e070e060f060f050f040f040f030f020f020f020f010f010f010f000f000f000f000f000f000f000f000f000207000000000
 -- 010:00f000f010e010e020d050c060b080a09090c090e090f090f090f090d090b0a080c070d050e030f010f000f010f030e050d080c0b0b0d0a0f090f090207000000000
--- 011:90009000f000f000f000900090009000f000f000f000900090009000f000f000f000f000f00090009000900090009000900090009000900090009000409000000000
 -- </SFX>
 
 -- <PALETTE>
 -- 000:100c1ce234c6595971deca69c23830ce89408dc24414304885b6d271aaca5d65717d8d95994c409daaaac6d2cadeeed6
 -- </PALETTE>
+
