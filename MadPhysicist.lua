@@ -2600,6 +2600,7 @@ uiManager={uiStatusBar}
 
 curLevel=1
 function loadLevel(levelId)
+	sync()
 	curLevel=levelId
 	local lOff = {{0,0},{0,17*2+2},{0,17*4},{30*6,17*2}, {0,17*5},{30*3-15,0},{30*3,17*2}}
 	local MapSize = {{30*2+15,17*2+2},{30*3,17*2-2},{30*3,17},{30*1,17*3}, {30*3,17*3},{30*5+15,17*2},{30*3,17*2+4}}
