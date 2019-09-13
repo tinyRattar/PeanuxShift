@@ -1911,7 +1911,7 @@ function portal(x,y,code)
 	p.code=code
 
 	function p:onTaken()
-		loadLevel(curLevel+1)
+		loadLevel(self.code+5)
 	end
 	function p:update()
 		if(iEntityTrigger(player,self))then self:onTaken() end
@@ -2515,6 +2515,16 @@ function GameOverDialog()
 	end
 	table.insert(uiManager,gd)
 end
+
+function LoadMapCode(tx,ty)
+	local code=0
+	local is={0,0,0}
+	if(mget(tx+1,ty)==176)then code=code+4 end
+	if(mget(tx,ty+1)==176)then code=code+2 end
+	if(mget(tx+1,ty+1)==176)then code=code+1 end
+	return code
+end
+	
 -- endregion
 
 -- region MANAGER
@@ -2606,7 +2616,8 @@ function loadLevel(levelId)
 	if(curLevel==1)then dialog(1) end
 	for i=1,MapSize[levelId][1] do
 		for j=1,MapSize[levelId][2] do
-			local mtId=mget(i+iMapManager.offx,j+iMapManager.offy)
+			local tx,ty=i+iMapManager.offx,j+iMapManager.offy
+			local mtId=mget(tx,ty)
 			if(mtId==240)then 
 				table.insert(mobManager,slime(i*8,j*8))
 			elseif(mtId==241)then 
@@ -2630,7 +2641,7 @@ function loadLevel(levelId)
 			elseif(mtId==224)then
 				table.insert(envManager,apple(i*8,j*8))
 			elseif(mtId==208)then
-				table.insert(envManager,keyItem(i*8,j*8,i+iMapManager.offx,j+iMapManager.offy))
+				table.insert(envManager,keyItem(i*8,j*8,tx,ty))
 			elseif(mtId==209)then
 				table.insert(mobManager,fence(i*8,j*8))
 			elseif(mtId==144)then
@@ -2640,7 +2651,7 @@ function loadLevel(levelId)
 			elseif(mtId==132)then
 				table.insert(mobManager,iceTentacle(i*8,j*8))
 			elseif(mtId==197)then
-				table.insert(envManager,portal(i*8,j*8,0))
+				table.insert(envManager,portal(i*8,j*8,LoadMapCode(tx,ty)))
 			elseif(mtId==229)then
 				Trinity:init(i*8,j*8)
 			end
