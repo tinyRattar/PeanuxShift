@@ -2646,6 +2646,16 @@ curLevel=1
 function loadLevel(levelId)
 	sync()
 	curLevel=levelId
+	if(curLevel==4)then
+		for i=1,3 do
+			if(player.cleared[4+i])then
+				mset(193,58+i*8-8,255)
+				mset(194,58+i*8-8,221)
+				mset(195,58+i*8-8,205)
+				mset(196,58+i*8-8,255)
+			end
+		end
+	end
 	local lOff = {{0,0},{0,17*2+2},{0,17*4},{30*6,17*2}, {0,17*5},{30*3-15,0},{30*3,17*2}}
 	local MapSize = {{30*2+15,17*2+2},{30*3,17*2-2},{30*3,17},{30*1,17*3}, {30*3,17*3},{30*5+15,17*2},{30*3,17*2+4}}
 	local playerPos = {{120,80},{30+0,120},{56,80},{112,120}, {64,120},{5*8,23*8},{6*8,-3*8}}
