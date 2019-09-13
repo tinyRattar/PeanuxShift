@@ -7,6 +7,7 @@
 CAMERA_OFF={15*8-4,8*8-4}
 NEARBY4 = {{-1,0},{1,0},{0,-1},{0,1}}
 FAKERANDOM8={4,2,7,5,1,8,3,6}
+NEXTLEVEL={2,3,4,nil,4,4,4}
 
 -- predefine set
 function set(ls)
@@ -401,7 +402,7 @@ function player:enter(tile)
 	elseif(tileId==16)then
 		self:onHit(damage(1))
 	elseif(tileId==231)then
-		loadLevel(curLevel+1)
+		loadLevel(NEXTLEVEL[curLevel])
 		-- if(curLevel<5)then
 		--   loadLevel(curLevel+1)
 		-- else
