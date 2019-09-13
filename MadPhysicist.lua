@@ -2646,15 +2646,23 @@ end
 -- menu
 function drawMenu()
 	cls(0)
-	-- print("o", 75+math.sin(time()/100),84+cs*10,6)
-	print("o", 75,83+cs*10+math.abs(3*math.sin(time()/500)),6)
-	if cs==0 then
+	print("o", 75+math.sin(time()/100),84+(2-cs)*10,6)
+	if cs==2 then
 	 print("start game",84,84,6)
 	 print("about", 84, 94)
 	else
 	 print("start game",84,84)
 	 print("about", 84, 94,6)
 	end
+end
+function drawCdt()
+	cls(0)
+	print("Credit",1,1,15,false,2)
+	print("Program\n\n\t\t - RATTAR\n\n\t\t - Playground",1,20)
+	print("Visual Art\n\n\t\t - Hustree\n\n\t\t - M!", 1, 60)
+	print("Producer\n\n\t\t - GANAH",1,100)
+	print("Game Design\n\n\t\t - Roku\n\n\t\t - Timechaser\n\n\t\t - GANAH",100,20)
+	print("press A to exit",180,120,15,false,1,true)
 end
 mobManager={}
 envManager={}
@@ -2671,13 +2679,16 @@ drawManager = {{iMapManager},envManager,{player},mobManager,aEnvManager,atfManag
 
 loadLevel(curLevel)
 gs=0
-cs=0
+cs=2
 function TIC()
 	if gs==0 then
 		drawMenu()
-		if btn(0) then cs=0 end
+		if btn(0) then cs=2 end
 		if btn(1) then cs=1 end
-		if btn(5) then gs=1-cs end
+		if btn(5) then gs=cs end
+	elseif gs==1 then
+		drawCdt()
+		if btnp(4) then gs=0 end
 	else
 		if(#uiManager<2)then
 			-- update
