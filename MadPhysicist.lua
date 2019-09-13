@@ -8,6 +8,8 @@ CAMERA_OFF={15*8-4,8*8-4}
 NEARBY4 = {{-1,0},{1,0},{0,-1},{0,1}}
 FAKERANDOM8={4,2,7,5,1,8,3,6}
 NEXTLEVEL={2,3,4,nil,4,4,4}
+TALKER_DIALOG={}
+TALKER_DIALOG[0]=2
 
 -- predefine set
 function set(ls)
@@ -45,10 +47,9 @@ MAP_LAVA=set({3,16,19,32,33,34,35,36,48,49,50,51,52,53,64,65,66,67})
 
 -- region TXT
 TEXTS={gameover={"YOU DEID!"},
-	{"What the fck, you are a fantasy physical boy. ",
-"Welcome to Super.Hyper.Incredible.Fhysical.Tower. ",
-"REMEMBER to use physical artifact and your ",
-"physical caliber."}
+{{"What the fck, you are a fantasy physical boy. ","Welcome to Super.Hyper.Incredible.Fhysical.Tower. "},
+{"REMEMBER to use physical artifact and your ","physical caliber."}},
+{{"wtf!"}}
 }
 -- endregion
 
@@ -285,7 +286,8 @@ function player:control()
 		player:movec(dx*self.tmMul,dy*self.tmMul,true)
 	end
 
-	if btn(4) then player:startAttack() end
+	if btnp(4) then player:startAttack() end
+
 	if(btn(5))then
 		self.lastBtn5=self.lastBtn5+1
 		if(self.lastBtn5==30)then
@@ -1868,6 +1870,9 @@ function item(x,y,w,h)
 	local it = entity(x,y,w,h)
 	it.noEntityCollide=true
 
+	function it:update()
+		if(iEntityTrigger(player,self))then self:onTaken() end
+	end
 	function it:remove()
 		for i=1,#envManager do
 			if(envManager[i]==self)then table.remove(envManager,i) end
@@ -1882,12 +1887,7 @@ function apple(x,y)
 
 	function app:onTaken()
 		player:hpUp(5)
-		-- todo:play something
 		self:remove()
-	end
-
-	function app:update()
-		if(iEntityTrigger(player,self))then self:onTaken() end
 	end
 	function app:draw()
 		sprc(224,self.x,self.y,14,1,0,0,1,1)
@@ -1904,12 +1904,7 @@ function keyItem(x,y,tx,ty)
 	function k:onTaken()
 		player:getKey()
 		mset(self.tx,self.ty,255)
-		-- todo:play something
 		self:remove()
-	end
-
-	function k:update()
-		if(iEntityTrigger(player,self))then self:onTaken() end
 	end
 	function k:draw()
 		sprc(208,self.x,self.y,14,1,0,0,1,1)
@@ -1925,9 +1920,6 @@ function portal(x,y,code)
 	function p:onTaken()
 		loadLevel(self.code+5)
 	end
-	function p:update()
-		if(iEntityTrigger(player,self))then self:onTaken() end
-	end
 	function p:draw()
 		local s=460+t//10%3 * 2
 		if(t//10%3==2)then s=428 end
@@ -1935,6 +1927,27 @@ function portal(x,y,code)
 	end
 
 	return p
+end
+
+function talker(x,y,code)
+	local tk=item(x,y,16,16)
+	tk.code=code
+	tk.sprite=nil
+	if(code==0)then tk.sprite=448 end
+
+	function tk:onTaken()
+		dialog(TALKER_DIALOG[tk.code])
+		self.talked=true
+	end
+	function tk:update()
+		if(self.talked)then self:remove() 
+		elseif(iEntityTrigger(player,self))then self:onTaken() end
+	end
+	function tk:draw()
+		sprc(self.sprite+t//30%2 * 2,self.x,self.y-t//30%2 * 2,14,1,0,0,2,2)
+	end
+
+	return tk
 end
 -- endregion
 
@@ -2492,7 +2505,8 @@ end
 -- region DIALOG
 function dialog(index,noAutoActive)
 	local dl={}
-	if(not noAutoActive)then dl.txts=TEXTS[index] end
+	dl.cur=1
+	if(not noAutoActive)then dl.txtsList=TEXTS[index] end
 	
 	function dl:afterRemove()
 	end
@@ -2502,15 +2516,16 @@ function dialog(index,noAutoActive)
 		end
 		self:afterRemove()
 	end
-	-- function dl:update()
-	-- 	if(btn(4))then trace("btn") self:remove() end
-	-- end
 	function dl:draw()
-		if(btn(4))then self:remove() end
+		if(btnp(4))then 
+			self.cur=self.cur+1
+			if(self.cur==#self.txtsList+1)then self:remove() return end
+		end
+		local txts=self.txtsList[self.cur]
 		rectb(2*8-1,12*8-1,26*8+2,4*8+4+2,15)
 		rect(2*8,12*8,26*8,4*8+4,0)
-		for i=1,#dl.txts do
-			print(dl.txts[i],2*8+4,12*8-4+i*8,15,1,1,true)
+		for i=1,#txts do
+			print(txts[i],2*8+4,12*8-4+i*8,15,1,1,true)
 		end
 	end
 
@@ -2519,7 +2534,7 @@ function dialog(index,noAutoActive)
 end
 
 function GameOverDialog()
-	local gd=dialog(0)
+	local gd=dialog(0,true)
 	gd.txts=TEXTS.gameover
 
 	function gd:afterRemove()
@@ -2665,6 +2680,8 @@ function loadLevel(levelId)
 				table.insert(mobManager,iceTentacle(i*8,j*8))
 			elseif(mtId==197)then
 				table.insert(envManager,portal(i*8,j*8,LoadMapCode(tx,ty)))
+			elseif(mtId==213)then
+				table.insert(envManager,talker(i*8,j*8,LoadMapCode(tx,ty)))
 			elseif(mtId==229)then
 				Trinity:init(i*8,j*8)
 			end
@@ -3228,8 +3245,8 @@ end
 -- 010:000084e4e4e4e4e4e49400000056a1ffffffffffff5affffffffffff0909ffffffffffff1dfefefefefefefea10056a1ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff5aff6e7effa10000d3ffffffffffff4affffffffffffffffff1effffff5affffff2bffffffffffffffffffffff89031323ffffffffffffffff0fffffffffffffff031323890fff1fffffffffffff5affffffffff09ffffffffbabaffffffffffff1eff17ffff3effffff09ffffffffffffffffffbaffffffffffffffffbaffffffffffffffffffffffffffffffffff5a09ff09ffff6e7effc30000000000000000
 -- 011:000000d5b9b9e5e5f50000000077a1ffffffffffff49ffffffffffff0909ffffffffffff1dffffffff0effffa10067a1ffffff0dffffff4effffffffffffffffffffffffffffffffffffffffffffff5aff6f7fffc30066f609090909090948ffffffffffffffffffffffffff5affffff2bffffffffffffffffffffff89ffffffffffffffffffffffff0fffffffffffffffffff890e0fffffffffffffff5affffffffff09ffffffffbabaffffffffffffffff6349ffffffffff0909ffffffffffffffffbaffffffeeeeffffffbaffffffffffffffffffffffffffffffffff5a090e09ffff6f7fffc30000000000000000
 -- 012:0000000067560000000000000077c3ffffffffffffffffffffffffff0909ffffffffffff1dffffffffffffffa10056c3ff0effff0effffffffffffffffffffffffffffffffffffffffffffffffffff5affffffffc30085386a6a6a6a6a6a381d1d1d1d1d1d1d0909090909095affffff2bffffffffffffffffff1eff89ffffffffffffffffffffff0fffffffffffffffffffff8948898989090909090986e4e4e4e4e496ffffffffffffffffffffffffffffff5affffffffff090909ffffffffffffffbaffffeeeeeeffffffffffffffeeeeffbaffffffffffffffffffff4909ff09ff0effffffc30000000000000000
--- 013:0000009f4545a4af000000000057c36e7effffff86e4e4e4e4e4e4e4e4e4e498ffffffffa2ffffffffffffffa10057c3ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff495b5b5b49c30085ffffffffffffffff1d031313131323ffffffffffff3ae4e4e43affffff89ffffff1effffff89ffffffffffffffbababaffffffffffffffffffffffffff4affffffffffffffff95e5e5e5e5e585ffffffffffffffffffffffffffffff5affffffffff09ff09ffffffffffffffbaffffeeeeeeffffffffffffeeeeeeffbaffffff111111ffffff86e4e4e4e4e4e4e4e4e4f60000000000000000
--- 014:0000008563636395000000000000c36f7fffffff95009fa4a4a4a4a4a4a4a488ffffffffa2898989ffffffffa10000c3ffffffffffff630808080808080808080863a1ffffffa1630808080863ffffffffffffffc30085ffffffff0fffffff1dffffffffffffffffffffffff95e5e5e585ffffff89ffffffffffffff89090909ffffffffffffffffffffffffbababaffffffffff4affff0fffffffffff95000000000085ffffffffffffffffffffffffffffff5affffffffffffff09ffffffffffffffffffffffffffffff1dff1dffeeeeffffffffffffffffffffffff95e5e5e5e5e5e5e5e5e5f50000000000000000
+-- 013:0000009f4545a4af000000000057c36e7eff5d1b86e4e4e4e4e4e4e4e4e4e498ffffffffa2ffffffffffffffa10057c3ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff495b5b5b49c30085ffffffffffffffff1d031313131323ffffffffffff3ae4e4e43affffff89ffffff1effffff89ffffffffffffffbababaffffffffffffffffffffffffff4affffffffffffffff95e5e5e5e5e585ffffffffffffffffffffffffffffff5affffffffff09ff09ffffffffffffffbaffffeeeeeeffffffffffffeeeeeeffbaffffff111111ffffff86e4e4e4e4e4e4e4e4e4f60000000000000000
+-- 014:0000008563636395000000000000c36f7fff1b1b95009fa4a4a4a4a4a4a4a488ffffffffa2898989ffffffffa10000c3ffffffffffff630808080808080808080863a1ffffffa1630808080863ffffffffffffffc30085ffffffff0fffffff1dffffffffffffffffffffffff95e5e5e585ffffff89ffffffffffffff89090909ffffffffffffffffffffffffbababaffffffffff4affff0fffffffffff95000000000085ffffffffffffffffffffffffffffff5affffffffffffff09ffffffffffffffffffffffffffffff1dff1dffeeeeffffffffffffffffffffffff95e5e5e5e5e5e5e5e5e5f50000000000000000
 -- 015:000000e6e4e4e4f6000000000000c3e4e4e4e4e4f60085021222fefefefefefeff4effffa2fefefeffffffffc30000c3e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4a1ffffffa1e4e4e4e4e4e4e4e4e4e4e4e4e4c30085ffffffffffffffff1dffffffffffffff0fff0fffffe6e47600e6e4e4e4c3ffffffffffffff09ffff09ffffffffffffffffffeeffffffffffffffffffff4affffffffff1e1fff95000000000085ffffffffffffffffffffffffffffff5affffffffff09ff09ffffffffffffffffffffffffffff1dff1dff1dffffffffffffffffffffffffffff95000000000000000000000000000000000000
 -- 016:000000d5e5e5e5f5000000000000d5e5e5b9e5e5f50085320142ffffffffffffffffffffc3ff0effffffffffc30000d5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5a1ffffffa1e5e5b9b9e5e5e5e5e5e5e5b9e5f50085ffffff0fffffffff1dffffff3effffffffffffffff090e9500d5e5e5e5c3ffff1effffffff09ffff09ffffffffffffffffffeeffffffffffffff4effff4affff0fffffffffff95000000000085ffffffffffffffffffffffffffffff49ffffffffff090909eeeeeeeeeeeeeeeeeeeeeeeeeeffff1d1f1dffffeeeeeeeeeeeeeeeeeeeeeeeeeee6e4e4e4e4e4e4e4e4e4760000000000000000
 -- 017:0000000000000000000000000000000000c9d9d9d96785031323ffffffffffffffffffffc3ffffffffffffffc3000000000000000000000000000000000000000000a1ffffffa1000056c9d9d9d9d9d967d9a900000085ffffffffffffffff1dffffffffffffffffffffffff090d950000000000c3ffffffffffffff09ff0e09ffffffffffffffffffeeffffffffffffffffffff4affffffffffffffff95000000000085ffffffffffffffffffff86e4e4e4e4e4e4e4e4e4e4e4e496ffffffffffffffffffffffffffff1dff1dff1dffffffffffffffffffffffffffffffff09ff090212121222950000000000000000
