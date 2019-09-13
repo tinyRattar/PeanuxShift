@@ -996,7 +996,7 @@ end
 
 -- region _ELITE
 function chargeElite(x,y)
-	local ce = mob(x,y,16,16,200,10*8)
+	local ce = mob(x,y,16,16,50,10*8)
 	ce.ms=0.5
 	ce.chargeMs=3
 	ce.tiA=0
@@ -1084,7 +1084,7 @@ function chargeElite(x,y)
 end
 
 function laserElite(x,y)
-	local le = mob(x,y,16,16,100,10*8)
+	local le = mob(x,y,16,16,30,10*8)
 	le.ms=0.5
 	le.tiA=0
 	le.fwd={-1,0}
