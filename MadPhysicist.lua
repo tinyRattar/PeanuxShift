@@ -235,7 +235,7 @@ function player:onHit(dmg)
 		self.hp=self.hp-dmg.value
 		if(self.hp<0)then
 			self.hp=0
-			if(inbossBattle)then Trinity.active=false player.dead=true self.td=0 GameOverDialog() end
+			if(not inbossBattle)then Trinity.active=false player.dead=true self.td=0 GameOverDialog() end
 		end
 	end
 end
