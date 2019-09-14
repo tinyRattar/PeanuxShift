@@ -1257,26 +1257,26 @@ function Newton(x,y)
 		if(_t==0)then _t=1 end
 		local sprite=448+t//(20/_t)%2 * 2
 		if(self.tiStun>0)then
-			sprc(448,self.x,self.y,14,1,0,0,2,2)
+			sprc(448,self.x,self.y,1,1,0,0,2,2)
 			self:drawStun()
 		elseif(self.state==0)then
-			sprc(sprite,self.x,self.y,14,1,0,0,2,2)
+			sprc(sprite,self.x,self.y,1,1,0,0,2,2)
 		elseif(self.state==1) then
 			if(self.tiA<self.tA1[1])then
-				sprc(452,self.x,self.y,14,1,0,0,2,2)
+				sprc(452,self.x,self.y,1,1,0,0,2,2)
 			else
-				sprc(sprite,self.x,self.y,14,1,0,0,2,2)
+				sprc(sprite,self.x,self.y,1,1,0,0,2,2)
 			end
 		elseif(self.state==2) then
 			local scale=(self.tiA-self.tA2[2])/(self.tA2[3]-self.tA2[2])
 			if(self.tiA<self.tA2[1])then
-				sprc(452,self.x,self.y-16*((self.tiA)/(self.tA2[1])),14,1,0,0,2,2)
+				sprc(452,self.x,self.y-16*((self.tiA)/(self.tA2[1])),1,1,0,0,2,2)
 			elseif(self.tiA<self.tA2[2])then
-				sprc(452,self.x,self.y-16*(1-scale),14,1,0,0,2,2)
+				sprc(452,self.x,self.y-16*(1-scale),1,1,0,0,2,2)
 			elseif(self.tiA<self.tA2[3])then
-				sprc(448,self.x,self.y,14,1,0,0,2,2)
+				sprc(448,self.x,self.y,1,1,0,0,2,2)
 			else
-				sprc(sprite,self.x,self.y,14,1,0,0,2,2)
+				sprc(sprite,self.x,self.y,1,1,0,0,2,2)
 			end
 			if(self.tiA>self.tA2[2] and self.tiA<self.tA2[3])then
 				circbc(self.x+8,self.y+8,240*scale,1)
@@ -1286,11 +1286,11 @@ function Newton(x,y)
 		elseif(self.state==3) then
 			local scale=(self.tiA-self.tA3[2])/(self.tA3[3]-self.tA3[2])
 			if(self.tiA<self.tA3[1])then
-				sprc(452,self.x,self.y,14,1,0,0,2,2)
+				sprc(452,self.x,self.y,1,1,0,0,2,2)
 			elseif(self.tiA<self.tA3[2])then
-				sprc(452,self.x,self.y,14,1,0,0,2,2)
+				sprc(452,self.x,self.y,1,1,0,0,2,2)
 			elseif(self.tiA<self.tA3[3])then
-				sprc(448,self.x,self.y,14,1,0,0,2,2)
+				sprc(448,self.x,self.y,1,1,0,0,2,2)
 			else
 				sprc(sprite,self.x,self.y,14,1,0,0,2,2)
 			end
@@ -1690,6 +1690,8 @@ function talker(x,y,code)
 	tk.code=code
 	tk.sprite=nil
 	if(code==0)then tk.sprite=448 end
+	if(code==2)then tk.sprite=416 end
+	if(code==3)then tk.sprite=486 end
 
 	function tk:afterTalked()
 		local c=tk.code
@@ -1706,7 +1708,7 @@ function talker(x,y,code)
 		elseif(iEntityTrigger(player,self))then self:onTaken() end
 	end
 	function tk:draw()
-		if(self.sprite) then sprc(self.sprite+t//30%2 * 2,self.x,self.y-t//30%2 * 2,14,1,0,0,2,2) end
+		if(self.sprite) then sprc(self.sprite+t//30%2 * 2,self.x,self.y-t//30%2 * 2,1,1,0,0,2,2) end
 	end
 
 	return tk
