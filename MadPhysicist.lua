@@ -8,7 +8,7 @@ CAMERA_OFF={15*8-4,8*8-4}
 NEARBY4 = {{-1,0},{1,0},{0,-1},{0,1}}
 FAKERANDOM8={4,2,7,5,1,8,3,6}
 NEXTLEVEL={2,3,4,nil,8,4,4,9,4}
-TALKER_DIALOG={3,4,5}
+TALKER_DIALOG={3,4,5,9}
 TALKER_DIALOG[0]=2
 TALKER_DIALOG[7]=6
 
@@ -56,6 +56,7 @@ TEXTS={gameover={{"YOU DEID!"}},
 {{"Final words"}},
 {{"Truth is just a dream of Azathoth."}},
 {{"The student goes back to school."}},
+{{"One apple every day"}}
 }
  
 function damage(iValue, iElem)
@@ -232,12 +233,15 @@ function player:onHit(dmg)
 		self:hpUp(-dmg.value)
 	else
 		self.hp=self.hp-dmg.value
-		if(self.hp<0)then Trinity.active=false self.hp=0 player.dead=true self.td=0 GameOverDialog() end
+		if(self.hp<0)then
+			self.hp=0
+			if(inbossBattle)then Trinity.active=false player.dead=true self.td=0 GameOverDialog() end
+		end
 	end
 end
 function player:hpUp(value)
 	self.hp=self.hp+value
-	if(self.hp>100)then self.hp=100 end
+	if(self.hp>self.maxHp)then self.hp=self.maxHp end
 	starDust(self.x+4,self.y,12,16,6,6,15,5)
 	if(inbossBattle and self.hp>=self.maxHp) then Trinity.active=false player.dead=true self.td=0 FullScreenDialog(7) end
 end
@@ -392,7 +396,7 @@ function player:enter(tile)
 	if(tileId==178)then mset_4ca(tx,ty,255,178)
 	elseif(tileId==179)then mset_4ca(tx,ty,255,179)
 	elseif(MAP_LAVA:contains(tileId))then self:onHit(damage(1))
-	elseif(tileId==231 or tileId==214)then self.cleared[curLevel]=true loadLevel(NEXTLEVEL[curLevel]) trace("?")
+	elseif(tileId==231 or tileId==214)then self.cleared[curLevel]=true loadLevel(NEXTLEVEL[curLevel])
 	elseif(tileId==238)then self.onButter=true
 	elseif(tileId==80)then self.onFireTile=true
 	elseif(tileId==182 or tileId==166)then self.willKnockWithDmg=true
@@ -579,7 +583,6 @@ function mob(x,y,w,h,hp,alertR)
 			self.sleep=false
 			if not noStun then sfx(1) end
 			self.hp=self.hp-dmg.value
-			trace("mob hp"..self.hp)
 			if(not noStun and dmg.value>self.dmgStunTresh)then self.tiStun=self.stunTime end
 			if(dmg.elem==1)then self.tiFire=150 elseif(dmg.elem==2)then self.tiIce=30 end
 			if(self.hp<=0)then self:death() end
@@ -660,7 +663,9 @@ function mob(x,y,w,h,hp,alertR)
 		if(not self:defaultElem())then return false end
 		if(self.tiStun>0)then
 			self.state=0
-			self.tiStun=self.tiStun-self.tmMul
+			local tm_=self.tmMul
+			if(tm_==0)then tm_=1 end
+			self.tiStun=self.tiStun-tm_
 			return false
 		end
 		if(self.sleep)then
@@ -1087,9 +1092,9 @@ function Trinity:locate(x,y)
 end
 function Trinity:init()
 	x,y=self.x,self.y
-	self.hp=1000
-	self.uiHp=1000
-	self.maxHp=1000
+	self.hp=500
+	self.uiHp=500
+	self.maxHp=500
 	self.stackDmg=0
 	self.tarDmg=100
 	self.nt=Newton(x-40,y)
@@ -1109,13 +1114,13 @@ end
 function Trinity:onHit(dmg)
 	self.hp=self.hp-dmg.value
 	self.stackDmg=self.stackDmg+dmg.value
-	if(self.stackDmg>=self.tarDmg)then self.stackDmg=self.stackDmg-self.tarDmg player:onHit(damage(25)) end
+	if(self.stackDmg>=self.tarDmg)then self.stackDmg=self.stackDmg-self.tarDmg player:onHit(damage(20)) end
 	if(self.hp<=0)then self:death() end
 end
 function Trinity:death()
-	self.nt.death()
-	self.gl.death()
-	self.kl.death()
+	self.nt:death()
+	self.gl:death()
+	self.kl:death()
 	self.active=false
 	FullScreenDialog(8)
 end
@@ -1143,7 +1148,7 @@ end
 
 function Newton(x,y)
 	local nt=mob(x,y,16,16,300,0)
-	nt.maxHp=nt.hp nt.dmgStunTresh=150 nt.stunTime=900 nt.ms=0.75 nt.tiA=0 
+	nt.maxHp=nt.hp nt.dmgStunTresh=150 nt.stunTime=600 nt.ms=0.75 nt.tiA=0 
 	nt.fwd={-1,0} nt.leaveRange=5*8 nt.apprRange=6*8 nt.meleeRange=10*8+4 
 	nt.attack=1 nt.waitAttackCalc=false nt.force=1 nt.pullMul=0 nt.pushMul=0 
 	nt.mem=0 nt.mem1=0 nt.mem2=0 nt.tA1={60,90,120,120} nt.tA2={60,70,120,210} 
@@ -1293,7 +1298,7 @@ function Newton(x,y)
 			elseif(self.tiA<self.tA3[3])then
 				sprc(448,self.x,self.y,1,1,0,0,2,2)
 			else
-				sprc(sprite,self.x,self.y,14,1,0,0,2,2)
+				sprc(sprite,self.x,self.y,1,1,0,0,2,2)
 			end
 			if(self.tiA>self.tA3[2] and self.tiA<self.tA3[3])then
 				circbc(self.x+8,self.y+8,240*(1-scale),1)
@@ -1309,7 +1314,7 @@ end
 
 function Galileo(x,y)
 	local gl=Newton(x,y)
-	gl.hp=400 gl.maxHp=400 gl.dmgStunTresh=200 gl.stunTime=900 gl.ms=1 
+	gl.hp=400 gl.maxHp=400 gl.dmgStunTresh=200 gl.stunTime=600 gl.ms=1 
 	gl.meleeAttack=-10 gl.meleeRange=4*8 gl.pullMul=0.5 gl.pushMul=0.5 gl.tmMul=0
 	gl.tA1={60,90,150,210}
 
@@ -1379,7 +1384,7 @@ end
 
 function Kelvin(x,y)
 	local kl=Newton(x,y)
-	kl.hp=200 kl.maxHp=200 kl.dmgStunTresh=100 kl.stunTime=900 
+	kl.hp=200 kl.maxHp=200 kl.dmgStunTresh=100 kl.stunTime=600 
 	kl.leaveRange=3*8 kl.apprRange=6*8 kl.ms=0.5 kl.meleeAttack=10 
 	kl.pullMul=0.5 kl.pushMul=0.5 kl.tmMul=0 kl.tA1={60,90,150,450}
 
@@ -1688,6 +1693,8 @@ end
 
 function talker(x,y,code)
 	local tk=item(x,y,16,16)
+	tk.pullMul=0
+	tk.pushMul=0
 	tk.code=code
 	tk.sprite=nil
 	if(code==0)then tk.sprite=448 end
@@ -1695,7 +1702,7 @@ function talker(x,y,code)
 	if(code==3)then tk.sprite=486 end
 
 	function tk:afterTalked()
-		local c=tk.code
+		local c=self.code
 		if(c==7)then
 			Trinity:init()
 		elseif(c==0)then atfManager[1]=theGravition
@@ -1704,6 +1711,7 @@ function talker(x,y,code)
 		end
 	end
 	function tk:onTaken()
+		if(self.code==7)then player.maxHp=200 end
 		dialog(TALKER_DIALOG[tk.code])
 		self.talked=true
 	end
@@ -2242,9 +2250,8 @@ function dialog(index,noAutoActive)
 	end
 	function dl:remove()
 		for i=1,#uiManager do
-			if(uiManager[i]==self)then table.remove(uiManager,i) end
+			if(uiManager[i]==self)then table.remove(uiManager,i) self:afterRemove() end
 		end
-		self:afterRemove()
 	end
 	function dl:draw()
 		if(btnp(4))then 
@@ -2267,6 +2274,7 @@ function GameOverDialog()
 	sfx(10)
 	local gd=dialog(0,true)
 	gd.txtsList=TEXTS.gameover
+	trace("gameover dialog")
 
 	function gd:afterRemove()
 		gameOver()
@@ -2281,20 +2289,27 @@ function FullScreenDialog(index)
 	sd.ti=0
 
 	function sd:afterRemove()
+		if(self.id==1)then loadLevel(1) end
 		if(self.id==7)then gameOver() end
-		if(self.id==8)then curLevel=1 gs=1 end
+		if(self.id==8)then curLevel=0 gs=1 inbossBattle=false end
 	end
 	function sd:draw()
-		if(self.ti==89)then
+		if(self.ti>90)then
 			if(btnp(4))then
 				self.ti=0
 				self.cur=self.cur+1
 				if(self.cur==#self.txtsList+1)then self:remove() return end
 			end
-		else self.ti=self.ti+1 end
+		else 
+			if(btnp(4))then	self.ti=89 end
+		end
+		self.ti=self.ti+1
 		local c=13+self.ti//30
+		if(c>15)then c=15 end
 		local txts=self.txtsList[self.cur]
 		cls(0)
+		local tt=self.ti//4
+		if(self.id==7)then spr(492+t//30%2 *2,120-8*tt,68-8*tt,1,tt,0,0,2,2) end
 		for i=1,#txts do
 			print(txts[i],15*8-#txts[i]*2,6*8-4+i*8,c,1,1,true)
 		end
@@ -2340,10 +2355,11 @@ function iMapManager:draw()
 	map(0+self.offx+camera.x//8,0+self.offy+camera.y//8,31,18,8*(camera.x//8)-camera.x,8*(camera.y//8)-camera.y,1,1,redraw)
 end
 
-uiStatusBar={hp=player.hp}
+uiStatusBar={hp=player.hp,maxHp=player.maxHp}
 function uiStatusBar:draw()
 	local tmp_=0
-	rect(7,7+tmp_,100+4,7,15)
+	if(self.maxHp<player.maxHp)then self.maxHp=self.maxHp+1 end
+	rect(7,7+tmp_,self.maxHp+4,7,15)
 	if self.hp>player.hp then 
 		rect(9, 9+tmp_, self.hp, 3, 4)
 		self.hp = self.hp-1/60*10  
@@ -2367,7 +2383,7 @@ function uiStatusBar:draw()
 			elseif(atf.tiCD>0)then
 				rect(7+(16+4)*(i-1),15*8-6,16*(1-atf.tiCD/(atf.cdTime-atf.durTime)),5,2)
 			end
-			print("X",7+20*i-20,15*8+8,15)
+			print(keyC[i],7+20*i-20,15*8+8,15)
 		end
 	end
 end
@@ -2382,10 +2398,11 @@ end
 
 uiManager={uiStatusBar}
 
-curLevel=1
+curLevel=0
 function loadLevel(levelId)
 	sync()
 	curLevel=levelId
+	if(curLevel==0)then FullScreenDialog(1) return end
 	if(curLevel==4)then
 		for i=1,3 do
 			if(player.cleared[4+i])then
@@ -2400,7 +2417,6 @@ function loadLevel(levelId)
 	for i=1,#mobManager do mobManager[i]=nil end
 	for i=1,#envManager do envManager[i]=nil end
 	table.insert(mobManager,player)
-	if(curLevel==1)then FullScreenDialog(1) end
 	for i=1,MapSize[levelId][1] do
 		for j=1,MapSize[levelId][2] do
 			local tx,ty=i+iMapManager.offx,j+iMapManager.offy
@@ -2470,7 +2486,6 @@ t=0 camera={x=0,y=0} cameraOffset={0,0}
 mainManager={mobManager,atfManager,envManager,aEnvManager}
 drawManager={{iMapManager},envManager,{player},mobManager,aEnvManager,atfManager,uiManager,{Trinity}}
 
-loadLevel(curLevel)
 gs=0 cs=2 musicon=-1
 function TIC()
 	t=t+1
@@ -2478,7 +2493,12 @@ function TIC()
 		if musicon~=0 then music(2) musicon=0 end
 		if btn(0) then cs=2 end
 		if btn(1) then cs=1 end
-		if btnp(4) then gs=cs end
+		if btnp(4) then 
+			gs=cs
+			if(gs==2)then
+				loadLevel(curLevel)
+			end
+		end
 	elseif gs==1 then
 		drawCdt()
 		if btnp(4) then gs=0 end
@@ -2979,10 +2999,10 @@ end
 -- 233:fff11111e3ef11113e3ef111c3eef111333eaf113ee3af11ee33af11eeeaf111
 -- 234:11111fff1111f33e111f3333111f3c3c111f3c33111fd333111fdeee11feedce
 -- 235:fff11111e3ef11113e3ef111c3eef111c33eaf113ee3af11ee33af11eeeafff1
--- 236:000000000004444000400044000004000000444f00044cf0044c44f0040c44f0
--- 237:00000000444000004040000044444400ff40040000f0004000f4044000f44000
--- 238:0004440000440044040004440400cc4c004044ff0444cf0044cc4f004c004f00
--- 239:000000004004000044444400444cc440f4c4c4400fc4c4000f4444000f444400
+-- 236:1111111111144441114111441111141111114c44111444cc144c444f141c44f0
+-- 237:111111114441111141411111cc4444114441141144c11141f4cc14410f444111
+-- 238:1114441111441144141114441411cc4c114144441444c4cc44cc444f4c1144f0
+-- 239:111111114114111144444411444cc4414444c4414c44c411f44444110f444411
 -- 240:00fffff00f555c3f0f575c3ff55755cff5c55ccff3cf5c3f0f3c53f000ffff00
 -- 241:0000000000fffff00f555c3f0f57553ff5555cf0f5c55ccff33c533f0fff0ff0
 -- 242:00fffff00f555c4f0f545c4ff55455cff5c55ccff4cf5c4f0f4c54f000ffff00
@@ -2992,10 +3012,10 @@ end
 -- 249:eeebff11eeb77ff1eb7777f17777771177777f1177773111f777f1110000f111
 -- 250:11fbeeee1f3bbeee1f777bb711f77777111f7777111f77771111f777111f000f
 -- 251:eeeb73f1ebb777f1bb777ff17777ff117777f1117777f111f777f1110000f111
--- 252:0444444f0044c4440004cc440000444400400440004400000004000000044000
--- 253:ffc44440444cc444444c0004cc4c04400c040400000040000000400000000000
--- 254:44c044ff044c044400040c4c000400c400440000440000000000000000000000
--- 255:fc4c4440444c4404c44444004c00040400404044044000000000000000000000
+-- 252:144444f01144c44f1114cc441111444411411441114411111114111111144111
+-- 253:0f444441fc4cc444444c1114cc4c14411c141411111141111111411111111111
+-- 254:44c144f0144c144f11141c4c111411c411441111441111111111111111111111
+-- 255:0f4c4441fc4c4414c44444114c11141411414144144111111111111111111111
 -- </SPRITES>
 
 -- <MAP>
@@ -3007,7 +3027,7 @@ end
 -- 005:0000a1d373737273d3a100000055a1e3b000c0e3d3d3e3b00000000000000000c0e3e3a5e3f4f4f4f4f4f471a10000a1e3e3e300000000000000000000e3c1d1e3e3f3e3e3e3e3e3e3e3f3f3e32ae300000000e3a10000a10effffffff0e4affffffffffffff630808080863d300000000000000d3ff0e0effffffff8902121222ffffffffffffff890d0e09ffffffffffffff4affffffffffffffffffd3e300000000e3e3e3e3e3e3d30effffff0ed3e3e3e3d3d30eff0eff0ed3d3e3e3e3e300000000000000e3e300000000e3f3a5e3c1c1d0c1d0e3e3e3e3e3e3e3d3f4f4f4f4f4f4f4f4f4a10000000000000000
 -- 006:0000a1ffffffffffffa100000056a1e3b4d4c4e3d3d3e300000000000000000000c1d0a5a2e3f3e3e3e3e3e3a10000a1e3e3e3b4d4d4d4d4d4d4d4d4c4e3e3e3e3e3f3e3e3e3e3e3e3e3f3f3e3e3e3b4d4d4c4e3a10000a1ffffffffffff4affffffffffffffff1fffffffffd300000000000000d3ff0e0effffffff8903131323ffffffffffffff890e0e09ffffffffffffff4affffffffffffffffff49e3b4d4d4c4e3e3e3e3e3e3d309ffffff09d3e3e3e3d3d3ff0eff0effd3d3e3e3e3e3b4d4d4d4d4d4c4e3e3b4d4d4c4e3f3a5e3e3e3e3e3e3e3e3e3e3e3e3e3d3e3e3e3e3e3e3e3e3e3a10000000000000000
 -- 007:0000c3ffffffffffffc300000056a17362737373d349e3b4d4d4d4d4d4d4d4d4c4e3e3a5a2e3f3b00000c0e3a10055a1fefefefefefe6308080808080808080808080808080808080808080863fefefefefefefea10000d3ff0fffff1fff4affffffffffffffffffffffffffd300000000000000d3ffffffff3effff89ffffff1fffffffff1fffff890e0e89ffff1fffffffff4affffffffffff1effff5affffffffff09ffffffffffffffffffffffffffff63d3d3ffffffffffd3d3ffffffffffffffffffffffffffffffffffffffffffffffffffffff11ffff010101d3e3e3e3e3e3e3e3e3e3a10000000000000000
--- 008:0000c3ff06ffff06ffc300000056a1fefefefefffe5afefe890dfefe0909fefefefefefed3e3f300000000e3a10067a1ffffffffffffffffff4effffffffffffffffffffffffffffffffffffffffff495b5b5b49a10000d3ffffffffffff4affffffffffffffff1effff1fff49e4e4e43ae4e4e4d3ffffffffffffff891d1d1d1d1d1d1d1d1d1d1d8989891d1d1d1d1d1d1d1d481d1d1d1dffffffffff5affffffffff09ffffffffffffffffffffffffffff17d3d36a6a6a6a38d3d3ffffffffffffffffff4effffffffffffbaffffffffffff3effffff11ffff010101d3e3e3e3e3e3e3e3e3e3a10000000000000000
+-- 008:0000c3ff06ffff06ffc300000056a1fffffefefffe5afefe890dfefe0909fefefefefefed3e3f300000000e3a10067a1ffffffffffffffffff4effffffffffffffffffffffffffffffffffffffffff495b5b5b49a10000d3ffffffffffff4affffffffffffffff1effff1fff49e4e4e43ae4e4e4d3ffffffffffffff891d1d1d1d1d1d1d1d1d1d1d8989891d1d1d1d1d1d1d1d481d1d1d1dffffffffff5affffffffff09ffffffffffffffffffffffffffff17d3d36a6a6a6a38d3d3ffffffffffffffffff4effffffffffffbaffffffffffff3effffff11ffff010101d3e3e3e3e3e3e3e3e3e3a10000000000000000
 -- 009:0000c3ffffffffffffc300000067a1ffffff5d1bff5affff8989ffff0909ffffffffffffd3e3f3b4d4d4c4e3a10067a1ff0effff0effffffffffffffffffffffffffffffffffffffffffffffffffff5affffffffa10000d3ff0fffff0fff4affffffffffffffffffffffffff5affffff2bffffffffffffffffffffff89021222ffffffffffffffffffffffffffffffff021222890e0fffffffffffffff5affffffffff09ffffffffffffffffffffffffffff17ffffffffffffff09ffffffffffffffffffffffffffffffffffbaffffffffffffffffffff11ffffffffffff4909ff09ff0effffffa10000000000000000
 -- 010:000084e4e4e4e4e4e49400000056a1ffffff1b1bff5affffffffffff0909ffffffffffff1dfefefefefefefea10056a1ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff5aff6e7effa10000d3ffffffffffff4affffffffffffffffff1effffff5affffff2bffffffffffffffffffffff89031323ffffffffffffffff0fffffffffffffff031323890fff1fffffffffffff5affffffffff09ffffffffbabaffffffffffff1eff17ffff3effffff09ffffffffffffffffffbaffffffffffffffffbaffffffffffffffffffffffffffffffffff5a09ff09ffff6e7effc30000000000000000
 -- 011:000000d5b9b9e5e5f50000000077a1efffffffffff49ffffffff5d1b0909ffffffffffff1dffffffff0effffa10067a1ffffff0dffffff4effffffffffffffffffffffffffffffffffffffffffffff5aff6f7fffc30066f609090909090948ffffffffffffffffffffffffff5affffff2bffffffffffffffffffffff89ffffffffffffffffffffffff0fffffffffffffffffff890e0fffffffffffffff5affffffffff09ffffffffbabaffffffffffffffff6349ffffffffff0909ffffffffffffffffbaffffffeeeeffffffbaffffffffffffffffffffffffffffffffff5a090e09ffff6f7fffc30000000000000000
