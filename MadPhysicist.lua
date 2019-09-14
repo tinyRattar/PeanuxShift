@@ -2328,6 +2328,7 @@ function loadLevel(levelId)
 	sync()
 	curLevel=levelId
 	if(curLevel==4)then
+		Trinity.active=false
 		for i=1,3 do
 			if(player.cleared[4+i])then
 				mset(193,58+i*8-8,255)
