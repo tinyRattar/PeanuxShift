@@ -25,6 +25,9 @@ Kelvin:
 "It is impossible for me to not give you Kelvin Impossible-Wand."
 "It is impossible to Press 'B' to not use Kelvin Impossible-Wand, hold 'B' to not shift the mode."
 
+100
+"The truth apples can recover your truth value, feel free to eat them."
+
 最终关卡
 Galileo, Newton, Kelvin:
 "Let us teach you what is truth."
