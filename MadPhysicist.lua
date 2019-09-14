@@ -38,7 +38,7 @@ for i=1,#tmpAdd do
 end
 MAP_COLLIDE=set(listTmp)
 MAP_ENTER_DANGER=set({3,16,19,32,33,34,35,36,48,49,50,51,52,53,64,65,66,67,178,179,182,166,164,180})
-MAP_ENTER_FREE=set({231,238,171,80,238})
+MAP_ENTER_FREE=set({231,238,171,80,238,199})
 MAP_REMAP_BLANK=set({208,224,225,226,227,228,240,241,242,243,244,245,144,197,213,176,177})
 MAP_TOUCH=set({17,113,128,165,181})
 MAP_WATER=set({171})
@@ -374,7 +374,7 @@ function player:enter(tile)
 	if(tileId==178)then mset_4ca(tx,ty,255,178)
 	elseif(tileId==179)then mset_4ca(tx,ty,255,179)
 	elseif(MAP_LAVA:contains(tileId))then self:onHit(damage(1))
-	elseif(tileId==231)then self.cleared[curLevel]=true loadLevel(NEXTLEVEL[curLevel])
+	elseif(tileId==231 or tileId=199)then self.cleared[curLevel]=true loadLevel(NEXTLEVEL[curLevel])
 	elseif(tileId==238)then self.onButter=true
 	elseif(tileId==80)then self.onFireTile=true
 	elseif(tileId==182 or tileId==166)then self.willKnockWithDmg=true
