@@ -1697,6 +1697,9 @@ function talker(x,y,code)
 		local c=tk.code
 		if(c==7)then
 			Trinity:init()
+		elseif(c==0)then atfManager[1]=theGravition
+		elseif(code==2)then atfManager[2]=theTimeMachine
+		elseif(code==3)then atfManager[3]=theKelvinWand
 		end
 	end
 	function tk:onTaken()
@@ -2325,16 +2328,19 @@ function uiStatusBar:draw()
 		spr(208,-3+10*i,15,14,1,0,0,1,1)
 	end
 
+	local keyC={"X","Y","B"}
 	for i=1,3 do
 		local atf=atfManager[i]
-		spr(atf.sprite+2*atf.mode,7+(16+4)*(i-1),14*8,1,1,0,0,2,2)
-		if(atfManager[i].inWorking)then
-			rect(7+(16+4)*(i-1),15*8-6,16*(1-atf.tiDur/atf.durTime),5,6)
-		elseif(atf.tiCD>0)then
-			rect(7+(16+4)*(i-1),15*8-6,16*(1-atf.tiCD/(atf.cdTime-atf.durTime)),5,2)
+		if(atf)then
+			spr(atf.sprite+2*atf.mode,7+(16+4)*(i-1),14*8,1,1,0,0,2,2)
+			if(atfManager[i].inWorking)then
+				rect(7+(16+4)*(i-1),15*8-6,16*(1-atf.tiDur/atf.durTime),5,6)
+			elseif(atf.tiCD>0)then
+				rect(7+(16+4)*(i-1),15*8-6,16*(1-atf.tiCD/(atf.cdTime-atf.durTime)),5,2)
+			end
+			print("X",7+20*i-20,15*8+8,15)
 		end
 	end
-	print("X",7,15*8+8,15) print("Y",7+16+4,15*8+8,15) print("B",7+20*2,15*8+8,15)
 end
 
 uiKeyBar={}
@@ -2410,12 +2416,12 @@ function gameOver()
 	loadLevel(curLevel)
 end
 
-atfManager={theGravition,theTimeMachine,theKelvinWand}
+atfManager={nil,nil,nil}
 function atfManager:shiftAtf(index)
-	self[index]:shift()
+	if(self[index])then	self[index]:shift()	end
 end
 function atfManager:useAtf(index)
-	self[index]:use()
+	if(self[index])then	self[index]:use() end
 end
  
 function drawMenu()
