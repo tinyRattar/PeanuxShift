@@ -232,14 +232,14 @@ function player:onHit(dmg)
 		self:hpUp(-dmg.value)
 	else
 		self.hp=self.hp-dmg.value
-		if(self.hp<0)then self.hp=0 player.dead=true self.td=0 GameOverDialog() end
+		if(self.hp<0)then Trinity.active=false self.hp=0 player.dead=true self.td=0 GameOverDialog() end
 	end
 end
 function player:hpUp(value)
 	self.hp=self.hp+value
 	if(self.hp>100)then self.hp=100 end
 	starDust(self.x+4,self.y,12,16,6,6,15,5)
-	if(inbossBattle and self.hp>=self.maxHp) then player.dead=true self.td=0 GameOverDialog() end
+	if(inbossBattle and self.hp>=self.maxHp) then Trinity.active=false player.dead=true self.td=0 FullScreenDialog(7) end
 end
 function player:getKey()
 	self.key1=self.key1+1
@@ -1117,6 +1117,7 @@ function Trinity:death()
 	self.gl.death()
 	self.kl.death()
 	self.active=false
+	FullScreenDialog(8)
 end
 function Trinity:draw()
 	if(self.active)then
@@ -2274,10 +2275,15 @@ function GameOverDialog()
 end
 
 function FullScreenDialog(index)
-	local sd=dialog(id,true)
+	local sd=dialog(0,true)
+	sd.id=index
 	sd.txtsList=TEXTS[index]
 	sd.ti=0
 
+	function sd:afterRemove()
+		if(self.id==7)then gameOver() end
+		if(self.id==8)then curLevel=1 gs=1 end
+	end
 	function sd:draw()
 		if(self.ti==89)then
 			if(btnp(4))then
@@ -2381,7 +2387,6 @@ function loadLevel(levelId)
 	sync()
 	curLevel=levelId
 	if(curLevel==4)then
-		Trinity.active=false
 		for i=1,3 do
 			if(player.cleared[4+i])then
 				mset(193,58+i*8-8,255)
