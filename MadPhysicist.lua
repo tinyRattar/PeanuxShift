@@ -374,7 +374,7 @@ function player:enter(tile)
 	if(tileId==178)then mset_4ca(tx,ty,255,178)
 	elseif(tileId==179)then mset_4ca(tx,ty,255,179)
 	elseif(MAP_LAVA:contains(tileId))then self:onHit(damage(1))
-	elseif(tileId==231)then loadLevel(NEXTLEVEL[curLevel])
+	elseif(tileId==231)then self.cleared[curLevel]=true loadLevel(NEXTLEVEL[curLevel])
 	elseif(tileId==238)then self.onButter=true
 	elseif(tileId==80)then self.onFireTile=true
 	elseif(tileId==182 or tileId==166)then self.willKnockWithDmg=true
