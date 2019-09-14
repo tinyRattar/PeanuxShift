@@ -1,29 +1,29 @@
-开头
-Galileo, Newton, Kelvin:
+进入游戏之后字幕
 "Dear Student, Welcome to the Physics World."
 "We will teach you, guide you and lead you to the truth of the world."
 
-第一关-引力
+000
 Newton:
 "Gravity always wins."
 "Now you have my gift, Newton iMachine"
-"Press 'X' to use Newton iMachine, Hold 'X' to shift the mode."
+"Press 'X' to use Newton iMachine, hold 'X' to shift the mode."
 
-第一次受到小怪攻击
+001
 "Watch out these tiny stupid monsters, they are believers of the OUTER."
 "Their attack will reduce your truth value."
+"You can press 'A' to use your truth sword to beat them."
 
-第二关-时间
+010
 Galileo：
 "Iron ball and feather will land at the same time."
 "I will give you my Galileo Iron-and-Feather."
-"Press 'Y' to use Galileo Iron-and-Feather, Hold 'Y' to shift the mode."
+"Press 'Y' to use Galileo Iron-and-Feather, hold 'Y' to shift the mode."
 
-第三关-温度
+011
 Kelvin:
 "It is impossible to stop entropy increase."
 "It is impossible for me to not give you Kelvin Impossible-Wand."
-"It is impossible to Press 'B' to not use Kelvin Impossible-Wand, Hold 'B' to not shift the mode."
+"It is impossible to Press 'B' to not use Kelvin Impossible-Wand, hold 'B' to not shift the mode."
 
 最终关卡
 Galileo, Newton, Kelvin:
