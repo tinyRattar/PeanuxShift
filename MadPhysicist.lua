@@ -47,8 +47,8 @@ MAP_LAVA=set({3,16,19,32,33,34,35,36,48,49,50,51,52,53,64,65,66,67})
 
 -- region TXT
 TEXTS={gameover={{"YOU DEID!"}},
-{{"Dear Student, ","Welcome to Super.Hyper.Incredible.Fhysical.Tower. "},
- {"We will teach you, guide you and lead you to the truth of the world."}},
+{{"Dear Student, ","Welcome to S.H.I.F.T.,","AKA Super Hyper Incredible Fhysical Tower."},
+ {"We will teach you, guide you and lead you"," to the truth of the world."}},
 {{"Newton words"}},
 {{"watchout OUTERS"}},
 {{"Galileo words"}},
@@ -2273,6 +2273,29 @@ function GameOverDialog()
 	table.insert(uiManager,gd)
 end
 
+function FullScreenDialog(index)
+	local sd=dialog(id,true)
+	sd.txtsList=TEXTS[index]
+	sd.ti=0
+
+	function sd:draw()
+		if(self.ti==89)then
+			if(btnp(4))then
+				self.ti=0
+				self.cur=self.cur+1
+				if(self.cur==#self.txtsList+1)then self:remove() return end
+			end
+		else self.ti=self.ti+1 end
+		local c=13+self.ti//30
+		local txts=self.txtsList[self.cur]
+		cls(0)
+		for i=1,#txts do
+			print(txts[i],15*8-#txts[i]*2,6*8-4+i*8,c,1,1,true)
+		end
+	end
+	table.insert(uiManager,sd)
+end
+
 function LoadMapCode(tx,ty)
 	local code=0
 	local is={0,0,0}
@@ -2370,17 +2393,11 @@ function loadLevel(levelId)
 	end
 	local lOff = {{0,0},{0,17*2+2},{0,17*4},{30*6,17*2}, {0,17*5},{30*3-15,0},{30*3,17*2-3}, {30+10,17*6+8},{30,17*5}}
 	local MapSize = {{30*2+15,17*2+2},{30*3,17*2-2},{30*3,17},{30*1,17*3}, {30+10,17*3},{30*5+15,17*2-6},{30*3,17*2+4}, {30*2-11,21},{30*2,17+8}}
-	--local playerPos = {{120,80},{30+0,120},{56,80},{112,120}, {64,120},{5*8,23*8},{6*8,-3*8}}
-	 
 	iMapManager.offx = lOff[levelId][1] iMapManager.offy = lOff[levelId][2]
-	 
 	for i=1,#mobManager do mobManager[i]=nil end
 	for i=1,#envManager do envManager[i]=nil end
-	--player.x=playerPos[levelId][1]
-	--player.y=playerPos[levelId][2]
-	--player:update()  
 	table.insert(mobManager,player)
-	if(curLevel==1)then dialog(1) end
+	if(curLevel==1)then FullScreenDialog(1) end
 	for i=1,MapSize[levelId][1] do
 		for j=1,MapSize[levelId][2] do
 			local tx,ty=i+iMapManager.offx,j+iMapManager.offy
