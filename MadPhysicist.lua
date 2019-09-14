@@ -663,7 +663,9 @@ function mob(x,y,w,h,hp,alertR)
 		if(not self:defaultElem())then return false end
 		if(self.tiStun>0)then
 			self.state=0
-			self.tiStun=self.tiStun-self.tmMul
+			local tm_=self.tmMul
+			if(tm_==0)then tm_=1 end
+			self.tiStun=self.tiStun-tm_
 			return false
 		end
 		if(self.sleep)then
@@ -1090,9 +1092,9 @@ function Trinity:locate(x,y)
 end
 function Trinity:init()
 	x,y=self.x,self.y
-	self.hp=1000
-	self.uiHp=1000
-	self.maxHp=1000
+	self.hp=500
+	self.uiHp=500
+	self.maxHp=500
 	self.stackDmg=0
 	self.tarDmg=100
 	self.nt=Newton(x-40,y)
@@ -1116,9 +1118,9 @@ function Trinity:onHit(dmg)
 	if(self.hp<=0)then self:death() end
 end
 function Trinity:death()
-	self.nt.death()
-	self.gl.death()
-	self.kl.death()
+	self.nt:death()
+	self.gl:death()
+	self.kl:death()
 	self.active=false
 	FullScreenDialog(8)
 end
@@ -1146,7 +1148,7 @@ end
 
 function Newton(x,y)
 	local nt=mob(x,y,16,16,300,0)
-	nt.maxHp=nt.hp nt.dmgStunTresh=150 nt.stunTime=900 nt.ms=0.75 nt.tiA=0 
+	nt.maxHp=nt.hp nt.dmgStunTresh=150 nt.stunTime=600 nt.ms=0.75 nt.tiA=0 
 	nt.fwd={-1,0} nt.leaveRange=5*8 nt.apprRange=6*8 nt.meleeRange=10*8+4 
 	nt.attack=1 nt.waitAttackCalc=false nt.force=1 nt.pullMul=0 nt.pushMul=0 
 	nt.mem=0 nt.mem1=0 nt.mem2=0 nt.tA1={60,90,120,120} nt.tA2={60,70,120,210} 
@@ -1296,7 +1298,7 @@ function Newton(x,y)
 			elseif(self.tiA<self.tA3[3])then
 				sprc(448,self.x,self.y,1,1,0,0,2,2)
 			else
-				sprc(sprite,self.x,self.y,14,1,0,0,2,2)
+				sprc(sprite,self.x,self.y,1,1,0,0,2,2)
 			end
 			if(self.tiA>self.tA3[2] and self.tiA<self.tA3[3])then
 				circbc(self.x+8,self.y+8,240*(1-scale),1)
@@ -1312,7 +1314,7 @@ end
 
 function Galileo(x,y)
 	local gl=Newton(x,y)
-	gl.hp=400 gl.maxHp=400 gl.dmgStunTresh=200 gl.stunTime=900 gl.ms=1 
+	gl.hp=400 gl.maxHp=400 gl.dmgStunTresh=200 gl.stunTime=600 gl.ms=1 
 	gl.meleeAttack=-10 gl.meleeRange=4*8 gl.pullMul=0.5 gl.pushMul=0.5 gl.tmMul=0
 	gl.tA1={60,90,150,210}
 
@@ -1382,7 +1384,7 @@ end
 
 function Kelvin(x,y)
 	local kl=Newton(x,y)
-	kl.hp=200 kl.maxHp=200 kl.dmgStunTresh=100 kl.stunTime=900 
+	kl.hp=200 kl.maxHp=200 kl.dmgStunTresh=100 kl.stunTime=600 
 	kl.leaveRange=3*8 kl.apprRange=6*8 kl.ms=0.5 kl.meleeAttack=10 
 	kl.pullMul=0.5 kl.pushMul=0.5 kl.tmMul=0 kl.tA1={60,90,150,450}
 
@@ -2289,7 +2291,7 @@ function FullScreenDialog(index)
 	function sd:afterRemove()
 		if(self.id==1)then loadLevel(1) end
 		if(self.id==7)then gameOver() end
-		if(self.id==8)then curLevel=1 gs=1 end
+		if(self.id==8)then curLevel=0 gs=1 end
 	end
 	function sd:draw()
 		if(self.ti>90)then
@@ -2381,7 +2383,7 @@ function uiStatusBar:draw()
 			elseif(atf.tiCD>0)then
 				rect(7+(16+4)*(i-1),15*8-6,16*(1-atf.tiCD/(atf.cdTime-atf.durTime)),5,2)
 			end
-			print("X",7+20*i-20,15*8+8,15)
+			print(keyC[i],7+20*i-20,15*8+8,15)
 		end
 	end
 end
@@ -2483,14 +2485,19 @@ t=0 camera={x=0,y=0} cameraOffset={0,0}
 mainManager={mobManager,atfManager,envManager,aEnvManager}
 drawManager={{iMapManager},envManager,{player},mobManager,aEnvManager,atfManager,uiManager,{Trinity}}
 
-loadLevel(curLevel)
+
 gs=0 cs=2
 function TIC()
 	if gs==0 then
 		drawMenu()
 		if btn(0) then cs=2 end
 		if btn(1) then cs=1 end
-		if btnp(4) then gs=cs end
+		if btnp(4) then 
+			gs=cs
+			if(gs==2)then
+				loadLevel(curLevel)
+			end
+		end
 	elseif gs==1 then
 		drawCdt()
 		if btnp(4) then gs=0 end
