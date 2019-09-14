@@ -2287,7 +2287,7 @@ function FullScreenDialog(index)
 		if(self.id==8)then curLevel=1 gs=1 end
 	end
 	function sd:draw()
-		if(self.ti==89)then
+		if(self.ti>90)then
 			if(btnp(4))then
 				self.ti=0
 				self.cur=self.cur+1
@@ -2306,8 +2306,6 @@ function FullScreenDialog(index)
 		for i=1,#txts do
 			print(txts[i],15*8-#txts[i]*2,6*8-4+i*8,c,1,1,true)
 		end
-		
-		
 	end
 	table.insert(uiManager,sd)
 end
