@@ -1708,7 +1708,7 @@ function talker(x,y,code)
 		elseif(iEntityTrigger(player,self))then self:onTaken() end
 	end
 	function tk:draw()
-		if(self.sprite) then sprc(self.sprite+t//30%2 * 2,self.x,self.y-t//30%2 * 2,1,1,0,0,2,2) end
+		if(self.sprite) then sprc(self.sprite+t//30%2 * 2,self.x,self.y,1,1,0,0,2,2) end
 	end
 
 	return tk
@@ -2903,12 +2903,12 @@ end
 -- 189:8899ee9e8899e9ee8899eeee8899e9ee899eeeee999e9eee9ee9eeeeeeeeeeee
 -- 190:cdec35cccffc35c5ccecc5ccfefe3355efefe335fefefe33efefefe3fefefefe
 -- 191:5ccceccd5c3cfcfc5c3cecec533efefe33efefed3efefefeefefefedfefefefe
--- 192:eeeeeffeeeeef55feeef5555eeef5533eef55533eef553c3ef55c333ef5cc333
--- 193:effeeeeef55feeee5555feee35555fee33555feec33555fe335c55fe333cc5fe
--- 194:eeeeeffeeeeef55feeef5555eeef5533eef55533eef553c3ef55c333ef5cc333
--- 195:effeeeeef55feeee5555feee35555fee33555feec33555fe335c55fe333cc5fe
--- 196:eeeeeffeeeeef55feeef5555eeef5533eef55533eef553c3ef55c3c3ef5cc333
--- 197:effeeeeef55feeee5555feee35555fee33555feec3355feec35555fe3335cfee
+-- 192:11111ff11111f55f111f5555111f553311f5553311f553c31f55c3331f5cc333
+-- 193:1ff11111f55f11115555f11135555f1133555f11c33555f1335c55f1333cc5f1
+-- 194:11111ff11111f55f111f5555111f553311f5553311f553c31f55c3331f5cc333
+-- 195:1ff11111f55f11115555f11135555f1133555f11c33555f1335c55f1333cc5f1
+-- 196:11111ff11111f55f111f5555111f553311f5553311f553c31f55c3c31f5cc333
+-- 197:1ff11111f55f11115555f11135555f1133555f11c3355f11c35555f13335cf11
 -- 198:eee4eeeeee4e4eeeeeee44eeeee44e44eee44444e444c44f4ecc44f7eeec44f7
 -- 199:eeeeeeeeeeeee4eee4ee4eee444ee4ee4444eeeeff444ee477f44e4e77f4444e
 -- 200:eeeeeeeeee4eeeeeeee4ee4eee4ee444eeee44444ee4444fe4e444f7e44444f7
@@ -2919,12 +2919,12 @@ end
 -- 205:9eeeeeee999eeeee9999eeee999e9eee999eeeee8999eeee8899eeee8899eeee
 -- 206:eeeeeee9eeeeee99eeeee9e9eeeee999eeee9999eeeee999eee9e998eee99998
 -- 207:eeeeeeeee99eeeee9ee9eeee999e9eee999eeeee899eeeee8899eeee8899eeee
--- 208:ef55c3cceef55533ef55c7ffef3f777ff3377c77efffcccceeeefccceeeeef00
--- 209:333c555f335755cff7777cfe77777fee77c777fecccc73fefffccfeefeef00fe
--- 210:ef55c3cceef55533eeff557fef3f7777f3377c77efffcccceefccfffef00feef
--- 211:333c555f335755cfff77c55ff7777ccf77c77ffecccc3feecccffeee00feeeee
--- 212:ef5553cceef5c333ef5cc7ffef3f777ff3377c77efffcccceeeefccceeeee00f
--- 213:335555fe35575c5ff775ccfe777c7fee77c77ffecccc3ffefccfffeef00feeee
+-- 208:1f55c3cc11f555331f55c7ff1f3f777ff3377c771fffcccc1111fccc11111f00
+-- 209:333c555f335755cff7777cf177777f1177c777f1cccc73f1fffccf11f11f00f1
+-- 210:1f55c3cc11f5553311ff557f1f3f7777f3377c771fffcccc11fccfff1f00f11f
+-- 211:333c555f335755cfff77c55ff7777ccf77c77ff1cccc3f11cccff11100f11111
+-- 212:1f5553cc11f5c3331f5cc7ff1f3f777ff3377c771fffcccc1111fccc1111100f
+-- 213:335555f135575c5ff775ccf1777c7f1177c77ff1cccc3ff1fccfff11f00f1111
 -- 214:ee4444f7e444444f4ee444444e44e444e44e44c4eeee44e4eeeee4eeeeeeeeee
 -- 215:77f4c4eeff44ccee4444cceec4c44eee4ee44eee4e44eeeee4eeeeeeeeeeeeee
 -- 216:ee4c44f7eecc444feecc4444eee44c4ceee44ee4eeee44e4eeeeee4eeeeeeeee
