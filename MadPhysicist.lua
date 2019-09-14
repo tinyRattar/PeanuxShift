@@ -2272,6 +2272,8 @@ function redraw(tile,x,y)
 		outTile=128-16*(t//15%2)
 	elseif(tile==229)then
 		outTile=232
+	elseif(tile==254)then
+		outTile=mget(x,y+1)
 	end
 	return outTile,flip,rotate
 end
@@ -2373,6 +2375,7 @@ function loadLevel(levelId)
 			elseif(mtId==132)then	table.insert(mobManager,iceTentacle(i*8,j*8))
 			elseif(mtId==197)then	table.insert(envManager,portal(i*8,j*8,LoadMapCode(tx,ty),tx,ty))
 			elseif(mtId==213)then	table.insert(envManager,talker(i*8,j*8,LoadMapCode(tx,ty)))
+			elseif(mtId==254)then	player.x=i*8 player.y=j*8
 			elseif(mtId==229)then	Trinity:locate(i*8,j*8)
 			end
 		end
