@@ -226,14 +226,14 @@ function player:onHit(dmg)
 		self:hpUp(-dmg.value)
 	else
 		self.hp=self.hp-dmg.value
-		if(self.hp<0)then self.hp=0 player.dead=true GameOverDialog() end
+		if(self.hp<0)then self.hp=0 player.dead=true self.td=0 GameOverDialog() end
 	end
 end
 function player:hpUp(value)
 	self.hp=self.hp+value
 	if(self.hp>100)then self.hp=100 end
 	starDust(self.x+4,self.y,12,16,6,6,15,5)
-	if(inbossBattle and self.hp>=self.maxHp) then player.dead=true GameOverDialog() end
+	if(inbossBattle and self.hp>=self.maxHp) then player.dead=true self.td=0 GameOverDialog() end
 end
 function player:getKey()
 	self.key1=self.key1+1
@@ -323,7 +323,19 @@ function player:update()
 	end
 end
 function player:draw()
-	if(player.dead)then sprc(268,self.x,self.y,6,1,sprFlip,0,2,2) return end
+	if(player.dead)then
+		local td=self.td
+		self.td=td+1
+		local sp=268
+		if(td<30)then
+		elseif(td<60)then sp=270
+		elseif(td<90)then sp=348
+		elseif(td<120)then sp=350
+		elseif(td<210)then sp=372+td//30-4
+		else sp=480+td//30%2 end
+		if(td>=120)then sprc(sp,self.x+4,self.y+8,14,1,0,0,1,1) else sprc(sp,self.x,self.y,14,1,0,0,2,2) end
+		return 
+	end
 	local sprFlip=(1-self.fwd[1])//2
 	local sprite=260
 	if(player.fwd[2]==1) then sprite=256 elseif(player.fwd[2]==-1) then sprite=264 end
@@ -2716,9 +2728,10 @@ end
 -- 009:ffff6666ccccf666cccccf66ccccccf6c5ccccf6ccccccf6ccccc55fcccccc5f
 -- 010:6666666666666cff666cffcc666fcccc666fcccc66fccccc666fcccc66f55ccc
 -- 011:ff666666ccfff666cccccf66cccccf66ccccccf6c5ccccf6ccccccf6ccccc55f
--- 012:00000000000000ff0000ffcc000fcccc00fccccc00fccc5c0fccc55c00f5c575
--- 013:00000000ff000000ccff0000cc1cf000ccc1cf00c5c1cf00551cccf0575c5f00
--- 015:00000000000000000000000000000000000000000000000000000000fff00000
+-- 012:eeeeeeeeeeeeeeffeeeeffcceeefcccceefccccceefccc5cefccc55ceef5c575
+-- 013:eeeeeeeeffeeeeeeccffeeeecc1cfeeeccc1cfeec5c1cfee551cccfe575c5fee
+-- 014:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 015:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeefffeeeee
 -- 016:66ce55cc666f7d556ff7ef7bf55bff7bf5ef777b6f77722266ff00ff6666ff66
 -- 017:555af6665dffaf667f55fa667f5aaff6b7feaadf277feaad2ae7feaaf00f6fea
 -- 018:666f555c66f77f556f55ff7b6f55ef7b66f7f7bb6f7ff22266f77aaf666f00f6
@@ -2731,10 +2744,10 @@ end
 -- 025:cccccff6fccfdf66ffddef66eed7eef6ffedd55f7777775fbff00ff60f6f6666
 -- 026:66f5cccc6666faaa666fdeaa66feaaba6f55abff6f55f7776aff600f66666ff6
 -- 027:cccccc5fccccff66ccfdf666fd775f66ffdde7f677777e7fffbbb7f66f00ff66
--- 028:00f55555000fbe5c00feff5500fe7fd100f7ffdd0feff71bfe777b1b0fffb1bf
--- 029:55555f00555bf00015ffef00ddf1ef00d11f7ef0bbb7ee70fbbb77f00fbbbf00
--- 030:0000cfff0000fccc000fcccc000fcccc00fccccc00fccccc00fccccc00cffccc
--- 031:cccfc000ccccf000ccccf000cc1ccf00c111cf00ccc1cc00cccc1fc0ccccf110
+-- 028:eef55555eeefbe5ceefeff55eefe7fd1eef7ffddefeff71bfe777b1b0fffb1bf
+-- 029:55555fee555bfeee15ffefeeddf1efeed11f7efebbb7ee7efbbb77fe0fbbbfee
+-- 030:eeeecfffeeeefccceeefcccceeefcccceefccccceefccccceefccccceecffccc
+-- 031:cccfceeeccccfeeeccccfeeecc1ccfeec111cfeeccc1cceecccc1fceccccf11e
 -- 032:66666ffc66cffccc6ffcccccfccccc5c6fcc7755fcc7bf7a6fa7fb7566f57755
 -- 033:ff66666fccffc6faccccffdac5cccdaac775daab7bf7aabf7fb550f6577a5f66
 -- 034:6666666666666ffc66cffccc6ffcccccfccccc5c6fcc77c5fcc7bf7afca7fb75
@@ -2795,9 +2808,10 @@ end
 -- 089:666666666666666666666f6f6666fcfc666fcccc666ffccc66fccccc666fcccc
 -- 090:66666666ff66f666ccffcf66ccccfcf6ccccccf6ccccccf6ccc57f665c577566
 -- 091:66666666666666666666666666666666666f16666666f1f666666fef66666e1f
--- 093:00000000000000000000000000000000000000000000000000000000fff00000
--- 094:000000000000000000000000000000000000000000000000000000000000f0f0
--- 095:000000000000000000000000000000000000000000000000ff000000fff00000
+-- 092:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 093:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeefffeeeee
+-- 094:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeefefe
+-- 095:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffeeeeeefffeeeee
 -- 096:666fcccc666fffcf66f55aaa66f55ffe66f7dddd666f77006666fffd6666f00f
 -- 097:55555ff5f555fef5f7bbefffe7bbff6677dbff66bbd7f666dd777666fffff006
 -- 098:f666666656666666666666666666666666666666666666666666666666666666
@@ -2810,17 +2824,19 @@ end
 -- 105:666fcfc566f55ccc66f55fce66ff7fff6f77f77e66f77fed666ff777666f00ff
 -- 106:555575665555cf66d55ce5fff77ed5a1e7bedfaa7abdf61add777f61ffff00ff
 -- 107:6666fe1f66f1be1f6f1de1f6fddf1f66ddd11f66f11ff66611f66666ff666666
--- 108:00004fff0000f44400ff4cff0f4f4444f44ccc440f4c44ff00fcc44f00cf444c
--- 109:44cf400044ccf000444cf4004c14cf00f1114f00f441cc40fff41fc0fffcf110
--- 110:000fcfff000ffcff00044ffc0044f4fc0ffffc4c0ffcccc40ffcccc400cffccc
--- 111:cccfc000cffff000ccfc4400cc1c4440c414cf004444cc00444c1fc0444cf110
+-- 108:eeee4fffeeeef444eeff4cffef4f4444f44ccc44ef4c44ffeefcc44feecf444c
+-- 109:44cf4eee44ccfeee444cf4ee4c14cfeef1114feef441cc4efff41fcefffcf11e
+-- 110:eeefcfffeeeffcffeee44ffcee44f4fceffffc4ceffcccc4effcccc4eecffccc
+-- 111:cccfceeecffffeeeccfc44eecc1c444ec414cfee4444ccee444c1fce444cf11e
 -- 112:00000000000ff00000fddf000fdfbbf00fdbbaf000fbaf00000ff00000000000
 -- 113:000000f00000ffef000feedf00feedf000fedf000fdff0000df0000000000000
 -- 114:0000000000f6f0000f644f00f54434f0fc5544f0fcc44cf00fccff0000ff0000
 -- 115:00000000000ff00000f88f000f8f99f00f8997f000f97f00000ff00000000000
--- 116:000ff0000fffff0fff44c4f0c04fffff44f444fffff4ff4f4ff4c11ff444f4f0
--- 117:0000000000ffff0f0f44c4f0c04ffc0ffc0ccc4ff4cf4c4fffc4c4fff4f4f4f0
--- 118:0000000000f00000004000f0000ff000f00ccc0004cf4c4fffc4c4fff4f4f4f0
+-- 116:eeeffeeeefffffefff44c4fece4fffff44f444fffff4ff4f4ff4c11ff444f4fe
+-- 117:eeeeeeeeeeffffefef44c4fece4ffceffceccc4ff4cf4c4fffc4c4fff4f4f4fe
+-- 118:eeeeeeeeeefeeeeeee4eeefeeeeffeeefeeccceee4cf4c4fffc4c4fff4f4f4fe
+-- 119:eeeeeeeeeeffffeeef4444fef044440ff404404ff444444ff444444ff4f4f4fe
+-- 120:eeeeeeeeeeffffeeef4444fef044440ff404404ff444444ff444444fef4f4f4f
 -- 128:11aaaaaa1a00f77fa0000ff0a0000000a0000000a0000000a0000ff0a000f55f
 -- 129:abbbba110f7f7fa100f0f7fa0000f7fa00ffff7a0f77f0faf7777f0af7777f0a
 -- 130:11aaaaaa1a000000a0000fffa000f5ffa00fff00a00f0000a0f5f000a00f0000
