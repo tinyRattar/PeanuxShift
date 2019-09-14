@@ -233,12 +233,15 @@ function player:onHit(dmg)
 		self:hpUp(-dmg.value)
 	else
 		self.hp=self.hp-dmg.value
-		if(self.hp<0)then Trinity.active=false self.hp=0 player.dead=true self.td=0 GameOverDialog() end
+		if(self.hp<0)then
+			self.hp=0
+			if(inbossBattle)then Trinity.active=false player.dead=true self.td=0 GameOverDialog() end
+		end
 	end
 end
 function player:hpUp(value)
 	self.hp=self.hp+value
-	if(self.hp>100)then self.hp=100 end
+	if(self.hp>self.maxHp)then self.hp=self.maxHp end
 	starDust(self.x+4,self.y,12,16,6,6,15,5)
 	if(inbossBattle and self.hp>=self.maxHp) then Trinity.active=false player.dead=true self.td=0 FullScreenDialog(7) end
 end
@@ -1109,7 +1112,7 @@ end
 function Trinity:onHit(dmg)
 	self.hp=self.hp-dmg.value
 	self.stackDmg=self.stackDmg+dmg.value
-	if(self.stackDmg>=self.tarDmg)then self.stackDmg=self.stackDmg-self.tarDmg player:onHit(damage(25)) end
+	if(self.stackDmg>=self.tarDmg)then self.stackDmg=self.stackDmg-self.tarDmg player:onHit(damage(20)) end
 	if(self.hp<=0)then self:death() end
 end
 function Trinity:death()
@@ -1697,7 +1700,7 @@ function talker(x,y,code)
 	if(code==3)then tk.sprite=486 end
 
 	function tk:afterTalked()
-		local c=tk.code
+		local c=self.code
 		if(c==7)then
 			Trinity:init()
 		elseif(c==0)then atfManager[1]=theGravition
@@ -1706,6 +1709,7 @@ function talker(x,y,code)
 		end
 	end
 	function tk:onTaken()
+		if(self.code==7)then player.maxHp=200 end
 		dialog(TALKER_DIALOG[tk.code])
 		self.talked=true
 	end
@@ -2349,10 +2353,11 @@ function iMapManager:draw()
 	map(0+self.offx+camera.x//8,0+self.offy+camera.y//8,31,18,8*(camera.x//8)-camera.x,8*(camera.y//8)-camera.y,1,1,redraw)
 end
 
-uiStatusBar={hp=player.hp}
+uiStatusBar={hp=player.hp,maxHp=player.maxHp}
 function uiStatusBar:draw()
 	local tmp_=0
-	rect(7,7+tmp_,100+4,7,15)
+	if(self.maxHp<player.maxHp)then self.maxHp=self.maxHp+1 end
+	rect(7,7+tmp_,self.maxHp+4,7,15)
 	if self.hp>player.hp then 
 		rect(9, 9+tmp_, self.hp, 3, 4)
 		self.hp = self.hp-1/60*10  
