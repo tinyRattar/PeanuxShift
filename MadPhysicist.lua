@@ -8,7 +8,7 @@ CAMERA_OFF={15*8-4,8*8-4}
 NEARBY4 = {{-1,0},{1,0},{0,-1},{0,1}}
 FAKERANDOM8={4,2,7,5,1,8,3,6}
 NEXTLEVEL={2,3,4,nil,8,4,4,9,4}
-TALKER_DIALOG={3,4,5}
+TALKER_DIALOG={3,4,5,9}
 TALKER_DIALOG[0]=2
 TALKER_DIALOG[7]=6
 
@@ -56,6 +56,7 @@ TEXTS={gameover={{"YOU DEID!"}},
 {{"Final words"}},
 {{"Truth is just a dream of Azathoth."}},
 {{"The student goes back to school."}},
+{{"One apple every day"}}
 }
  
 function damage(iValue, iElem)
