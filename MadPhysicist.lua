@@ -392,7 +392,7 @@ function player:enter(tile)
 	if(tileId==178)then mset_4ca(tx,ty,255,178)
 	elseif(tileId==179)then mset_4ca(tx,ty,255,179)
 	elseif(MAP_LAVA:contains(tileId))then self:onHit(damage(1))
-	elseif(tileId==231 or tileId==214)then self.cleared[curLevel]=true loadLevel(NEXTLEVEL[curLevel]) trace("?")
+	elseif(tileId==231 or tileId==214)then self.cleared[curLevel]=true loadLevel(NEXTLEVEL[curLevel])
 	elseif(tileId==238)then self.onButter=true
 	elseif(tileId==80)then self.onFireTile=true
 	elseif(tileId==182 or tileId==166)then self.willKnockWithDmg=true
@@ -579,7 +579,6 @@ function mob(x,y,w,h,hp,alertR)
 			self.sleep=false
 			if not noStun then sfx(1) end
 			self.hp=self.hp-dmg.value
-			trace("mob hp"..self.hp)
 			if(not noStun and dmg.value>self.dmgStunTresh)then self.tiStun=self.stunTime end
 			if(dmg.elem==1)then self.tiFire=150 elseif(dmg.elem==2)then self.tiIce=30 end
 			if(self.hp<=0)then self:death() end
@@ -1688,6 +1687,8 @@ end
 
 function talker(x,y,code)
 	local tk=item(x,y,16,16)
+	tk.pullMul=0
+	tk.pushMul=0
 	tk.code=code
 	tk.sprite=nil
 	if(code==0)then tk.sprite=448 end
@@ -2242,9 +2243,8 @@ function dialog(index,noAutoActive)
 	end
 	function dl:remove()
 		for i=1,#uiManager do
-			if(uiManager[i]==self)then table.remove(uiManager,i) end
+			if(uiManager[i]==self)then table.remove(uiManager,i) self:afterRemove() end
 		end
-		self:afterRemove()
 	end
 	function dl:draw()
 		if(btnp(4))then 
@@ -2267,6 +2267,7 @@ function GameOverDialog()
 	sfx(10)
 	local gd=dialog(0,true)
 	gd.txtsList=TEXTS.gameover
+	trace("gameover dialog")
 
 	function gd:afterRemove()
 		gameOver()
@@ -2281,6 +2282,7 @@ function FullScreenDialog(index)
 	sd.ti=0
 
 	function sd:afterRemove()
+		if(self.id==1)then loadLevel(1) end
 		if(self.id==7)then gameOver() end
 		if(self.id==8)then curLevel=1 gs=1 end
 	end
@@ -2291,7 +2293,10 @@ function FullScreenDialog(index)
 				self.cur=self.cur+1
 				if(self.cur==#self.txtsList+1)then self:remove() return end
 			end
-		else self.ti=self.ti+1 end
+		else 
+			self.ti=self.ti+1
+			if(btnp(4))then	self.ti=89 end
+		end
 		local c=13+self.ti//30
 		local txts=self.txtsList[self.cur]
 		cls(0)
@@ -2382,10 +2387,11 @@ end
 
 uiManager={uiStatusBar}
 
-curLevel=1
+curLevel=0
 function loadLevel(levelId)
 	sync()
 	curLevel=levelId
+	if(curLevel==0)then FullScreenDialog(1) return end
 	if(curLevel==4)then
 		for i=1,3 do
 			if(player.cleared[4+i])then
@@ -2402,7 +2408,6 @@ function loadLevel(levelId)
 	for i=1,#mobManager do mobManager[i]=nil end
 	for i=1,#envManager do envManager[i]=nil end
 	table.insert(mobManager,player)
-	if(curLevel==1)then FullScreenDialog(1) end
 	for i=1,MapSize[levelId][1] do
 		for j=1,MapSize[levelId][2] do
 			local tx,ty=i+iMapManager.offx,j+iMapManager.offy
@@ -3003,7 +3008,7 @@ end
 -- 005:0000a1d373737273d3a100000055a1e3b000c0e3d3d3e3b00000000000000000c0e3e3a5e3f4f4f4f4f4f471a10000a1e3e3e300000000000000000000e3c1d1e3e3f3e3e3e3e3e3e3e3f3f3e32ae300000000e3a10000a10effffffff0e4affffffffffffff630808080863d300000000000000d3ff0e0effffffff8902121222ffffffffffffff890d0e09ffffffffffffff4affffffffffffffffffd3e300000000e3e3e3e3e3e3d30effffff0ed3e3e3e3d3d30eff0eff0ed3d3e3e3e3e300000000000000e3e300000000e3f3a5e3c1c1d0c1d0e3e3e3e3e3e3e3d3f4f4f4f4f4f4f4f4f4a10000000000000000
 -- 006:0000a1ffffffffffffa100000056a1e3b4d4c4e3d3d3e300000000000000000000c1d0a5a2e3f3e3e3e3e3e3a10000a1e3e3e3b4d4d4d4d4d4d4d4d4c4e3e3e3e3e3f3e3e3e3e3e3e3e3f3f3e3e3e3b4d4d4c4e3a10000a1ffffffffffff4affffffffffffffff1fffffffffd300000000000000d3ff0e0effffffff8903131323ffffffffffffff890e0e09ffffffffffffff4affffffffffffffffff49e3b4d4d4c4e3e3e3e3e3e3d309ffffff09d3e3e3e3d3d3ff0eff0effd3d3e3e3e3e3b4d4d4d4d4d4c4e3e3b4d4d4c4e3f3a5e3e3e3e3e3e3e3e3e3e3e3e3e3d3e3e3e3e3e3e3e3e3e3a10000000000000000
 -- 007:0000c3ffffffffffffc300000056a17362737373d349e3b4d4d4d4d4d4d4d4d4c4e3e3a5a2e3f3b00000c0e3a10055a1fefefefefefe6308080808080808080808080808080808080808080863fefefefefefefea10000d3ff0fffff1fff4affffffffffffffffffffffffffd300000000000000d3ffffffff3effff89ffffff1fffffffff1fffff890e0e89ffff1fffffffff4affffffffffff1effff5affffffffff09ffffffffffffffffffffffffffff63d3d3ffffffffffd3d3ffffffffffffffffffffffffffffffffffffffffffffffffffffff11ffff010101d3e3e3e3e3e3e3e3e3e3a10000000000000000
--- 008:0000c3ff06ffff06ffc300000056a1fefefefefffe5afefe890dfefe0909fefefefefefed3e3f300000000e3a10067a1ffffffffffffffffff4effffffffffffffffffffffffffffffffffffffffff495b5b5b49a10000d3ffffffffffff4affffffffffffffff1effff1fff49e4e4e43ae4e4e4d3ffffffffffffff891d1d1d1d1d1d1d1d1d1d1d8989891d1d1d1d1d1d1d1d481d1d1d1dffffffffff5affffffffff09ffffffffffffffffffffffffffff17d3d36a6a6a6a38d3d3ffffffffffffffffff4effffffffffffbaffffffffffff3effffff11ffff010101d3e3e3e3e3e3e3e3e3e3a10000000000000000
+-- 008:0000c3ff06ffff06ffc300000056a101fefefefffe5afefe890dfefe0909fefefefefefed3e3f300000000e3a10067a1ffffffffffffffffff4effffffffffffffffffffffffffffffffffffffffff495b5b5b49a10000d3ffffffffffff4affffffffffffffff1effff1fff49e4e4e43ae4e4e4d3ffffffffffffff891d1d1d1d1d1d1d1d1d1d1d8989891d1d1d1d1d1d1d1d481d1d1d1dffffffffff5affffffffff09ffffffffffffffffffffffffffff17d3d36a6a6a6a38d3d3ffffffffffffffffff4effffffffffffbaffffffffffff3effffff11ffff010101d3e3e3e3e3e3e3e3e3e3a10000000000000000
 -- 009:0000c3ffffffffffffc300000067a1ffffff5d1bff5affff8989ffff0909ffffffffffffd3e3f3b4d4d4c4e3a10067a1ff0effff0effffffffffffffffffffffffffffffffffffffffffffffffffff5affffffffa10000d3ff0fffff0fff4affffffffffffffffffffffffff5affffff2bffffffffffffffffffffff89021222ffffffffffffffffffffffffffffffff021222890e0fffffffffffffff5affffffffff09ffffffffffffffffffffffffffff17ffffffffffffff09ffffffffffffffffffffffffffffffffffbaffffffffffffffffffff11ffffffffffff4909ff09ff0effffffa10000000000000000
 -- 010:000084e4e4e4e4e4e49400000056a1ffffff1b1bff5affffffffffff0909ffffffffffff1dfefefefefefefea10056a1ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff5aff6e7effa10000d3ffffffffffff4affffffffffffffffff1effffff5affffff2bffffffffffffffffffffff89031323ffffffffffffffff0fffffffffffffff031323890fff1fffffffffffff5affffffffff09ffffffffbabaffffffffffff1eff17ffff3effffff09ffffffffffffffffffbaffffffffffffffffbaffffffffffffffffffffffffffffffffff5a09ff09ffff6e7effc30000000000000000
 -- 011:000000d5b9b9e5e5f50000000077a1efffffffffff49ffffffff5d1b0909ffffffffffff1dffffffff0effffa10067a1ffffff0dffffff4effffffffffffffffffffffffffffffffffffffffffffff5aff6f7fffc30066f609090909090948ffffffffffffffffffffffffff5affffff2bffffffffffffffffffffff89ffffffffffffffffffffffff0fffffffffffffffffff890e0fffffffffffffff5affffffffff09ffffffffbabaffffffffffffffff6349ffffffffff0909ffffffffffffffffbaffffffeeeeffffffbaffffffffffffffffffffffffffffffffff5a090e09ffff6f7fffc30000000000000000
