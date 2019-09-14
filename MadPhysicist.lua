@@ -2417,6 +2417,7 @@ function loadLevel(levelId)
 	for i=1,#mobManager do mobManager[i]=nil end
 	for i=1,#envManager do envManager[i]=nil end
 	table.insert(mobManager,player)
+	player.key1=0
 	for i=1,MapSize[levelId][1] do
 		for j=1,MapSize[levelId][2] do
 			local tx,ty=i+iMapManager.offx,j+iMapManager.offy
