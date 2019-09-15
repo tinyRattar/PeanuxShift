@@ -7,7 +7,7 @@
 CAMERA_OFF={15*8-4,8*8-4}
 NEARBY4 = {{-1,0},{1,0},{0,-1},{0,1}}
 FAKERANDOM8={4,2,7,5,1,8,3,6}
-NEXTLEVEL={2,3,4,nil,8,4,4,9,4}
+NEXTLEVEL={2,3,4,nil,8,10,12,9,4,11,4,13,4}
 TALKER_DIALOG={3,4,5,9}
 TALKER_DIALOG[0]=2
 TALKER_DIALOG[7]=6
@@ -2411,8 +2411,8 @@ function loadLevel(levelId)
 			end
 		end
 	end
-	local lOff = {{0,0},{0,17*2+2},{0,17*4},{30*6,17*2}, {0,17*5},{30*3-15,0},{30*3,17*2-3}, {30+10,17*6+8},{30,17*5}}
-	local MapSize = {{30*2+15,17*2+2},{30*3,17*2-2},{30*3,17},{30*1,17*3}, {30+10,17*3},{30*5+15,17*2-6},{30*3,17*2+4}, {30*2-11,21},{30*2,17+8}}
+	local lOff = {{0,0},{0,37},{2,68},{180,34}, {0,90},{94,0},{90,34}, {38,106},{38,90}, {120,0},{188,0},{108,40},{143,40}}
+	local MapSize = {{85,37},{90,28},{88,17},{30,64}, {38,41},{26,31},{19,35}, {62,25},{62,16},{68,34},{52,28},{36,38},{33,37}}
 	iMapManager.offx = lOff[levelId][1] iMapManager.offy = lOff[levelId][2]
 	for i=1,#mobManager do mobManager[i]=nil end
 	for i=1,#envManager do envManager[i]=nil end
