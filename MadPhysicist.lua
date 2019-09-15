@@ -2302,7 +2302,7 @@ function sd:afterRemove()
 	if(self.id==8)then curLevel=0 gs=1 inbossBattle=false end
 end
 function sd:draw()
-	if(self.ti>90)then
+	if(self.ti>60)then
 		if(btnp(4))then
 			self.ti=0
 			self.cur=self.cur+1
