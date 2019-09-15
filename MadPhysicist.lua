@@ -2501,6 +2501,7 @@ map(5*30,7*17,31,18,-30*8+(3*t/4)%(60*8),0,1,1)
 map(5*30,7*17,31,18,-30*8+(3*t/4-30*8)%(60*8),0,1,1)
 map(180,102,31,18,0,0,1)
 print("o",75+math.sin(time()/100),84+(2-cs)*10,6)
+print("v0.92",205,110,15,false,1)
 if cs==2 then print("start game",84,84,6) print("about", 84, 94)
 else print("start game",84,84) print("about", 84, 94,6)
 end
