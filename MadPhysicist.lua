@@ -411,15 +411,15 @@ elseif(tileId==180 or tileId==164)then self.willKnockWithDmg=true
 end
 end
 
-theGravition=artifact(60,15)
-theGravition.range=10*8
-theGravition.rangePow2=theGravition.range*theGravition.range
-theGravition.force=5
-theGravition.sprite=384
-function theGravition:use()
+theGr=artifact(60,15)
+theGr.range=10*8
+theGr.rangePow2=theGr.range*theGr.range
+theGr.force=5
+theGr.sprite=384
+function theGr:use()
 if(self:switchOn())then end
 end
-function theGravition:pull(isReverse)
+function theGr:pull(isReverse)
 if(isReverse)then sfx(6) else sfx(5) end
 for i=1,#mobManager do
 	local m=mobManager[i]
@@ -432,10 +432,10 @@ for i=1,#envManager do
 	if(e)then	iPull(pl,e,isReverse,self.force,self.rangePow2) end
 end
 end
-function theGravition:push()
+function theGr:push()
 self:pull(true)
 end
-function theGravition:update()
+function theGr:update()
 if(self.inWorking)then
 	local td=self.tiDur
 	if(td<self.durTime and td%3==0)then 
@@ -446,7 +446,7 @@ if(self.inWorking)then
 end
 if(self.tiCD>0)then self.tiCD=self.tiCD-1 end
 end
-function theGravition:draw()
+function theGr:draw()
 if(self.inWorking)then
 	local rscale=self.tiDur/15
 	if(self.mode==0)then rscale=1-rscale end
@@ -457,10 +457,10 @@ if(self.inWorking)then
 end
 end
 
-theTimeMachine=artifact(240,120)
-function theTimeMachine:init()
+theTM=artifact(240,120)
+function theTM:init()
 self.range=10*8
-self.rangePow2=theTimeMachine.range*theTimeMachine.range
+self.rangePow2=theTM.range*theTM.range
 self.speedUpMul=2 self.speedDownMul=2
 self.effectedObject={} self.rClock={} self.hHandPos={} self.mHandPos={}
 self.sprite=392
@@ -472,8 +472,8 @@ for i=1,48 do
 	self.mHandPos[i]={sin*4*8,-cos*4*8}
 end
 end
-theTimeMachine:init()
-function theTimeMachine:use()
+theTM:init()
+function theTM:use()
 if(self:switchOn())then
 	if(self.mode==0)then
 		sfx(7)
@@ -492,23 +492,23 @@ if(self:switchOn())then
 	end
 end
 end
-function theTimeMachine:onTimeOut()
-for i=1,#theTimeMachine.effectedObject do
-	local obj=theTimeMachine.effectedObject[i]
+function theTM:onTimeOut()
+for i=1,#theTM.effectedObject do
+	local obj=theTM.effectedObject[i]
 	if(obj)then	
 		obj.tmMul=1 
-		theTimeMachine.effectedObject[i]=nil
+		theTM.effectedObject[i]=nil
 	end
 end
 end
-function theTimeMachine:update()
+function theTM:update()
 if(self.inWorking)then
 	self.tiDur=self.tiDur+1
 	if(self.tiDur>self.durTime)then self:onTimeOut() self:switchOff() end
 end
 if(self.tiCD>0)then self.tiCD=self.tiCD-1 end
 end
-function theTimeMachine:draw()
+function theTM:draw()
 if(self.inWorking)then
 	local c1=5
 	local r1=36
@@ -554,19 +554,19 @@ if(self.inWorking)then
 end
 end
 
-theKelvinWand=artifact(60,30)
-theKelvinWand.sprite=388
-function theKelvinWand:use()
+theKW=artifact(60,30)
+theKW.sprite=388
+function theKW:use()
 self:switchOn()
 end
-function theKelvinWand:cast()
+function theKW:cast()
 sfx(9)
 local elem=1
 if(self.mode==1)then elem=2 end
 local cp=CenterPoint(pl)
 table.insert(envManager,KelvinBullet(cp[1],cp[2],pl.fwd,1,elem))
 end
-function theKelvinWand:update()
+function theKW:update()
 if(self.inWorking)then
 	if(self.tiDur==0) then self:cast() end
 	self.tiDur=self.tiDur+1
@@ -574,7 +574,7 @@ if(self.inWorking)then
 end
 if(self.tiCD>0)then self.tiCD=self.tiCD-1 end
 end
-function theKelvinWand:draw()
+function theKW:draw()
 end
 
 function mob(x,y,w,h,hp,alertR)
@@ -1719,9 +1719,9 @@ function tk:afterTalked()
 	local c=self.code
 	if(c==7)then
 		Trinity:init()
-	elseif(c==0)then atfManager[1]=theGravition
-	elseif(code==2)then atfManager[2]=theTimeMachine
-	elseif(code==3)then atfManager[3]=theKelvinWand
+	elseif(c==0)then atfManager[1]=theGr
+	elseif(code==2)then atfManager[2]=theTM
+	elseif(code==3)then atfManager[3]=theKW
 	end
 end
 function tk:onTaken()
@@ -2525,7 +2525,7 @@ for i=1,#titleC[2] do
 end
   
 print("o",81+math.sin(time()/100),84+(2-cs)*10,6)
-print("v1.00",200,100,15,false,1)
+print("v1.00c",200,100,15,false,1)
 if cs==2 then print("start game",90,84,6) print("credits", 90, 94)
 else print("start game",90,84) print("credits", 90, 94,6)end
 end
@@ -2548,10 +2548,12 @@ mainManager={mobManager,atfManager,envManager,aEnvManager}
 drawManager={{iMapManager},envManager,{pl},mobManager,aEnvManager,atfManager,uiManager,{Trinity}}
 
 gs=0 cs=2 musicon=-1
+cheat=0
 function TIC()
 t=t+1
 if gs==0 then drawMenu()
 	if musicon~=0 then music(2) musicon=0 end
+	if btn(6) then cheat=cheat+1 if(cheat>60)then atfManager={theGr,theTM,theKW} gs=2 loadLevel(4)end else cheat=0 end
 	if btn(0) then cs=2 end
 	if btn(1) then cs=1 end
 	if btnp(4) then 
