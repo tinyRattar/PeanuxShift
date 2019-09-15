@@ -51,7 +51,7 @@ TEXTS={gameover={{"YOU DEID!"}},
 {"We will teach you, guide you and lead you"," to the truth of the world."}},
 {{"Newton:","Gravity always wins.","Now you have my gift, Newton iMachine."},{"Newton:","Press 'X' to use Newton iMachine, ","hold 'X' to shift the mode."}},
 {{"Watch out these tiny stupid monsters, ","they are believers of the OUTER.","Their attack will reduce your truth value."},
-{"You can press 'A' to use your truth sword to beat them."}},
+{"You can press 'A' to use your truth sword ","to beat them."}},
 {{"Galileo:","Iron ball and feather will land at the same time.","I will give you my Galileo Iron-and-Feather."},
 {"Galileo:","Press 'Y' to use Galileo Iron-and-Feather, ","hold 'Y' to shift the mode."}},
 {{"Kelvin:","It is impossible to stop entropy increase."},
@@ -60,7 +60,7 @@ TEXTS={gameover={{"YOU DEID!"}},
 {{"Galileo, Newton, Kelvin:","Let us teach you what is truth."}},
 {{"Truth is just a dream of Azathoth."}},
 {{"The student goes back to school."}},
-{{"The truth apples can recover your truth value, feel free to eat them."}}
+{{"The truth apples can recover your truth value, ","feel free to eat them."}}
 }
 
 function damage(iValue, iElem)
