@@ -46,7 +46,7 @@ MAP_BUTTER=set({238})
 MAP_LAVA=set({3,16,19,32,33,34,35,36,48,49,50,51,52,53,64,65,66,67})
 
 -- region TXT
-TEXTS={gameover={{"YOU DEID!"}},
+TEXTS={
 {{"Dear Student, ","Welcome to S.H.I.F.T.,","AKA Super Hyper Incredible Fhysical Tower."},
 {"We will teach you, guide you and lead you"," to the truth of the world."}},
 {{"Newton:","Gravity always wins.","Now you have my gift, Newton iMachine."},{"Newton:","Press 'X' to use Newton iMachine, ","hold 'X' to shift the mode."}},
@@ -63,6 +63,7 @@ TEXTS={gameover={{"YOU DEID!"}},
 {{"The student goes back to school."}},
 {{"Hey, Listen!"},{"The truth apples can recover your truth value, ","feel free to eat them."}}
 }
+TEXTS[0]={{"You lost all your truth value.","Your stupidity shifts you to a believer of ","the OUTER now.","Study hard next time."}}
 
 function damage(iValue, iElem)
 dmg={value=iValue,elem=iElem or 0}
@@ -2252,12 +2253,13 @@ function dialog(index,noAutoActive)
 local id=index or 1
 local dl={}
 dl.cur=1
-if(not noAutoActive)then 
-  dl.txtsList=TEXTS[id]
-  dl.ti=0
-  dl.maxT=15
-  for i=1,#dl.txtsList[1] do dl.maxT=dl.maxT+#dl.txtsList[1][i] end
-end
+dl.txtsList=TEXTS[id]
+dl.ti=0
+dl.maxT=15
+for i=1,#dl.txtsList[1] do dl.maxT=dl.maxT+#dl.txtsList[1][i] end
+-- if(not noAutoActive)then 
+  
+-- end
 
 function dl:afterRemove()
 end
@@ -2297,7 +2299,8 @@ end
 function GameOverDialog()
 sfx(10)
 local gd=dialog(0,true)
-gd.txtsList=TEXTS.gameover
+-- gd.txtsList=TEXTS.gameover
+-- for i=1,#gd.txtsList[1] do gd.maxT=gd.maxT+#gd.txtsList[1][i] end
 trace("gameover dialog")
 
 function gd:afterRemove()
@@ -2307,9 +2310,9 @@ table.insert(uiManager,gd)
 end
 
 function FullScreenDialog(index)
-local sd=dialog(0,true)
+local sd=dialog(index,true)
 sd.id=index
-sd.txtsList=TEXTS[index]
+-- sd.txtsList=TEXTS[index]
 sd.ti=0
 sd.maxT=15
 for i=1,#sd.txtsList[1] do
