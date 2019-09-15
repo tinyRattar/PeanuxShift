@@ -1118,7 +1118,7 @@ end
 function Trinity:onHit(dmg)
 self.hp=self.hp-dmg.value
 self.stackDmg=self.stackDmg+dmg.value
-if(self.stackDmg>=self.tarDmg)then self.stackDmg=self.stackDmg-self.tarDmg player:onHit(damage(20)) end
+if(self.stackDmg>=self.tarDmg)then self.stackDmg=self.stackDmg-self.tarDmg player:onHit(damage(15)) end
 if(self.hp<=0)then self:death() end
 end
 function Trinity:death()
@@ -1544,7 +1544,7 @@ function ft:init()
 		end
 		self.maxLen=tLen
 	else
-		trace("Tentacle has no fwd. put tile "..self.sprite.." around it.")
+		trace("Tentacle error")
 	end
 	self.curLen=self.maxLen
 	self.toShort=true
@@ -1639,8 +1639,8 @@ function apple(x,y)
 local app=item(x,y,8,8)
 
 function app:onTaken()
-	sfx(3)
-	player:hpUp(5)
+  sfx(3)
+  if(inbossBattle)then player:hpUp(15) else player:hpUp(5) end
 	self:remove()
 end
 function app:draw()
