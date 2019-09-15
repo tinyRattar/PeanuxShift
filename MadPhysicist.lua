@@ -1118,7 +1118,7 @@ end
 function Trinity:onHit(dmg)
 self.hp=self.hp-dmg.value
 self.stackDmg=self.stackDmg+dmg.value
-if(self.stackDmg>=self.tarDmg)then self.stackDmg=self.stackDmg-self.tarDmg pl:onHit(damage(15)) end
+if(self.stackDmg>=self.tarDmg)then self.stackDmg=self.stackDmg-self.tarDmg pl:onHit(damage(15)) MAP_COLLIDE:remove(145) end
 if(self.hp<=200)then inRage=true end
 if(self.hp<=0)then self:death() end
 end
@@ -1680,6 +1680,8 @@ end
 
 function portal(x,y,code,tx,ty)
 local p=item(x,y,16,16)
+p.pullMul=0
+p.pushMul=0
 p.code=code
 if(pl.cleared[code+5])then
 	p.closed=true
@@ -2553,7 +2555,7 @@ function TIC()
 t=t+1
 if gs==0 then drawMenu()
 	if musicon~=0 then music(2) musicon=0 end
-	if btn(6) then cheat=cheat+1 if(cheat>60)then atfManager={theGr,theTM,theKW} gs=2 loadLevel(4)end else cheat=0 end
+	if btn(6) then cheat=cheat+1 if(cheat>60)then atfManager[1]=theGr atfManager[2]=theTM atfManager[3]=theKW gs=2 loadLevel(4) end else cheat=0 end
 	if btn(0) then cs=2 end
 	if btn(1) then cs=1 end
 	if btnp(4) then 
