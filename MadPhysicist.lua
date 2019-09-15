@@ -1407,7 +1407,7 @@ function kl:startAttack(index)
 end
 function kl:castIceBall()
   local ki=KelvinIceBall(self.x,self.y)
-  if(inRage)then ki.ms=1.25 ki.attack=-15 end
+  if(inRage)then ki.ms=1.25 ki.attack=-15 ki.hp=2 end
 	table.insert(mobManager,ki)
 end
 function kl:update()
@@ -1445,7 +1445,7 @@ end
 
 function KelvinIceBall(x,y)
 local km=bombMan(x,y)
-km.hp=2 km.h=16 km.w=16 km.tiLife=300 km.noEntityCollide=true 
+km.hp=1 km.h=16 km.w=16 km.tiLife=300 km.noEntityCollide=true 
 km.noMapCollide=true km.ms=0.5 km.meleeRange=12 km.attack=-10
 km.pullMul=0.5 km.pushMul=0.5 km.tmMul=0 km.sleep=false
 
