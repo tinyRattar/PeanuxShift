@@ -2515,7 +2515,7 @@ for i=1,#titleC[2] do
 end
   
 print("o",81+math.sin(time()/100),84+(2-cs)*10,6)
-print("v0.93",200,100,15,false,1)
+print("v0.93b",200,100,15,false,1)
 if cs==2 then print("start game",90,84,6) print("about", 90, 94)
 else print("start game",90,84) print("about", 90, 94,6)
 end
