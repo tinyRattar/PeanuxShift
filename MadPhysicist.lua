@@ -234,19 +234,21 @@ for i=1,#hitList do
 end
 end
 function player:onHit(dmg)
+if(self.dead)then return end
 if(dmg.value<0)then 
 	self:hpUp(-dmg.value)
 else
 	self.hp=self.hp-dmg.value
 	if(self.hp<0)then
-		self.hp=0
+		self.hp=0.1
 		if(not inbossBattle)then Trinity.active=false player.dead=true self.td=0 GameOverDialog() end
 	end
 end
 end
 function player:hpUp(value)
+if(self.dead)then return end
 self.hp=self.hp+value
-if(self.hp>self.maxHp)then self.hp=self.maxHp end
+if(self.hp>self.maxHp)then self.hp=self.maxHp-0.1 end
 starDust(self.x+4,self.y,12,16,6,6,15,5)
 if(inbossBattle and self.hp>=self.maxHp) then Trinity.active=false player.dead=true self.td=0 FullScreenDialog(7) end
 end
