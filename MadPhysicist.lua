@@ -49,14 +49,18 @@ MAP_LAVA=set({3,16,19,32,33,34,35,36,48,49,50,51,52,53,64,65,66,67})
 TEXTS={gameover={{"YOU DEID!"}},
 {{"Dear Student, ","Welcome to S.H.I.F.T.,","AKA Super Hyper Incredible Fhysical Tower."},
  {"We will teach you, guide you and lead you"," to the truth of the world."}},
-{{"Newton words"}},
-{{"watchout OUTERS"}},
-{{"Galileo words"}},
-{{"Kelvin words"}},
-{{"Final words"}},
+{{"Newton:","Gravity always wins.","Now you have my gift, Newton iMachine."},{"Newton:","Press 'X' to use Newton iMachine, ","hold 'X' to shift the mode."}},
+{{"Watch out these tiny stupid monsters, ","they are believers of the OUTER.","Their attack will reduce your truth value."},
+ {"You can press 'A' to use your truth sword to beat them."}},
+{{"Galileo:","Iron ball and feather will land at the same time.","I will give you my Galileo Iron-and-Feather."},
+ {"Galileo:","Press 'Y' to use Galileo Iron-and-Feather, ","hold 'Y' to shift the mode."}},
+{{"Kelvin:","It is impossible to stop entropy increase."},
+ {"Kelvin:","It is impossible for me to not give you ","Kelvin Impossible-Wand."},
+ {"Kelvin:","It is impossible to ","Press 'B' to NOT use Kelvin Impossible-Wand, ","hold 'B' to NOT shift the mode."}},
+{{"Galileo, Newton, Kelvin:","Let us teach you what is truth."}},
 {{"Truth is just a dream of Azathoth."}},
 {{"The student goes back to school."}},
-{{"One apple every day"}}
+{{"The truth apples can recover your truth value, feel free to eat them."}}
 }
  
 function damage(iValue, iElem)
