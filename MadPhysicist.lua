@@ -1407,7 +1407,7 @@ function kl:startAttack(index)
 end
 function kl:castIceBall()
   local ki=KelvinIceBall(self.x,self.y)
-  if(inRage)then ki.ms=1.25 ki.attack=-15 ki.hp=2 end
+  if(inRage)then ki.ms=1.25 ki.hp=2 end
 	table.insert(mobManager,ki)
 end
 function kl:update()
