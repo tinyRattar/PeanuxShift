@@ -1119,7 +1119,7 @@ function Trinity:onHit(dmg)
 self.hp=self.hp-dmg.value
 self.stackDmg=self.stackDmg+dmg.value
 if(self.stackDmg>=self.tarDmg)then self.stackDmg=self.stackDmg-self.tarDmg pl:onHit(damage(15)) end
-if(self.hp<=300)then inRage=true end
+if(self.hp<=200)then inRage=true end
 if(self.hp<=0)then self:death() end
 end
 function Trinity:death()
