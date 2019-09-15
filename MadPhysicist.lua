@@ -418,9 +418,7 @@ theGravition.rangePow2=theGravition.range*theGravition.range
 theGravition.force=5
 theGravition.sprite=384
 function theGravition:use()
-if(self:switchOn())then
-	trace("the Gravition ON!")
-end
+if(self:switchOn())then end
 end
 function theGravition:pull(isReverse)
 if(isReverse)then sfx(6) else sfx(5) end
@@ -478,7 +476,6 @@ end
 theTimeMachine:init()
 function theTimeMachine:use()
 if(self:switchOn())then
-	trace("the TimeMachine ON!")
 	if(self.mode==0)then
 		sfx(7)
 		player.tmMul=2
@@ -838,7 +835,6 @@ function bm:onHit(dmg,noStun)
 		self.sleep=false
 		if(dmg.elem==1)then 
 			self.tiFire=150
-			trace("fire")
 			if(self.state==0)then	self:startAttack() end
 		elseif(dmg.elem==2)then self.tiIce=30 end
 		return true
@@ -1525,13 +1521,11 @@ function ft:changeOneTile()
 	if(not self.toShort)then mset(iMapManager.offx+self.tailx,iMapManager.offy+self.taily,self.sprite) end
 end
 function ft:init()
-	trace(self)
 	self.tailx=self.x//8
 	self.taily=self.y//8
 	for i=1,#NEARBY4 do
 		local tfwd=NEARBY4[i]
 		local tileId=mget(iMapManager.offx+self.x//8+tfwd[1],iMapManager.offy+self.y//8+tfwd[2])
-		trace(tileId)
 		if(tileId==self.sprite)then
 			self.fwd=tfwd
 			break
@@ -2299,9 +2293,6 @@ end
 function GameOverDialog()
 sfx(10)
 local gd=dialog(0,true)
--- gd.txtsList=TEXTS.gameover
--- for i=1,#gd.txtsList[1] do gd.maxT=gd.maxT+#gd.txtsList[1][i] end
-trace("gameover dialog")
 
 function gd:afterRemove()
 	gameOver()
