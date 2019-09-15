@@ -2252,7 +2252,12 @@ function dialog(index,noAutoActive)
 local id=index or 1
 local dl={}
 dl.cur=1
-if(not noAutoActive)then dl.txtsList=TEXTS[id] end
+if(not noAutoActive)then 
+  dl.txtsList=TEXTS[id]
+  dl.ti=0
+  dl.maxT=15
+  for i=1,#dl.txtsList[1] do dl.maxT=dl.maxT+#dl.txtsList[1][i] end
+end
 
 function dl:afterRemove()
 end
@@ -2262,15 +2267,26 @@ function dl:remove()
 	end
 end
 function dl:draw()
-	if(btnp(4))then 
-		self.cur=self.cur+1
-		if(self.cur==#self.txtsList+1)then self:remove() return end
+  self.ti=self.ti+1
+  if(btnp(4))then
+    if(self.ti<self.maxT)then self.ti=self.maxT else
+      self.cur=self.cur+1
+      self.ti=0
+      if(self.cur==#self.txtsList+1)then self:remove() return end
+      self.maxT=15
+      for i=1,#self.txtsList[self.cur] do self.maxT=self.maxT+#self.txtsList[self.cur][i] end
+    end
 	end
 	local txts=self.txtsList[self.cur]
 	rectb(2*8-1,12*8-1,26*8+2,4*8+4+2,15)
-	rect(2*8,12*8,26*8,4*8+4,0)
-	for i=1,#txts do
-		print(txts[i],2*8+4,12*8-4+i*8,15,1,1,true)
+  rect(2*8,12*8,26*8,4*8+4,0)
+  local sumt=0
+  for i=1,#txts do
+    local iend=self.ti-sumt
+    if(iend<0)then iend=0 end
+    local tx=string.sub(txts[i],1,iend)
+    sumt=sumt+#txts[i]
+		print(tx,2*8+4,12*8-4+i*8,15,1,1,true)
 	end
 end
 
@@ -2295,6 +2311,10 @@ local sd=dialog(0,true)
 sd.id=index
 sd.txtsList=TEXTS[index]
 sd.ti=0
+sd.maxT=15
+for i=1,#sd.txtsList[1] do
+  sd.maxT=sd.maxT+#sd.txtsList[1][i]
+end
 
 function sd:afterRemove()
 	if(self.id==1)then loadLevel(1) end
@@ -2302,24 +2322,30 @@ function sd:afterRemove()
 	if(self.id==8)then curLevel=0 gs=1 inbossBattle=false end
 end
 function sd:draw()
-	if(self.ti>60)then
-		if(btnp(4))then
-			self.ti=0
-			self.cur=self.cur+1
-			if(self.cur==#self.txtsList+1)then self:remove() return end
-		end
-	else 
-		if(btnp(4) and self.ti<60)then	self.ti=90 end
+  if(btnp(4))then
+    if(self.ti<self.maxT)then self.ti=self.maxT else
+      self.cur=self.cur+1
+      self.ti=0
+      if(self.cur==#self.txtsList+1)then self:remove() return end
+      self.maxT=15
+      for i=1,#self.txtsList[self.cur] do self.maxT=self.maxT+#self.txtsList[self.cur][i] end
+    end
 	end
 	self.ti=self.ti+1
-	local c=13+self.ti//30
-	if(c>15)then c=15 end
+	local c=13+(self.ti/self.maxT)*2
+  if(c>15)then c=15 end
+  if(c<13)then c=13 end
 	local txts=self.txtsList[self.cur]
 	cls(0)
 	local tt=self.ti//4
-	if(self.id==7)then spr(492+t//30%2 *2,120-8*tt,68-8*tt,1,tt,0,0,2,2) end
-	for i=1,#txts do
-		print(txts[i],15*8-#txts[i]*2,6*8-4+i*8,c,1,1,true)
+  if(self.id==7)then spr(492+t//30%2 *2,120-8*tt,68-8*tt,1,tt,0,0,2,2) end
+  local sumt=15
+  for i=1,#txts do
+    local iend=self.ti-sumt
+    if(iend<0)then iend=0 end
+    local tx=string.sub(txts[i],1,iend)
+    sumt=sumt+#txts[i]
+		print(tx,15*8-#txts[i]*2,6*8-4+i*8,c,1,1,true)
 	end
 end
 table.insert(uiManager,sd)
@@ -3051,9 +3077,9 @@ end
 -- 012:0000000067560000000000000077c3ffffffffffffffffffffff1b0b0909ffffff1b1bff1dffffffffffffffa10056c3ff0effff0effffffffffffffffffffffffffffffffffffffffffffffffffff5affffffffc3000000000000000000856a6a6a6a6a6a6a381d1d1d1d1d1d1d0909090909095affff95856c7cffffffffffffff1eff89ffffffffffffffffffffff0fffffffffffffffffffff8948898989090909090986e4e4e4e4e496ffffffffffffffffffffff498989899585ffffffffffff090909ffffffffffbaffffeeeeeeffffffeeffffffeeeeffbaffffffffffffffffffff4909ff09ff0effffffc3
 -- 013:0000009f4545a4af000000000057c36c7cffffffff86e4e4e4e4e4e4e4e4e498ffffffffa2ffffffffffffffa10057c3ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff495b5b5b49c300000000000000000085ffffffffffffffff1d031313131323ffffffffffff49e4e4f6856d7dff89ffffff1effffff89ffffffffffffffbababaffffffffffffffffffffffffff4affffffffffffffff95e5e5e5e5e585ffffffffffffffffffffff5affffff9585efffffffffff09ff09ffffffffffbaffffeeeeeeffffffeeffffeeeeeeffbaffffff111111ffffff86e4e4e4e4e4e4e4e4e4f6
 -- 014:0000008563636395000000000000c36d7dffffffff959fa4a4a4a4a4a4a4a488ffffffffa2898989ffffffffa10000c3ffffffffffff630808080808080808080863a1ffffffa1630808080863ffffffffffffffc300000000000000000085ffffffff0fffffff1dffffffffffffffffffffffff95e5e5f585ffffff89ffffffffffffff89090909ffffffffffffffffffffffffbababaffffffffff4affff0fffffffffff95000000000085ffffff4effffffffffffff5affffff9585ffffffffffffffff09ffffffffffffffffffffffffffffeeffffeeeeffffffffffffffffffffffff95e5e5e5e5e5e5e5e5e5f5
--- 015:000000e6e4e4e4f6000000000000c3e4e4e4e4e4e4f685021222fefefefefefeff4effffa2fefefeffffffffc30000c3e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4a1ffffffa1e4e4e4e4e4e4e4e4e4e4e4e4e4c300000000000000000085ffffffffffffffff1dffffffffffffff0fff0fffffe6e47600e6e4e4e4c3ffffffffffffff09ffff09ffffffffffffffffffeeffffffffffffffffffff4affffffffff1e1fff95000000000085ffffffffffffffffffffff5aff6e7e95856c7cffffffff09ff09ffffffffffffffffffffffffffeeeeeeffffffffffffffffffffffffffffff9500000000000000000000
+-- 015:000000e6e4e4e4f6000000000000c3e4e4e4e4e4e4f685021222fefefefefefeffffffffa2fefefeffffffffc30000c3e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4a1ffffffa1e4e4e4e4e4e4e4e4e4e4e4e4e4c300000000000000000085ffffffffffffffff1dffffffffffffff0fff0fffffe6e47600e6e4e4e4c3ffffffffffffff09ffff09ffffffffffffffffffeeffffffffffffffffffff4affffffffff1e1fff95000000000085ffffffffffffffffffffff5aff6e7e95856c7cffffffff09ff09ffffffffffffffffffffffffffeeeeeeffffffffffffffffffffffffffffff9500000000000000000000
 -- 016:000000d5e5e5e5f5000000000000d5e5e5b9e5e5f5f585320142ffffffffffffffffffffc3ff0effffffffffc30000d5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5a1ffffffa1e5e5b9b9e5e5e5e5e5e5e5b9e5f500000000000000000085ffffff0fffffffff1dffffff3effffffffffffffff090e9500d5e5e5e5c3ffff1effffffff09ffff09ffffffffffffffffffeeffffffffffffff4effff4affff0fffffffffff95000000000085ffffffffffffffffffffff49ff6f7f95856d7dffffffff090909eeeeeeeeeeeeeeeeeeeeeeeeeeee1feeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee6e4e4e4e4e4e4e4e4e476
--- 017:0000000000000000000000000000000000c9d9d9d96785031323ffffffffffffffffffffc3ffffffffffffffc3000000000000000000000000000000000000000000a1ffffffa1000056c9d9d9d9d9d967d9a9000000000000000000000085ffffffffffffffff1dffffffffffffffffffffffff090d950000000000c3ffffffffffffff09ff0e09ffffffffffffffffffeeffffffffffffffffffff4affffffffffffffff95000000000085ffffffffffffffffffff86e4e4e4e4f6e6e4e4e4e4e4e496ffffffffffffffffffffffffffffffeeeeeeffffffffffffffffffffffffffffffffff09ff09021212122295
+-- 017:0000000000000000000000000000000000c9d9d9d96785031323ffffffff4effffffffffc3ffffffffffffffc3000000000000000000000000000000000000000000a1ffffffa1000056c9d9d9d9d9d967d9a9000000000000000000000085ffffffffffffffff1dffffffffffffffffffffffff090d950000000000c3ffffffffffffff09ff0e09ffffffffffffffffffeeffffffffffffffffffff4affffffffffffffff95000000000085ffffffffffffffffffff86e4e4e4e4f6e6e4e4e4e4e4e496ffffffffffffffffffffffffffffffeeeeeeffffffffffffffffffffffffffffffffff09ff09021212122295
 -- 018:00000000000000000000000000000000000000000000e6e4e4e4e496ffffffff86e4e4e4c3e4e4e4e4e4e4e4c30000000000000000000000000000000000000040c2a1ffffffa1c24156000000000000000000000000000000000000000085ffffff86e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4f60000000000c3e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4f6000000000085ffffffffffffffffffff95e5e5e5e5e5e5e5e5e5e5e5e585ffffffffffffffffffffffffffffffffeeffffffffffffffffffffffffffffffffffff09ff0932ff0eff4295
 -- 019:00000000000000000000000000000000000000000000d5e5e5e5b985ffffffff95e5b9e5e5e5e5e5e5e5e5e5f500000000000000000000000000000000000000a1f4f4fffffff4f4a177000000000000000000000000000000000000000085ffffff95e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5f50000000000d5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5f5000000000085ffffffffffffffffffff9500000000000066e4e4e4e4e4f6ffffffff4effffffffffeeeeeeeeffffeeffffeeeeeeffffffffffffffffffffffffff09ff0932ff0eff4295
 -- 020:00000000000000000000000000000000000000000000000000007785ffffffff95007700000040c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2a1d3495b5b5b49d3a1770000000000000000000000000000000000000000850909099500000000000000000000000000000000000000000000000000000000000000000066e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4760000000000000000000085ffffffffffffffffffff95000000000000850dffffffff09ffffffffffffffffffffffeeeeffffffeeffffeeeeffffffff111111ffffffffffffff09ff09033333332395
