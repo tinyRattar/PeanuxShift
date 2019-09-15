@@ -2309,7 +2309,7 @@ function sd:draw()
 			if(self.cur==#self.txtsList+1)then self:remove() return end
 		end
 	else 
-		if(btnp(4))then	self.ti=89 end
+		if(btnp(4) and self.ti<60)then	self.ti=90 end
 	end
 	self.ti=self.ti+1
 	local c=13+self.ti//30
