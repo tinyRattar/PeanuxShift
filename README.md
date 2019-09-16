@@ -5,9 +5,9 @@ The Game for DEOT GameJam, which theme is SHIFT.
 
 ## Introduction
 
-A Zelda-like Game. 
+A Zelda-like Game.
 
-An adventure of a Physical student finding the truth. 
+An adventure of a Physical student finding the truth.
 
 Use your truth sword and Artifacts to beat enemies, solve puzzles and
 win the final battle with your dear Physicists.
