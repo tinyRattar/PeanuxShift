@@ -2550,7 +2550,7 @@ end
 
 function gameOver()
 pl.hp=100
-if(pl.maxHp=200)then pl.hp=50 end
+if(pl.maxHp==200)then pl.hp=50 end
 pl.dead=false
 loadLevel(curLevel)
 end
