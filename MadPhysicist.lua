@@ -47,29 +47,30 @@ MAP_BUTTER=set({238})
 MAP_LAVA=set({3,16,19,32,33,34,35,36,48,49,50,51,52,53,64,65,66,67})
 
 TEXTS={
-{{"Dear Student, ","Welcome to S.H.I.F.T.,","AKA Super Hyper Incredible Fhysical Terrain."},
-{"We will teach you, guide you and lead you"," to the truth of the world."}},
-{{"Newton:","Gravity always wins.","Now you have my gift, Newton Gravitation."},{"Newton:","Press 'X' to use Newton Gravitation, ","hold 'X' to shift the mode."}},
-{{"Hey, Listen!"},{"Watch out these tiny stupid monsters, ","they are believers of the OUTER.","Their attack will reduce your truth value."},
-{"You can press 'A' to use your truth sword ","to beat them."},
-{"And NEVER forget to use your physicist's Artifact."}},
-{{"Galileo:","Iron ball and feather will land at the same time.","I will give you my Galileo Iron-and-Feather."},
-{"Galileo:","Press 'Y' to use Galileo Iron-and-Feather, ","hold 'Y' to shift the mode."}},
-{{"Kelvin:","It is impossible to stop entropy increase."},
-{"Kelvin:","It is impossible for me to not give you ","Kelvin Impossible-Wand."},
-{"Kelvin:","It is impossible to ","Press 'B' to NOT use Kelvin Impossible-Wand, ","hold 'B' to NOT shift the mode."}},
+{{"PRODUCED BY PEANUX"},
+	{"Dear Student, ","Welcome to S.H.I.F.T.,","AKA Super Hyper Incredible ","Fhysical Terrain."},
+{"We will teach you,","guide you ","and lead you"," to the truth of the world."}},
+{{"Newton:","Gravity always wins.","Now you have my gift, ","Newton Gravitation."},{"Newton:","Press 'X' to use,","hold 'X' to shift the mode."}},
+{{"Hey, Listen!"},{"Watch out these ","tiny stupid monsters, ","they are believers of the OUTER."},
+{"You can press 'A' to use ","your truth sword to beat them."},
+{"And NEVER forget to use your ","physicist's Artifact."}},
+{{"Galileo:","Iron ball and feather will ","land at the same time."},{"I will give you my ","Galileo Iron-and-Feather."},
+{"Galileo:","Press 'Y' to use,","hold 'Y' to shift the mode."}},
+{{"Kelvin:","It is impossible to","stop entropy increase."},
+{"Kelvin:","It is impossible for me ","to not give you ","Kelvin Impossible-Wand."},
+{"Kelvin:","It is impossible to ","Press 'B' to NOT use, ","hold 'B' to NOT shift the mode."}},
 {{"Galileo, Newton, Kelvin:","Let us teach you what is truth."}},
 {{"Truth is just a dream of Azathoth."}},
 {{"The student goes back to school."}},
-{{"Hey, Listen!"},{"The truth apples can recover your truth value, ","feel free to eat them."}},
+{{"Hey, Listen!"},{"The truth apples can ","recover your truth value, ","feel free to eat them."}},
 {{"Mysterious code:"}},
 {{"Level Code:"}},
 {{"Portal Clear Code:"}}
 }
-TEXTS[0]={{"You lost all your truth value.","Your stupidity shifts you to a believer of ","the OUTER now.","Study hard next time."}}
+TEXTS[0]={{"You lost all your truth value.","Your stupidity shifts you to ","a believer of the OUTER now.","Study hard next time."}}
 
-function damage(iValue, iElem)
-dmg={value=iValue,elem=iElem or 0}
+function damage(iv, ie)
+dmg={value=iv,elem=ie or 0}
 return dmg
 end
 
@@ -82,55 +83,37 @@ function ety:move(dx,dy,forced)
 	self.tCollided=false
 	self.tMoved=false
 	local ox,oy=self.x,self.y
-	self.x=self.x+dx
+	local pos={self.x,self.y}
+	local dp={dx,dy}
+	for i=1,2 do
+	pos[i]=pos[i]+dp[i]
+	self.x=pos[1] self.y=pos[2]
 	local collidedTiles,edt,eft=mapCollision(self,forced)
+	if(#collidedTiles>0)then
+		for i=1,#collidedTiles do
+			local tile=collidedTiles[i]
+			if MAP_TOUCH:contains(tile[1]) then self:touch(tile,forced) end
+		end
+		pos[i]=pos[i]-dp[i]
+	elseif(not entityCollisionFree(self))then 
+		pos[i]=pos[i]-dp[i]
+	elseif(#edt>0)then
+		if(forced) then
+			for i=1,#edt do
+				local tile=edt[i]
+				self:enter(tile)
+			end
+		else pos[i]=pos[i]-dp[i] end
+	elseif(#eft)then
+		for i=1,#eft do
+			local tile=eft[i]
+			self:enter(tile)
+		end
+	end
+	--pos[1]=self.x pos[2]=self.y
+	self.x=pos[1] self.y=pos[2]
+	end
 	
-	if(#collidedTiles>0)then
-		for i=1,#collidedTiles do
-			local tile=collidedTiles[i]
-			if MAP_TOUCH:contains(tile[1]) then self:touch(tile,forced) end
-		end
-		self.x=self.x-dx
-	elseif(not entityCollisionFree(self))then 
-		self.x=self.x-dx
-	elseif(#edt>0)then
-		if(forced) then
-			for i=1,#edt do
-				local tile=edt[i]
-				self:enter(tile)
-			end
-		else self.x=self.x-dx end
-	elseif(#eft)then
-		for i=1,#eft do
-			local tile=eft[i]
-			self:enter(tile)
-		end
-	end
-	self.y=self.y+dy
-	collidedTiles,edt,eft=mapCollision(self,forced)
-	if(#collidedTiles>0)then
-		for i=1,#collidedTiles do
-			local tile=collidedTiles[i]
-			if MAP_TOUCH:contains(tile[1]) then self:touch(tile,forced) end
-		end
-		self.y=self.y-dy
-	elseif(not entityCollisionFree(self))then 
-		self.y=self.y-dy
-	elseif(#edt>0)then
-		if(forced) then
-			for i=1,#edt do
-				local tile=edt[i]
-				self:enter(tile)
-			end
-		else
-			self.y=self.y-dy
-		end
-	elseif(#eft)then
-		for i=1,#eft do
-			local tile=eft[i]
-			self:enter(tile)
-		end
-	end
 	if(dx~=0 and ox==self.x)then self.tCollided=true end
 	if(dy~=0 and oy==self.y)then self.tCollided=true end
 	if(ox~=self.x or oy~=self.y)then self.tMoved=true end
@@ -323,8 +306,13 @@ else
 end
 
 if(self.willKnockWithDmg)then
-	self:onHit(damage(1))
-	self:move(-self.fwd[1],-self.fwd[2],true)
+	local f={self.fwd[1],self.fwd[2]}
+	local ax,ay=self.x-ox,self.y-oy
+	if(ax>0)then f[1]=1 elseif(ax<0)then f[1]=-1 end
+	if(ay>0)then f[2]=1 elseif(ay<0)then f[2]=-1 end
+	self:onHit(damage(20))
+	self:movec(-f[1]*8,-f[2]*8,true)
+	self.tiStun=30
 	self.willKnockWithDmg=false
 end
 
@@ -406,7 +394,7 @@ function pl:enter(tile)
 local tId,tx,ty=tile[1],tile[2],tile[3]
 if(tId==178)then mset_4ca(tx,ty,255,178)
 elseif(tId==179)then mset_4ca(tx,ty,255,179)
-elseif(MAP_LAVA:contains(tId))then self:onHit(damage(1))
+elseif(MAP_LAVA:contains(tId))then self.willKnockWithDmg=true --self:onHit(damage(5)) 
 elseif(tId==231)then self.cleared[curLevel]=true loadLevel(NEXTLEVEL[curLevel])
 elseif(tId==238)then self.onButter=true
 elseif(tId==80)then self.onFireTile=true
@@ -568,7 +556,7 @@ sfx(9)
 local elem=1
 if(self.mode==1)then elem=2 end
 local cp=CenterPoint(pl)
-table.insert(eMng,KelvinBullet(cp[1],cp[2],pl.fwd,1,elem))
+table.insert(eMng,KelvinBullet(cp[1]-1,cp[2]-1,pl.fwd,1,elem))
 end
 function theKW:update()
 if(self.inWorking)then
@@ -2281,7 +2269,6 @@ dl.cur=1
 dl.txtsList=TEXTS[id]
 dl.ti=0
 dl.maxT=15
-trace(id)
 if(id==11)then dl.txtsList[1][2]=tostring(PW[curLevel]) end
 if(id==12)then dl.txtsList[1][2]=tostring(PWP[(curLevel-7)//2]) end
 for i=1,#dl.txtsList[1] do dl.maxT=dl.maxT+#dl.txtsList[1][i] end
@@ -2313,7 +2300,8 @@ function dl:draw()
     if(iend<0)then iend=0 end
     local tx=string.sub(txts[i],1,iend)
     sumt=sumt+#txts[i]
-		print(tx,2*8+4,12*8-4+i*8,15,1,1,true)
+		print(tx,2*8+4,12*8-4+i*8,15,1,1,false)
+		
 	end
 end
 
@@ -2351,7 +2339,7 @@ self.ti=self.ti+1
 if(btnp(4))then	self:remove() end
 rectb(2*8-1,12*8-1,26*8+2,4*8+4+2,15)
 rect(2*8,12*8,26*8,4*8+4,0)
-print(self.txtsList[1][1],2*8+4,12*8+4,15,1,1,true)
+print(self.txtsList[1][1],2*8+4,12*8+4,15,1,1,false)
 for i=1,4 do
 	print(self.code[i],2*8+4+8*i,12*8+12)
 end
@@ -2410,7 +2398,7 @@ function sd:draw()
     if(iend<0)then iend=0 end
     local tx=string.sub(txts[i],1,iend)
     sumt=sumt+#txts[i]
-		print(tx,15*8-#txts[i]*2,6*8-4+i*8,c,1,1,true)
+		print(tx,15*8-#txts[i]*3,5*8-4+i*8,c,1,1,false)
 	end
 end
 table.insert(uiManager,sd)
