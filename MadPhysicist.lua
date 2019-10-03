@@ -42,7 +42,7 @@ MAP_REMAP_BLANK=set({208,224,225,226,227,228,240,241,242,243,244,245,144,197,213
 MAP_TOUCH=set({17,113,128,165,181})
 MAP_WATER=set({171})
 MAP_BUTTER=set({238})
-MAP_LAVA=set({3,16,19,32,33,34,35,36,48,49,50,51,52,53,64,65,66,67})
+MAP_LAVA=set({16})
 
 TEXTS={
 {{"Dear Student, ","Welcome to S.H.I.F.T.,","AKA Super Hyper Incredible Fhysical Terrain."},
@@ -2394,6 +2394,8 @@ elseif(tile==229)then
 	outTile=232
 elseif(tile==254)then
 	outTile=mget(x,y+1)
+elseif(tile==16)then
+	outTile=16+16*(t//10%4)
 end
 return outTile,flip,rotate
 end
