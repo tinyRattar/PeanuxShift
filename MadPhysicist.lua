@@ -6,7 +6,7 @@
 CAMERA_OFF={15*8-4,8*8-4}
 NEARBY4 = {{-1,0},{1,0},{0,-1},{0,1}}
 FAKERANDOM8={4,2,7,5,1,8,3,6}
-NEXTLEVEL={2,3,4,nil,8,10,12,9,4,11,4,13,4}
+NEXTLEVEL={2,3,4,5,6,7,nil,9,10,7,12,13,7,15,16,7}
 TALKER_DIALOG={3,4,5,9,11,nil,6,12}
 TALKER_DIALOG[0]=2
 TALKER_DIALOG[7]=6
@@ -1675,12 +1675,12 @@ local p=item(x,y,16,16)
 p.pullMul=0
 p.pushMul=0
 p.code=code
-if(pl.cleared[code+5])then
+if(pl.cleared[code*3+8])then
 	p.closed=true
 end
 
 function p:onTaken()
-	loadLevel(self.code+5)
+	loadLevel(self.code*3+8)
 end
 function p:update()
 	if(not self.closed and (iEntityTrigger(pl,self)))then self:onTaken() end
@@ -2418,7 +2418,7 @@ function redraw(tile,x,y)
 local ot,f,r=tile,0,0
 if(MAP_REMAP_BLANK:contains(tile))then
 	ot=255
-	if(curLevel==4)then ot=248 end
+	if(curLevel==7)then ot=248 end
 elseif(tile==80)then
 	ot=80+t//10%3
 elseif(tile==171)then
@@ -2493,16 +2493,16 @@ function loadLevel(levelId)
 sync()
 curLevel=levelId
 if(curLevel==0)then FullScreenDialog(1) return end
-if(curLevel==4)then
+if(curLevel==7)then
 	for i=1,3 do
-		if(pl.cleared[4+i])then
+		if(pl.cleared[5+i*3])then
 			mset(193,58+i*8-8,255) mset(194,58+i*8-8,221) 
 			mset(195,58+i*8-8,205) mset(196,58+i*8-8,255)
 		end
 	end
 end
-local lOff = {{0,0},{0,37},{2,68},{180,34}, {0,90},{94,0},{90,34}, {38,106},{38,90}, {120,0},{188,0},{108,40},{143,40}}
-local MapSize = {{85,37},{90,28},{88,17},{30,64}, {38,41},{26,31},{19,35}, {62,25},{62,16},{68,34},{52,28},{36,38},{33,37}}
+local lOff = {{0,0},{48,0},{48,18}, {0,37},{55,37}, {2,68},{180,34}, {0,90},{38,106},{38,90}, {94,0},{120,0},{188,0}, {90,34},{113,40},{147,40}}
+local MapSize = {{48,34},{39,18},{39,18}, {52,26},{34,28}, {88,17},{30,64}, {38,41},{62,25},{62,16}, {26,31},{68,34},{52,28}, {23,41},{34,35},{32,35}}
 iMM.offx = lOff[levelId][1] iMM.offy = lOff[levelId][2]
 for i=1,#mMng do mMng[i]=nil end
 for i=1,#eMng do eMng[i]=nil end
@@ -2567,7 +2567,7 @@ for i=1,#titleC[2] do
 end
   
 print("o",81+math.sin(time()/100),84+(2-cs)*10,6)
-print("v1.01",200,100,15,false,1)
+print("v1.02",200,100,15,false,1)
 if cs==2 then print("start game",90,84,6) print("credits", 90, 94)
 else print("start game",90,84) print("credits", 90, 94,6)end
 end
@@ -3185,7 +3185,7 @@ end
 -- 041:0000000000000000000000000000000040c2c2c2c2c2c24100000000000000a1f4f4f4f4f4f4f4f4f4d3e3e3d3f4f4f4a1770000d5e5e5b9f50057a1e3e3d3feff0f0ffffed3e3e3a100a1e3e3d30eff0f0fff0ed3e3e3a100000000a1ffffffffffffa1005600000000000000000000a1f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4a2f4f4f4f4f4f4f4f4f4f4f4f4f4a2f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4a10000000000000000000057a1ffff5c1bffffa199d9d9d9d9d9d9d9640000000000000000000000000000000000000000000000000000000000000000
 -- 042:00000000000040c2c2c2c2c2c2c2c2c2a1f4f4f4f4f4f4a1c2c2c2c2c2c2c2a1d3e3c8e3c8e3e3e3d3d3b8b8d3d3e3e3a199d9d9d9d9d999640040a1ffffffffffffffffffffffffa1c2a1ffffffffffffffffffffffffa100000000a1484b4b4b4b4ba1d999d9d9d96767d9d9d9d9d9a1e3e3e3d3e3b00000000000c0e3f3e3e3e3e3e3e3a2e3f3e3e3e3e3e3e3e3e3e3e3d3a2d3e3e3e3e3e3f3e3e3e3e3e3e3e3e3e3a5e3e3b0000000000000c0e3e3e3d3a140c2c2c2c2c2c2c2c2c2c2a1ffff1b0bffffa174c2c2c2c2c2c2c274c241000000000000000000000000000000000000000000000000000000000000
 -- 043:000000000000a1f4f4f4f4f4f4f4f4f4d3d3e3e3e3e3d3d3f4f4f4f4f4f4f4f4d3e3c8e3c8e3e3e3d30fffff0fd3e3e3a174c2c2c2c2c27474c2a1d3ffff3143434343434333ffffd3a1d3ffff3143434343434333ffffa1c2000000a1ffffffffffffa1005600000000000000000000a1e3e3e3d3e300000000000000e3f3e3e3e3e3e3e3a2e3f3e3e3e3e3e3e3e3e3e3e3d3a2d3e3e3e3e3e3f3e3e3e3e3c1c1f1e3e3a5e3e30000000000000000e3e3e3d3a1a1f4f4f4f4f4f4f4f4f4f4f4ffffdddcfffff4f4f4f4f4f4f4f4f4f4f4a1000000000000000000000000000000000000000000000000000000000000
--- 044:000000000000a1d3f3e3e3e3e3e3e3e3d3d3e3e3e3e3d3d3c8b0000000c0e3d3d3e3c82ac849b8b8d3ffffffffd3b8b8d3f4f4f4f4f4f4f4f4f4d3d3ffff3002010101010142ffffd3d3d3ffff3001010101010142ffffd3a14140c2a1ffff0f0fffffa1c274c2c2c2c2410000000000a1e3e3e3d3e3b4d4d4d4d4d4c4e3f3e3e3e3e3e3e3a2e3f3e3e3e3e3e3e3e3e3e3e3d3a2d3e3e3e3e3e3f3e3e3e3e3e3e3e3e3e3a5e3e3b4d4d4d4d4d4d4c4e3e3e3d3a1a1d3b00000000000c0e3e3d3ffffdddcffffd3b000000000c0e3a5f3e3a1000000000000000000000000000000000000000000000000000000000000
+-- 044:000000000000a1d3f3e3e3e3e3e3e3e3d3d3e3e3e3e3d3d3c8b0000000c0e3d3d3e3c82ac849b8b8d3ffffffffd3b8b8d3f4f4f4f4f4f4f4f4f4d3d3ffff3001010101010142ffffd3d3d3ffff3001010101010142ffffd3a14140c2a1ffff0f0fffffa1c274c2c2c2c2410000000000a1e3e3e3d3e3b4d4d4d4d4d4c4e3f3e3e3e3e3e3e3a2e3f3e3e3e3e3e3e3e3e3e3e3d3a2d3e3e3e3e3e3f3e3e3e3e3e3e3e3e3e3a5e3e3b4d4d4d4d4d4d4c4e3e3e3d3a1a1d3b00000000000c0e3e3d3ffffdddcffffd3b000000000c0e3a5f3e3a1000000000000000000000000000000000000000000000000000000000000
 -- 045:40c2c2c2c2c2a1d3f3e3e3e3c1e1e3e3d3d3b8b8b8b8d3d3c80000000000e3d3ffffffffff5affffffffffffffffffffd3d3d3e3e3e3e3e3e3e3d3d3ffff3001010101010142ffffd3d3d3ffff3001010101010142ffffd3d3a1a1f4f4ff0fffff0ffff4f4f4f4f4f4f4a10000000000a1ffffffffffffffffffffffffffff0505ffffffffa2ff5fffffffff050505ffffffffa20505ff0effffffff0505ffffffffffffff050505ffffffffffffff0e0505ffa1a1d300000000000000e3e3d3ffffdddcffffd3000000000000e3a5f3e3a1000000000000000000000000000000000000000000000000000000000000
 -- 046:a1f4f4f4f4f4f4d3a8b854b8b8b854b8d3ffff30010101d3c8b4d4d4d4c4e3d3ffffffffff5affffffffffffffffffffd3d3d3e3e3e3e3c1f1e3d3ffffff3453240101235320ffffffd3ffffff3453240101235320ffffd3d3a1a1e3d3ffffffffffffd3e3e3e3e3e3e3a10000000000a1ffffffffffffffeeffffffffffff05ffffffffffa2ffffffffffffffffffffffffffa205ffffffffffffffffffffffffffeeffffffffffffffffffffffffffff0505a1a1d3b4d4d4d4d4d4c4e3e3d3ffffdddcffffd3b4d4d4d4d4c4e3a5f3e3a1000000000000000000000000000000000000000000000000000000000000
 -- 047:a1e3e3e3e3e3c8ff3001540fff0f540142ffff30010101010142ffffffffffffffffffffff5affff31434343434333ffd3d3d349e3e3e3e3e3e3d3ffffffffff30010142ffffffff898989ffffffff30010142ffffffffffd3a1a1e3d3386a6a6a6a6ad3e3e3e3e3e3e3a10000000000a1ffffffffffffffeeffffffffffff05ffffffffffa2ffffffffffffffffffffffffffa2ffffffffffffffffffffff0fffffeeffffffffffffffffffffffffffffff05a1a1ffff63737373627363ffffffffdddcffff6373727373727363ffffffa1000000000000000000000000000000000000000000000000000000000000
