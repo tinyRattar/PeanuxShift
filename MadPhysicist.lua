@@ -109,6 +109,7 @@ function ety:move(dx,dy,forced)
 			local tile=eft[i]
 			self:enter(tile)
 		end
+		pos[1]=self.x pos[2]=self.y -- use for move+translate
 	end
 	--pos[1]=self.x pos[2]=self.y
 	self.x=pos[1] self.y=pos[2]
@@ -256,7 +257,7 @@ else
 	pl:movec(dx*self.tmMul*ms,dy*self.tmMul*ms,true)
 end
 
-if btnp(4) then pl:startAttack() end
+if btnp(4) then pl:startAttack()end
 
 if(btn(5))then
 	self.lastBtn5=self.lastBtn5+1
@@ -2531,7 +2532,7 @@ for i=1,MapSize[levelId][1] do
 		elseif(mtId==197)then	table.insert(eMng,portal(i*8,j*8,LoadMapCode(tx,ty),tx,ty))
     elseif(mtId==213)then	table.insert(eMng,talker(i*8,j*8,LoadMapCode(tx,ty)))
     elseif(mtId==190)then	torchFire(i*8,j*8-8)
-		elseif(mtId==254)then	pl.x=i*8 pl.y=j*8
+		elseif(mtId==254)then	pl.x=i*8 pl.y=j*8 trace("pos"..pl.x)
 		elseif(mtId==229)then	Trinity:locate(i*8,j*8)
 		end
 	end
