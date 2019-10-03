@@ -7,9 +7,11 @@ CAMERA_OFF={15*8-4,8*8-4}
 NEARBY4 = {{-1,0},{1,0},{0,-1},{0,1}}
 FAKERANDOM8={4,2,7,5,1,8,3,6}
 NEXTLEVEL={2,3,4,nil,8,10,12,9,4,11,4,13,4}
-TALKER_DIALOG={3,4,5,9}
+TALKER_DIALOG={3,4,5,9,11,nil,6,12}
 TALKER_DIALOG[0]=2
 TALKER_DIALOG[7]=6
+PW={nil,2274,7297,2077,1276,3731,6791,1273,5091,4649,6881,2189,7982}
+PWP={9243,2426,8367}
 
 function set(ls)
 local s={}
@@ -45,26 +47,30 @@ MAP_BUTTER=set({238})
 MAP_LAVA=set({16})
 
 TEXTS={
-{{"Dear Student, ","Welcome to S.H.I.F.T.,","AKA Super Hyper Incredible Fhysical Terrain."},
-{"We will teach you, guide you and lead you"," to the truth of the world."}},
-{{"Newton:","Gravity always wins.","Now you have my gift, Newton Gravitation."},{"Newton:","Press 'X' to use Newton Gravitation, ","hold 'X' to shift the mode."}},
-{{"Hey, Listen!"},{"Watch out these tiny stupid monsters, ","they are believers of the OUTER.","Their attack will reduce your truth value."},
-{"You can press 'A' to use your truth sword ","to beat them."},
-{"And NEVER forget to use your physicist's Artifact."}},
-{{"Galileo:","Iron ball and feather will land at the same time.","I will give you my Galileo Iron-and-Feather."},
-{"Galileo:","Press 'Y' to use Galileo Iron-and-Feather, ","hold 'Y' to shift the mode."}},
-{{"Kelvin:","It is impossible to stop entropy increase."},
-{"Kelvin:","It is impossible for me to not give you ","Kelvin Impossible-Wand."},
-{"Kelvin:","It is impossible to ","Press 'B' to NOT use Kelvin Impossible-Wand, ","hold 'B' to NOT shift the mode."}},
+{{"PRODUCED BY PEANUX"},
+	{"Dear Student, ","Welcome to S.H.I.F.T.,","AKA Super Hyper Incredible ","Fhysical Terrain."},
+{"We will teach you,","guide you ","and lead you"," to the truth of the world."}},
+{{"Newton:","Gravity always wins.","Now you have my gift, ","Newton Gravitation."},{"Newton:","Press 'X' to use,","hold 'X' to shift the mode."}},
+{{"Hey, Listen!"},{"Watch out these ","tiny stupid monsters, ","they are believers of the OUTER."},
+{"You can press 'A' to use ","your truth sword to beat them."},
+{"And NEVER forget to use your ","physicist's Artifact."}},
+{{"Galileo:","Iron ball and feather will ","land at the same time."},{"I will give you my ","Galileo Iron-and-Feather."},
+{"Galileo:","Press 'Y' to use,","hold 'Y' to shift the mode."}},
+{{"Kelvin:","It is impossible to","stop entropy increase."},
+{"Kelvin:","It is impossible for me ","to not give you ","Kelvin Impossible-Wand."},
+{"Kelvin:","It is impossible to ","Press 'B' to NOT use, ","hold 'B' to NOT shift the mode."}},
 {{"Galileo, Newton, Kelvin:","Let us teach you what is truth."}},
 {{"Truth is just a dream of Azathoth."}},
 {{"The student goes back to school."}},
-{{"Hey, Listen!"},{"The truth apples can recover your truth value, ","feel free to eat them."}}
+{{"Hey, Listen!"},{"The truth apples can ","recover your truth value, ","feel free to eat them."}},
+{{"Mysterious code:"}},
+{{"Level Code:"}},
+{{"Portal Clear Code:"}}
 }
-TEXTS[0]={{"You lost all your truth value.","Your stupidity shifts you to a believer of ","the OUTER now.","Study hard next time."}}
+TEXTS[0]={{"You lost all your truth value.","Your stupidity shifts you to ","a believer of the OUTER now.","Study hard next time."}}
 
-function damage(iValue, iElem)
-dmg={value=iValue,elem=iElem or 0}
+function damage(iv, ie)
+dmg={value=iv,elem=ie or 0}
 return dmg
 end
 
@@ -77,60 +83,42 @@ function ety:move(dx,dy,forced)
 	self.tCollided=false
 	self.tMoved=false
 	local ox,oy=self.x,self.y
-	self.x=self.x+dx
-	local collidedTiles,enteredDangerTiles,enteredFreeTiles=mapCollision(self,forced)
+	local pos={self.x,self.y}
+	local dp={dx,dy}
+	for i=1,2 do
+	pos[i]=pos[i]+dp[i]
+	self.x=pos[1] self.y=pos[2]
+	local collidedTiles,edt,eft=mapCollision(self,forced)
+	if(#collidedTiles>0)then
+		for i=1,#collidedTiles do
+			local tile=collidedTiles[i]
+			if MAP_TOUCH:contains(tile[1]) then self:touch(tile,forced) end
+		end
+		pos[i]=pos[i]-dp[i]
+	elseif(not entityCollisionFree(self))then 
+		pos[i]=pos[i]-dp[i]
+	elseif(#edt>0)then
+		if(forced) then
+			for i=1,#edt do
+				local tile=edt[i]
+				self:enter(tile)
+			end
+		else pos[i]=pos[i]-dp[i] end
+	elseif(#eft)then
+		for i=1,#eft do
+			local tile=eft[i]
+			self:enter(tile)
+		end
+	end
+	--pos[1]=self.x pos[2]=self.y
+	self.x=pos[1] self.y=pos[2]
+	end
 	
-	if(#collidedTiles>0)then
-		for i=1,#collidedTiles do
-			local tile=collidedTiles[i]
-			if MAP_TOUCH:contains(tile[1]) then self:touch(tile,forced) end
-		end
-		self.x=self.x-dx
-	elseif(not entityCollisionFree(self))then 
-		self.x=self.x-dx
-	elseif(#enteredDangerTiles>0)then
-		if(forced) then
-			for i=1,#enteredDangerTiles do
-				local tile=enteredDangerTiles[i]
-				self:enter(tile)
-			end
-		else self.x=self.x-dx end
-	elseif(#enteredFreeTiles)then
-		for i=1,#enteredFreeTiles do
-			local tile=enteredFreeTiles[i]
-			self:enter(tile)
-		end
-	end
-	self.y=self.y+dy
-	collidedTiles,enteredDangerTiles,enteredFreeTiles=mapCollision(self,forced)
-	if(#collidedTiles>0)then
-		for i=1,#collidedTiles do
-			local tile=collidedTiles[i]
-			if MAP_TOUCH:contains(tile[1]) then self:touch(tile,forced) end
-		end
-		self.y=self.y-dy
-	elseif(not entityCollisionFree(self))then 
-		self.y=self.y-dy
-	elseif(#enteredDangerTiles>0)then
-		if(forced) then
-			for i=1,#enteredDangerTiles do
-				local tile=enteredDangerTiles[i]
-				self:enter(tile)
-			end
-		else
-			self.y=self.y-dy
-		end
-	elseif(#enteredFreeTiles)then
-		for i=1,#enteredFreeTiles do
-			local tile=enteredFreeTiles[i]
-			self:enter(tile)
-		end
-	end
 	if(dx~=0 and ox==self.x)then self.tCollided=true end
 	if(dy~=0 and oy==self.y)then self.tCollided=true end
 	if(ox~=self.x or oy~=self.y)then self.tMoved=true end
 end
-function ety:movec(dx,dy,forced) -- continuous move
+function ety:movec(dx,dy,forced)
 	local ix,iy=1,1
 	local ldx=dx
 	local ldy=dy
@@ -179,12 +167,11 @@ function atf:switchOff()
 	self.inWorking=false
 end
 return atf
--- NOTICE: remember calc timer in update()
 end
 
 pl=entity(32,60,16,16)
 pl.fwd = {1,0}
-pl.hp=50
+pl.hp=100
 pl.maxHp=100
 pl.attack = 5
 pl.state = 0
@@ -274,30 +261,30 @@ if btnp(4) then pl:startAttack() end
 if(btn(5))then
 	self.lastBtn5=self.lastBtn5+1
 	if(self.lastBtn5==30)then
-		atfManager:shiftAtf(3)
+		aMng:shiftAtf(3)
 	end
 else
-	if(self.lastBtn5<15 and self.lastBtn5>0)then atfManager:useAtf(3) end
+	if(self.lastBtn5<15 and self.lastBtn5>0)then aMng:useAtf(3) end
 	self.lastBtn5=0
 end
 
 if(btn(6))then
 	self.lastBtn6=self.lastBtn6+1
 	if(self.lastBtn6==30)then
-		atfManager:shiftAtf(1)
+		aMng:shiftAtf(1)
 	end
 else
-	if(self.lastBtn6<15 and self.lastBtn6>0)then atfManager:useAtf(1) end
+	if(self.lastBtn6<15 and self.lastBtn6>0)then aMng:useAtf(1) end
 	self.lastBtn6=0
 end
 
 if(btn(7))then
 	self.lastBtn7=self.lastBtn7+1
 	if(self.lastBtn7==30)then
-		atfManager:shiftAtf(2)
+		aMng:shiftAtf(2)
 	end
 else
-	if(self.lastBtn7<15 and self.lastBtn7>0)then atfManager:useAtf(2) end
+	if(self.lastBtn7<15 and self.lastBtn7>0)then aMng:useAtf(2) end
 	self.lastBtn7=0
 end
 end
@@ -319,8 +306,13 @@ else
 end
 
 if(self.willKnockWithDmg)then
-	self:onHit(damage(1))
-	self:move(-self.fwd[1],-self.fwd[2],true)
+	local f={self.fwd[1],self.fwd[2]}
+	local ax,ay=self.x-ox,self.y-oy
+	if(ax>0)then f[1]=1 elseif(ax<0)then f[1]=-1 end
+	if(ay>0)then f[2]=1 elseif(ay<0)then f[2]=-1 end
+	self:onHit(damage(20))
+	self:movec(-f[1]*8,-f[2]*8,true)
+	self.tiStun=30
 	self.willKnockWithDmg=false
 end
 
@@ -381,33 +373,33 @@ elseif(self.state==1) then
 end
 end
 function pl:touch(tile)
-local tileId,tx,ty=tile[1],tile[2],tile[3]
-if(tileId==181)then
+local tId,tx,ty=tile[1],tile[2],tile[3]
+if(tId==181)then
 	if(mget(tx,ty)==181 and self.key1>0)then
 		mset_4ca(tx,ty,179,181)
 		self.key1=self.key1-1
 	end
-elseif(tileId==165)then 
+elseif(tId==165)then 
 		if(mget(tx,ty)==165 and self.key1>0)then
 			mset_4ca(tx,ty,178,165)
 			self.key1=self.key1-1
 		end
-elseif(tileId==113 or tileId==128)then
+elseif(tId==113 or tId==128)then
 	self.tiStun=60
 	shockScreen(1,3)
-	shockActive((tx-iMapManager.offx)*8,(ty-iMapManager.offy)*8)
+	shockActive((tx-iMM.offx)*8,(ty-iMM.offy)*8)
 end
 end
 function pl:enter(tile)
-local tileId,tx,ty=tile[1],tile[2],tile[3]
-if(tileId==178)then mset_4ca(tx,ty,255,178)
-elseif(tileId==179)then mset_4ca(tx,ty,255,179)
-elseif(MAP_LAVA:contains(tileId))then self:onHit(damage(1))
-elseif(tileId==231)then self.cleared[curLevel]=true loadLevel(NEXTLEVEL[curLevel])
-elseif(tileId==238)then self.onButter=true
-elseif(tileId==80)then self.onFireTile=true
-elseif(tileId==182 or tileId==166)then self.willKnockWithDmg=true
-elseif(tileId==180 or tileId==164)then self.willKnockWithDmg=true
+local tId,tx,ty=tile[1],tile[2],tile[3]
+if(tId==178)then mset_4ca(tx,ty,255,178)
+elseif(tId==179)then mset_4ca(tx,ty,255,179)
+elseif(MAP_LAVA:contains(tId))then self.willKnockWithDmg=true --self:onHit(damage(5)) 
+elseif(tId==231)then self.cleared[curLevel]=true loadLevel(NEXTLEVEL[curLevel])
+elseif(tId==238)then self.onButter=true
+elseif(tId==80)then self.onFireTile=true
+elseif(tId==182 or tId==166)then self.willKnockWithDmg=true
+elseif(tId==180 or tId==164)then self.willKnockWithDmg=true
 end
 end
 
@@ -421,14 +413,14 @@ if(self:switchOn())then end
 end
 function theGr:pull(isReverse)
 if(isReverse)then sfx(6) else sfx(5) end
-for i=1,#mobManager do
-	local m=mobManager[i]
+for i=1,#mMng do
+	local m=mMng[i]
 	if(m and m~=pl)then
 		iPull(pl,m,isReverse,self.force,self.rangePow2)
 	end
 end
-for i=1,#envManager do
-	local e=envManager[i]
+for i=1,#eMng do
+	local e=eMng[i]
 	if(e)then	iPull(pl,e,isReverse,self.force,self.rangePow2) end
 end
 end
@@ -481,8 +473,8 @@ if(self:switchOn())then
 		table.insert(self.effectedObject,pl)
 	else
 		sfx(8)
-		for i=1,#mobManager do
-			local m=mobManager[i]
+		for i=1,#mMng do
+			local m=mMng[i]
 			if(m and m~=pl and m.tmMul~=0)then
 				local dv=CenterDisVec(pl,m)
 				local mdis=dv[1]*dv[1]+dv[2]*dv[2]
@@ -564,7 +556,7 @@ sfx(9)
 local elem=1
 if(self.mode==1)then elem=2 end
 local cp=CenterPoint(pl)
-table.insert(envManager,KelvinBullet(cp[1],cp[2],pl.fwd,1,elem))
+table.insert(eMng,KelvinBullet(cp[1]-1,cp[2]-1,pl.fwd,1,elem))
 end
 function theKW:update()
 if(self.inWorking)then
@@ -598,8 +590,8 @@ function m:onDeath() end
 function m:death()
 	self:onDeath()
 	if(m.isDead)then return false end
-	for i=1,#mobManager do
-		if(mobManager[i]==self)then table.remove(mobManager,i) end
+	for i=1,#mMng do
+		if(mMng[i]==self)then table.remove(mMng,i) end
 	end
 	m.isDead=true
 	shine(self.x,self.y,self.w//8)
@@ -610,19 +602,19 @@ function m:tryAwake()
 	if(d<self.alertRange)then self.sleep=false end
 end
 function m:touch(tile,forced)
-	local tileId,tx,ty=tile[1],tile[2],tile[3]
+	local tId,tx,ty=tile[1],tile[2],tile[3]
 	if(forced)then
-		if(tileId==113 or tileId==128)then
+		if(tId==113 or tId==128)then
 			self.tiStun=self.stunTime_shockTile
-			shockActive((tx-iMapManager.offx)*8,(ty-iMapManager.offy)*8)
+			shockActive((tx-iMM.offx)*8,(ty-iMM.offy)*8)
 		end
 	end
 end
 function m:enter(tile)
-	local tileId,tx,ty=tile[1],tile[2],tile[3]
-	if(MAP_LAVA:contains(tileId))then self:death()
-	elseif(tileId==80)then self.onFireTile=true
-	elseif(tileId==182 or tileId==166)then self:death() end
+	local tId,tx,ty=tile[1],tile[2],tile[3]
+	if(MAP_LAVA:contains(tId))then self:death()
+	elseif(tId==80)then self.onFireTile=true
+	elseif(tId==182 or tId==166)then self:death() end
 end
 function m:defaultMove(needDis)
 	local dv=CenterDisVec(pl,self)
@@ -750,7 +742,7 @@ function rg:shoot(vecDirection)
 	self.waitShoot=false
 	local cp=CenterPoint(self)
 	local fwd=vecNormFake(vecDirection)
-	table.insert(envManager,tinyBullet(cp[1],cp[2],fwd))
+	table.insert(eMng,tinyBullet(cp[1],cp[2],fwd))
 end
 function rg:update()
 	if(not self:defaultUpdate())then return end
@@ -1103,9 +1095,9 @@ self.tarDmg=100
 self.nt=Newton(x-40,y)
 self.gl=Galileo(x+40,y)
 self.kl=Kelvin(x,y+60)
-table.insert(mobManager,self.nt)
-table.insert(mobManager,self.gl)
-table.insert(mobManager,self.kl)
+table.insert(mMng,self.nt)
+table.insert(mMng,self.gl)
+table.insert(mMng,self.kl)
 self.nt.sleep=false
 self.gl.sleep=false
 self.kl.sleep=false
@@ -1188,8 +1180,8 @@ function nt:pull(isReverse)
   local pm=1
   if(inRage)then pm=1.25 end
 	iPull(self,pl,isReverse,self.force*0.5*pm)
-	for i=1,#envManager do
-		local e=envManager[i]
+	for i=1,#eMng do
+		local e=eMng[i]
 		if(e)then	
 			iPull(self,e,isReverse,self.force*pm)
 			if(not isReverse)then
@@ -1206,7 +1198,7 @@ function nt:emitApple(fwd)
   if(inRage)then ei=4 end
   for i=1,ei do
   local ax,ay=cp[1]-4+lf[i][1]*8,cp[2]-4+lf[i][2]*8
-    table.insert(envManager,apple(ax,ay)) 
+    table.insert(eMng,apple(ax,ay)) 
     dust(ax,ay,5,{5,3,3,3},2) 
   end
 end
@@ -1408,7 +1400,7 @@ end
 function kl:castIceBall()
   local ki=KelvinIceBall(self.x,self.y)
   if(inRage)then ki.ms=1.25 ki.hp=2 end
-	table.insert(mobManager,ki)
+	table.insert(mMng,ki)
 end
 function kl:update()
 	local _t=1
@@ -1468,8 +1460,8 @@ function km:meleeCalc()
 	self:death()
 end
 function km:death()
-	for i=1,#mobManager do
-		if(mobManager[i]==self)then table.remove(mobManager,i) end
+	for i=1,#mMng do
+		if(mMng[i]==self)then table.remove(mMng,i) end
 	end
 	return true
 end
@@ -1504,7 +1496,7 @@ local wr=mob(x,y,8,8,1,-1)
 wr.pullMul=0 wr.pushMul=0 wr.tmMul=0
 
 function wr:onDeath()
-	mset(iMapManager.offx+self.x//8,iMapManager.offy+self.y//8,255)
+	mset(iMM.offx+self.x//8,iMM.offy+self.y//8,255)
 end
 function wr:update()
 end
@@ -1521,7 +1513,7 @@ ft.tmMul=0 ft.rawChangeTime=1 ft.tiC=0 ft.sprite=182 ft.horSprite=166
 
 function ft:changeOneTile()
 	local tmp=1
-	if(self.toShort)then tmp=-1 mset(iMapManager.offx+self.tailx,iMapManager.offy+self.taily,255) end
+	if(self.toShort)then tmp=-1 mset(iMM.offx+self.tailx,iMM.offy+self.taily,255) end
 	if(self.fwd[1]<0)then	self.x=self.x-tmp*8	end
 	if(self.fwd[1]~=0)then self.w=self.w+tmp*8 end
 	if(self.fwd[2]<0)then	self.y=self.y-tmp*8	end
@@ -1529,18 +1521,18 @@ function ft:changeOneTile()
 	self.curLen=self.curLen+tmp
 	self.tailx=self.tailx+tmp*self.fwd[1]
 	self.taily=self.taily+tmp*self.fwd[2]
-	if(not self.toShort)then mset(iMapManager.offx+self.tailx,iMapManager.offy+self.taily,self.sprite) end
+	if(not self.toShort)then mset(iMM.offx+self.tailx,iMM.offy+self.taily,self.sprite) end
 end
 function ft:init()
 	self.tailx=self.x//8
 	self.taily=self.y//8
 	for i=1,#NEARBY4 do
 		local tfwd=NEARBY4[i]
-		local tileId=mget(iMapManager.offx+self.x//8+tfwd[1],iMapManager.offy+self.y//8+tfwd[2])
-		if(tileId==self.sprite)then
+		local tId=mget(iMM.offx+self.x//8+tfwd[1],iMM.offy+self.y//8+tfwd[2])
+		if(tId==self.sprite)then
 			self.fwd=tfwd
 			break
-		elseif(tileId==self.horSprite)then
+		elseif(tId==self.horSprite)then
 			self.fwd=tfwd
 			self.sprite=self.horSprite
 			break
@@ -1548,7 +1540,7 @@ function ft:init()
 	end
 	local tLen=0
 	if(self.fwd)then
-		while(mget(iMapManager.offx+self.tailx+self.fwd[1],iMapManager.offy+self.taily+self.fwd[2])==self.sprite)do
+		while(mget(iMM.offx+self.tailx+self.fwd[1],iMM.offy+self.taily+self.fwd[2])==self.sprite)do
 			tLen=tLen+1
 			self.tailx=self.tailx+self.fwd[1]
 			self.taily=self.taily+self.fwd[2]
@@ -1639,8 +1631,8 @@ function it:update()
 	if(iEntityTrigger(pl,self))then self:onTaken() end
 end
 function it:remove()
-	for i=1,#envManager do
-		if(envManager[i]==self)then table.remove(envManager,i) end
+	for i=1,#eMng do
+		if(eMng[i]==self)then table.remove(eMng,i) end
 	end
 end
 return it
@@ -1721,15 +1713,16 @@ function tk:afterTalked()
 	local c=self.code
 	if(c==7)then
 		Trinity:init()
-	elseif(c==0)then atfManager[1]=theGr
-	elseif(code==2)then atfManager[2]=theTM
-	elseif(code==3)then atfManager[3]=theKW
+	elseif(c==0)then aMng[1]=theGr
+	elseif(code==2)then aMng[2]=theTM
+	elseif(code==3)then aMng[3]=theKW
 	end
 end
 function tk:onTaken()
+	self.talked=true
+	if(self.code==6)then CodeDialog() return end
 	if(self.code==7)then pl.maxHp=200 end
 	dialog(TALKER_DIALOG[tk.code])
-	self.talked=true
 end
 function tk:update()
 	if(self.talked)then self:afterTalked() self:remove()
@@ -1758,8 +1751,8 @@ function blt:hitCheck()
 	if(self.hitPlayer)then
 		if(iEntityTrigger(pl,self))then return self:hit(pl) end
 	else
-		for i=1,#mobManager do
-			local m=mobManager[i]
+		for i=1,#mMng do
+			local m=mMng[i]
 			if(m and m.canHit)then
 				if(iEntityTrigger(m,self))then 
 					return self:hit(m)
@@ -1835,17 +1828,17 @@ function kb:draw()
 	circc(self.x,self.y,1,color)
 end
 function kb:enter(tile)
-	local tileId,tx,ty=tile[1],tile[2],tile[3]
+	local tId,tx,ty=tile[1],tile[2],tile[3]
 	if(self.elem==1)then
-		if(MAP_BUTTER:contains(tileId))then
+		if(MAP_BUTTER:contains(tId))then
 			mset_4ca_set(tx,ty,80,MAP_BUTTER) 
 			self:remove()
 		end
 	elseif(self.elem==2)then
-		if(MAP_WATER:contains(tileId))then
+		if(MAP_WATER:contains(tId))then
 			mset_4ca_set(tx,ty,17,MAP_WATER) 
 			self:remove()
-		elseif(tileId==80)then
+		elseif(tId==80)then
 			if(inbossBattle)then mset_4ca(tx,ty,255,80) else
 			mset_4ca(tx,ty,238,80) end
 			self:remove()
@@ -1853,9 +1846,9 @@ function kb:enter(tile)
 	end
 end
 function kb:touch(tile)
-	local tileId,tx,ty=tile[1],tile[2],tile[3]
+	local tId,tx,ty=tile[1],tile[2],tile[3]
 	if(self.elem==1)then
-		if(tileId==17)then
+		if(tId==17)then
 			if(inbossBattle)then mset_4ca(tx,ty,255,17) else
 			mset_4ca(tx,ty,171,17) end
 		end
@@ -1872,12 +1865,12 @@ ef.pushMul=0 ef.after=false
 
 function ef:remove()
 	if(self.after)then
-		for i=1,#aEnvManager do
-			if(aEnvManager[i]==self)then table.remove(aEnvManager,i) end
+		for i=1,#aEMng do
+			if(aEMng[i]==self)then table.remove(aEMng,i) end
 		end
 	else
-		for i=1,#envManager do
-			if(envManager[i]==self)then table.remove(envManager,i) end
+		for i=1,#eMng do
+			if(eMng[i]==self)then table.remove(eMng,i) end
 		end
 	end
 end
@@ -1897,7 +1890,7 @@ function sh:draw()
 	sprc(194+(self.ti//20),self.x,self.y,0,sh.scale,0,0,1,1)
 end
 
-table.insert(envManager,sh)
+table.insert(eMng,sh)
 return sh
 end
 
@@ -1918,7 +1911,7 @@ function sa:draw()
 	local off=self.ti//self.tInter
 	rectbc(self.x-off,self.y-off,self.w+off*2,self.h+off*2,self.colors[off+1])
 end
-table.insert(envManager,sa)
+table.insert(eMng,sa)
 return sa
 end
 
@@ -1948,7 +1941,7 @@ function ep:draw()
 		circc(self.x+fwd[1]*self.ti,self.y+fwd[2]*self.ti,5*(1-self.ti/30),color)
 	end
 end
-table.insert(envManager,ep)
+table.insert(eMng,ep)
 return ep
 end
 
@@ -1980,7 +1973,7 @@ function ds:draw()
 		circc(self.x+fwd[1]*self.ti,self.y+fwd[2]*self.ti,self.size*(1-self.ti/self.tLife),color)
 	end
 end
-table.insert(envManager,ds)
+table.insert(eMng,ds)
 return ds
 end
 
@@ -1996,7 +1989,7 @@ function st:draw()
 	circc(self.x,self.y-self.maxDis*scale,1,color)
 end
 
-table.insert(aEnvManager,st)
+table.insert(aEMng,st)
 return st
 end
 function starDust(x,y,w,h,num,color,tLife,tGenInter)
@@ -2019,7 +2012,7 @@ function ds:update()
 end
 function ds:draw()
 end
-table.insert(envManager,ds)
+table.insert(eMng,ds)
 return ds
 end
 
@@ -2032,7 +2025,7 @@ function tf:draw()
   sprc(381+(t//20)%3,self.x,self.y,0,2,0,0,1,1)
 end
 
-table.insert(envManager,tf)
+table.insert(eMng,tf)
 return tf
 end
 
@@ -2065,7 +2058,7 @@ function ss:update()
 end
 function ss:draw()
 end
-table.insert(envManager,ss)
+table.insert(eMng,ss)
 return ss
 end
 	
@@ -2156,8 +2149,8 @@ function boxOverlapCast(box)
 local b=box
 if(b.x==nil) then b={x=b[1],y=b[2],w=b[3],h=b[4]} end
 finded = {}
-for i=1,#mobManager do
-	local m=mobManager[i]
+for i=1,#mMng do
+	local m=mMng[i]
 	if(m and iEntityCollision(b,m))then finded[#finded+1]=m end
 end
 return finded
@@ -2213,13 +2206,13 @@ if(not ety.noMapCollide)then
 	local d=(ety.y+ety.h-1)//8
 	for i=l,r do
 		for j=u,d do
-			local tileId = mget(iMapManager.offx+i,iMapManager.offy+j)
-			if(MAP_COLLIDE:contains(tileId) or MAP_TOUCH:contains(tileId))then
-				table.insert(collidedTileList,{tileId,iMapManager.offx+i,iMapManager.offy+j})
-			elseif(MAP_ENTER_DANGER:contains(tileId))then
-				table.insert(enteredDangerList,{tileId,iMapManager.offx+i,iMapManager.offy+j})
-			elseif(MAP_ENTER_FREE:contains(tileId))then
-				table.insert(enteredFreeList,{tileId,iMapManager.offx+i,iMapManager.offy+j})
+			local tId = mget(iMM.offx+i,iMM.offy+j)
+			if(MAP_COLLIDE:contains(tId) or MAP_TOUCH:contains(tId))then
+				table.insert(collidedTileList,{tId,iMM.offx+i,iMM.offy+j})
+			elseif(MAP_ENTER_DANGER:contains(tId))then
+				table.insert(enteredDangerList,{tId,iMM.offx+i,iMM.offy+j})
+			elseif(MAP_ENTER_FREE:contains(tId))then
+				table.insert(enteredFreeList,{tId,iMM.offx+i,iMM.offy+j})
 			end
 		end
 	end
@@ -2229,8 +2222,8 @@ end
 
 function entityCollisionFree(ety)
 if(ety.noEntityCollide)then return true end
-for i=1,#mobManager do
-	local m=mobManager[i]
+for i=1,#mMng do
+	local m=mMng[i]
 	if(m and m~=ety)then
 		if(iEntityCollision(ety,m))then return false end
 	end
@@ -2246,8 +2239,8 @@ local u=ety.y//8
 local d=(ety.y+ety.h-1)//8
 for i=l,r do
 	for j=u,d do
-		local tileId = mget(iMapManager.offx+i,iMapManager.offy+j)
-		if(MAP_COLLIDE:contains(tileId))then return false end
+		local tId = mget(iMM.offx+i,iMM.offy+j)
+		if(MAP_COLLIDE:contains(tId))then return false end
 	end
 end
 return true
@@ -2276,6 +2269,8 @@ dl.cur=1
 dl.txtsList=TEXTS[id]
 dl.ti=0
 dl.maxT=15
+if(id==11)then dl.txtsList[1][2]=tostring(PW[curLevel]) end
+if(id==12)then dl.txtsList[1][2]=tostring(PWP[(curLevel-7)//2]) end
 for i=1,#dl.txtsList[1] do dl.maxT=dl.maxT+#dl.txtsList[1][i] end
 
 function dl:afterRemove()
@@ -2305,12 +2300,54 @@ function dl:draw()
     if(iend<0)then iend=0 end
     local tx=string.sub(txts[i],1,iend)
     sumt=sumt+#txts[i]
-		print(tx,2*8+4,12*8-4+i*8,15,1,1,true)
+		print(tx,2*8+4,12*8-4+i*8,15,1,1,false)
+		
 	end
 end
 
 if(not noAutoActive)then table.insert(uiManager,dl) end
 return dl
+end
+
+function CodeDialog()
+local cd=dialog(10,true)
+cd.code={0,0,0,0}
+cd.cP=1
+
+function cd:afterRemove()
+	local c=self.code
+	local x=c[1]*1000+c[2]*100+c[3]*10+c[4]
+	for i=1,#PW do
+		if(x==PW[i])then curLevel=i loadLevel(curLevel) end
+	end
+	for i=1,#PWP do
+		if(x==PWP[i])then curLevel=4 pl.cleared[i+4]=true loadLevel(curLevel) end
+	end
+	local l={theGr,theTM,theKW}
+	for i=1,3 do
+		if(curLevel>i)then aMng[i]=l[i] end
+	end
+end
+
+function cd:draw()
+local cN=self.code[self.cP]
+if(btnp(0))then self.code[self.cP]=(cN+1)%10
+elseif(btnp(1))then self.code[self.cP]=(cN-1)%10
+elseif(btnp(2))then self.cP=(self.cP-2)%4+1
+elseif(btnp(3))then self.cP=(self.cP)%4+1 end
+self.ti=self.ti+1
+if(btnp(4))then	self:remove() end
+rectb(2*8-1,12*8-1,26*8+2,4*8+4+2,15)
+rect(2*8,12*8,26*8,4*8+4,0)
+print(self.txtsList[1][1],2*8+4,12*8+4,15,1,1,false)
+for i=1,4 do
+	print(self.code[i],2*8+4+8*i,12*8+12)
+end
+print("^",20+8*self.cP,12*8+18)
+end
+
+table.insert(uiManager,cd)
+return cd
 end
 
 function GameOverDialog()
@@ -2326,7 +2363,6 @@ end
 function FullScreenDialog(index)
 local sd=dialog(index,true)
 sd.id=index
--- sd.txtsList=TEXTS[index]
 sd.ti=0
 sd.maxT=15
 for i=1,#sd.txtsList[1] do
@@ -2362,7 +2398,7 @@ function sd:draw()
     if(iend<0)then iend=0 end
     local tx=string.sub(txts[i],1,iend)
     sumt=sumt+#txts[i]
-		print(tx,15*8-#txts[i]*2,6*8-4+i*8,c,1,1,true)
+		print(tx,15*8-#txts[i]*3,5*8-4+i*8,c,1,1,false)
 	end
 end
 table.insert(uiManager,sd)
@@ -2372,37 +2408,38 @@ function LoadMapCode(tx,ty)
 local code=0
 local is={0,0,0}
 if(mget(tx+1,ty)==176)then code=code+4 end
+if(mget(tx+1,ty)==255)then code=code+8 end
 if(mget(tx,ty+1)==176)then code=code+2 end
 if(mget(tx+1,ty+1)==176)then code=code+1 end
 return code
 end
 
 function redraw(tile,x,y)
-local outTile,flip,rotate=tile,0,0
+local ot,f,r=tile,0,0
 if(MAP_REMAP_BLANK:contains(tile))then
-	outTile=255
-	if(curLevel==4)then outTile=248 end
+	ot=255
+	if(curLevel==4)then ot=248 end
 elseif(tile==80)then
-	outTile=80+t//10%3
+	ot=80+t//10%3
 elseif(tile==171)then
-	outTile=171+t//30%2
+	ot=171+t//30%2
 elseif(tile==113)then
-	outTile=113+16*(t//15%2)
+	ot=113+16*(t//15%2)
 elseif(tile==128)then
-	outTile=128-16*(t//15%2)
+	ot=128-16*(t//15%2)
 elseif(tile==229)then
-	outTile=232
+	ot=232
 elseif(tile==254)then
-	outTile=mget(x,y+1)
+	ot=mget(x,y+1)
 elseif(tile==16)then
-	outTile=16+16*(t//10%4)
+	ot=16+16*(t//10%4)
 end
-return outTile,flip,rotate
+return ot,flip,rotate
 end
 
-iMapManager={offx=0,offy=0}
+iMM={offx=0,offy=0}
 
-function iMapManager:draw()
+function iMM:draw()
 map(5*30,7*17,31,18,-30*8+(3*t)%(60*8),0,1,1)
 map(5*30,7*17,31,18,-30*8+(3*t-30*8)%(60*8),0,1,1)
 map(0+self.offx+camera.x//8,0+self.offy+camera.y//8,31,18,8*(camera.x//8)-camera.x,8*(camera.y//8)-camera.y,1,1,redraw)
@@ -2428,10 +2465,10 @@ end
 
 local keyC={"X","Y","B"}
 for i=1,3 do
-	local atf=atfManager[i]
+	local atf=aMng[i]
 	if(atf)then
 		spr(atf.sprite+2*atf.mode,7+(16+4)*(i-1),14*8,1,1,0,0,2,2)
-		if(atfManager[i].inWorking)then
+		if(aMng[i].inWorking)then
 			rect(7+(16+4)*(i-1),15*8-6,16*(1-atf.tiDur/atf.durTime),5,6)
 		elseif(atf.tiCD>0)then
 			rect(7+(16+4)*(i-1),15*8-6,16*(1-atf.tiCD/(atf.cdTime-atf.durTime)),5,2)
@@ -2466,33 +2503,33 @@ if(curLevel==4)then
 end
 local lOff = {{0,0},{0,37},{2,68},{180,34}, {0,90},{94,0},{90,34}, {38,106},{38,90}, {120,0},{188,0},{108,40},{143,40}}
 local MapSize = {{85,37},{90,28},{88,17},{30,64}, {38,41},{26,31},{19,35}, {62,25},{62,16},{68,34},{52,28},{36,38},{33,37}}
-iMapManager.offx = lOff[levelId][1] iMapManager.offy = lOff[levelId][2]
-for i=1,#mobManager do mobManager[i]=nil end
-for i=1,#envManager do envManager[i]=nil end
-table.insert(mobManager,pl)
+iMM.offx = lOff[levelId][1] iMM.offy = lOff[levelId][2]
+for i=1,#mMng do mMng[i]=nil end
+for i=1,#eMng do eMng[i]=nil end
+table.insert(mMng,pl)
 pl.key1=0
 for i=1,MapSize[levelId][1] do
 	for j=1,MapSize[levelId][2] do
-		local tx,ty=i+iMapManager.offx,j+iMapManager.offy
+		local tx,ty=i+iMM.offx,j+iMM.offy
 		local mtId=mget(tx,ty)
-		if(mtId==240)then table.insert(mobManager,slime(i*8,j*8))
-		elseif(mtId==241)then table.insert(mobManager,ranger(i*8,j*8))
-		elseif(mtId==242)then table.insert(mobManager,staticRanger(i*8,j*8,{-1,0}))
-		elseif(mtId==243)then table.insert(mobManager,staticRanger(i*8,j*8,{1,0}))
-		elseif(mtId==244)then table.insert(mobManager,staticRanger(i*8,j*8,{0,-1}))
-		elseif(mtId==245)then table.insert(mobManager,staticRanger(i*8,j*8,{0,1}))
-		elseif(mtId==225)then table.insert(mobManager,bombMan(i*8,j*8))
-		elseif(mtId==226)then table.insert(mobManager,bomb(i*8,j*8))
-		elseif(mtId==227)then table.insert(mobManager,laserElite(i*8,j*8))
-		elseif(mtId==228)then table.insert(mobManager,chargeElite(i*8,j*8))
-		elseif(mtId==224)then	table.insert(envManager,apple(i*8,j*8))
-		elseif(mtId==208)then	table.insert(envManager,keyItem(i*8,j*8,tx,ty))
-		elseif(mtId==209)then	table.insert(mobManager,fence(i*8,j*8))
-		elseif(mtId==144)then	table.insert(mobManager,weakRock(i*8,j*8))
-		elseif(mtId==131)then	table.insert(mobManager,fireTentacle(i*8,j*8))
-		elseif(mtId==132)then	table.insert(mobManager,iceTentacle(i*8,j*8))
-		elseif(mtId==197)then	table.insert(envManager,portal(i*8,j*8,LoadMapCode(tx,ty),tx,ty))
-    elseif(mtId==213)then	table.insert(envManager,talker(i*8,j*8,LoadMapCode(tx,ty)))
+		if(mtId==240)then table.insert(mMng,slime(i*8,j*8))
+		elseif(mtId==241)then table.insert(mMng,ranger(i*8,j*8))
+		elseif(mtId==242)then table.insert(mMng,staticRanger(i*8,j*8,{-1,0}))
+		elseif(mtId==243)then table.insert(mMng,staticRanger(i*8,j*8,{1,0}))
+		elseif(mtId==244)then table.insert(mMng,staticRanger(i*8,j*8,{0,-1}))
+		elseif(mtId==245)then table.insert(mMng,staticRanger(i*8,j*8,{0,1}))
+		elseif(mtId==225)then table.insert(mMng,bombMan(i*8,j*8))
+		elseif(mtId==226)then table.insert(mMng,bomb(i*8,j*8))
+		elseif(mtId==227)then table.insert(mMng,laserElite(i*8,j*8))
+		elseif(mtId==228)then table.insert(mMng,chargeElite(i*8,j*8))
+		elseif(mtId==224)then	table.insert(eMng,apple(i*8,j*8))
+		elseif(mtId==208)then	table.insert(eMng,keyItem(i*8,j*8,tx,ty))
+		elseif(mtId==209)then	table.insert(mMng,fence(i*8,j*8))
+		elseif(mtId==144)then	table.insert(mMng,weakRock(i*8,j*8))
+		elseif(mtId==131)then	table.insert(mMng,fireTentacle(i*8,j*8))
+		elseif(mtId==132)then	table.insert(mMng,iceTentacle(i*8,j*8))
+		elseif(mtId==197)then	table.insert(eMng,portal(i*8,j*8,LoadMapCode(tx,ty),tx,ty))
+    elseif(mtId==213)then	table.insert(eMng,talker(i*8,j*8,LoadMapCode(tx,ty)))
     elseif(mtId==190)then	torchFire(i*8,j*8-8)
 		elseif(mtId==254)then	pl.x=i*8 pl.y=j*8
 		elseif(mtId==229)then	Trinity:locate(i*8,j*8)
@@ -2502,16 +2539,17 @@ end
 end
 
 function gameOver()
-pl.hp=50
+pl.hp=100
+if(pl.maxHp==200)then pl.hp=50 end
 pl.dead=false
 loadLevel(curLevel)
 end
 
-atfManager={nil,nil,nil}
-function atfManager:shiftAtf(index)
+aMng={nil,nil,nil}
+function aMng:shiftAtf(index)
 if(self[index])then	self[index]:shift()	end
 end
-function atfManager:useAtf(index)
+function aMng:useAtf(index)
 if(self[index])then	self[index]:use() end
 end
 
@@ -2529,7 +2567,7 @@ for i=1,#titleC[2] do
 end
   
 print("o",81+math.sin(time()/100),84+(2-cs)*10,6)
-print("v1.00c",200,100,15,false,1)
+print("v1.01",200,100,15,false,1)
 if cs==2 then print("start game",90,84,6) print("credits", 90, 94)
 else print("start game",90,84) print("credits", 90, 94,6)end
 end
@@ -2542,14 +2580,14 @@ print("Sound Effect\n\n\t\t - Roku\n\n\t\t - Playground\n\n\t\t",90,76)
 print("Music\n\n\t\t - Roku\n\n\t\t",180,20)
 print("press A to exit",180,120,15,false,1,true)
 end
-mobManager={}
-envManager={}
-aEnvManager={}  
+mMng={}
+eMng={}
+aEMng={}  
 
 t=0 camera={x=0,y=0} cameraOffset={0,0}
 
-mainManager={mobManager,atfManager,envManager,aEnvManager}
-drawManager={{iMapManager},envManager,{pl},mobManager,aEnvManager,atfManager,uiManager,{Trinity}}
+mainManager={mMng,aMng,eMng,aEMng}
+drawManager={{iMM},eMng,{pl},mMng,aEMng,aMng,uiManager,{Trinity}}
 
 gs=0 cs=2 musicon=-1
 cheat=0
@@ -2557,11 +2595,12 @@ function TIC()
 t=t+1
 if gs==0 then drawMenu()
 	if musicon~=0 then music(2) musicon=0 end
-	if btn(6) then cheat=cheat+1 if(cheat>60)then MAP_COLLIDE:remove(145) atfManager[1]=theGr atfManager[2]=theTM atfManager[3]=theKW gs=2 loadLevel(4) end else cheat=0 end
+	if btn(6) then cheat=cheat+1 if(cheat>60)then MAP_COLLIDE:remove(145) aMng[1]=theGr aMng[2]=theTM aMng[3]=theKW gs=2 loadLevel(4) end else cheat=0 end
 	if btn(0) then cs=2 end
 	if btn(1) then cs=1 end
 	if btnp(4) then 
 		gs=cs
+		
 		if(gs==2)then
 			loadLevel(curLevel)
 		end
