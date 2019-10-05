@@ -28,6 +28,9 @@ Kelvin:
 100
 "The truth apples can recover your truth value, feel free to eat them."
 
+死亡字幕
+"Study Hard Next Time."
+
 最终关卡
 Galileo, Newton, Kelvin:
 "Let us teach you what is truth."
